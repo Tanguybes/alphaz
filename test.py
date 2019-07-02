@@ -3,27 +3,18 @@
 
 import os, requests, webbrowser, selenium
 
-from selenium import webdriver
+from stitch import stitch
 
 tmp         = 'C:\\tmp\\tmp.html' 
 tmp_dir     = os.path.dirname(tmp)
-start_url   = 'http://stiki.cr2.st.com/STIKI/index.php'
-
-login_url   = "http://stiki.cr2.st.com/STIKI/index.php?title=Special:UserLogin&action=submitlogin&type=login&returnto=Main+Page"
 
 # data to be sent 
-data = {'wpName1':"duranda1", 
-        'wpPassword1':'STAdama21it$7', 
-        'wpRemember':''} 
-        
-DRIVER_PATH = 'web-drivers/chromedriver.exe'
+rep = stitch.Stitch.getWebsites()
+print(rep)
 
-SUBMIT_BUTTON = 'wpLoginAttempt'
-
-capabilities = { 'chromeOptions':  { 'useAutomationExtension': False}}
-driver = webdriver.Chrome(DRIVER_PATH, desired_capabilities = capabilities)
+input('end ?')
+exit()
 driver.get(login_url)
-
 for key, value in data.items():
     #driver.find_element_by_id(MAIL).send_keys(user_name)
     elem_pass = driver.find_element_by_id(key)
@@ -31,7 +22,7 @@ for key, value in data.items():
 #elem_pass.submit()
 driver.find_element_by_id(SUBMIT_BUTTON).click()
 
-input('end ?')
+
 exit()
 
 s       = requests.Session()
