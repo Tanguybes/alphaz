@@ -15,6 +15,7 @@ class Core:
 
     @staticmethod
     def init():    
+        print('Core initialization')
         Core.DRIVER = webdriver.Chrome(Core.DRIVER_PATH, desired_capabilities = Core.CAPABILITIES)
 
     @staticmethod
@@ -23,6 +24,5 @@ class Core:
         websites    = [os.path.basename(x) for x in results if os.path.isdir(x)]
         return websites
 
-if __name__ == "__main__":
-    if not Core.INIT:
-        Core.init()
+if not Core.INIT:
+    Core.init()

@@ -8,10 +8,12 @@ class Element():
     etype   = None
     value   = None
 
-    def __init__(self,id, value, etype=None):
+    def __init__(self,id, properties):
+        keys        = properties.keys()
         self.id     = id
-        self.value  = value
-        self.type   = etype
+
+        self.value  = None if not "value" in keys else properties["value"]
+        self.type   = None if not "type" in keys else properties["type"]
 
 data = {'wpName1':"duranda1", 
         'wpPassword1':'STAdama21it$7', 

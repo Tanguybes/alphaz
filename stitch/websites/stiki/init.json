@@ -10,14 +10,11 @@
             "type": "checkbox"
         }
     },
-    "init":
-        {
-            "url": "http://stiki.cr2.st.com/STIKI/index.php?title=Special:UserLogin&action=submitlogin&type=login&returnto=Main+Page",
-            "set": [
-                {"wpName1":"duranda1"},
-                {"wpPassword1":"STAdama21it$7"},
-                {"wpRemember":""}
-            ],
-            "click": ["wpLoginAttempt"]
-        } 
+    "url": "http://stiki.cr2.st.com/STIKI/index.php?title=Special:UserLogin&action=submitlogin&type=login&returnto=Main+Page",
+    "set": [
+        {"wpName1":"duranda1"},
+        {"wpPassword1":"STAdama21it$7"},
+        {"wpRemember":""}
+    ],
+    "click": ["wpLoginAttempt"]
 }
