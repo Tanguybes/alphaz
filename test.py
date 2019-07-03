@@ -8,29 +8,31 @@ tmp_dir     = os.path.dirname(tmp)
 
 #rep = stitch.Stitch.getWebsites()
 
-import pystray
+from pystray import Icon, Menu, MenuItem
 from PIL import Image, ImageDraw
-icon = pystray.Icon('test name')
+import sys
 
-width = 25
-height = 25
-color1 = "red"
-color2 = "blue"
+state = True
 
-def create_image():
-    # Generate an image and draw a pattern
-    image = Image.new('RGB', (width, height), color1)
-    dc = ImageDraw.Draw(image)
-    dc.rectangle(
-        (width // 2, 0, width, height // 2),
-        fill=color2)
-    dc.rectangle(
-        (0, height // 2, width // 2, height),
-        fill=color2)
+def on_clicked(icon, item):
+    global state
+    state = not item.checked
 
-    return image
+def exitAlpha():
+    icon.stop()
 
-icon.icon = create_image()
+global icon
+icon        = Icon('test name')
+icon.icon   = Image.open("alpha.png")
+icon.menu   = Menu(
+        MenuItem('Alpha',None),
+        MenuItem(
+            'Running',
+            on_clicked,
+            checked=lambda item: state),
+        MenuItem('Exit',exitAlpha),
+    )
+    
 
 icon.run()
 
