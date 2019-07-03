@@ -3,25 +3,36 @@
 
 import os, requests, webbrowser, selenium
 
-from stitch import stitch
-
 tmp         = 'C:\\tmp\\tmp.html' 
 tmp_dir     = os.path.dirname(tmp)
 
-# data to be sent 
-rep = stitch.Stitch.getWebsites()
-print(rep)
+#rep = stitch.Stitch.getWebsites()
 
-input('end ?')
-exit()
-driver.get(login_url)
-for key, value in data.items():
-    #driver.find_element_by_id(MAIL).send_keys(user_name)
-    elem_pass = driver.find_element_by_id(key)
-    elem_pass.send_keys(value)
-#elem_pass.submit()
-driver.find_element_by_id(SUBMIT_BUTTON).click()
+import pystray
+from PIL import Image, ImageDraw
+icon = pystray.Icon('test name')
 
+width = 25
+height = 25
+color1 = "red"
+color2 = "blue"
+
+def create_image():
+    # Generate an image and draw a pattern
+    image = Image.new('RGB', (width, height), color1)
+    dc = ImageDraw.Draw(image)
+    dc.rectangle(
+        (width // 2, 0, width, height // 2),
+        fill=color2)
+    dc.rectangle(
+        (0, height // 2, width // 2, height),
+        fill=color2)
+
+    return image
+
+icon.icon = create_image()
+
+icon.run()
 
 exit()
 
