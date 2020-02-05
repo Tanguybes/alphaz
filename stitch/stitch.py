@@ -45,6 +45,9 @@ class Stitch(object):
             elif key == "click":
                 for name in properties:
                     self.getById(name).click()
+            elif key == "submit":
+                for name in properties:
+                    self.elements[key].submit()
 
     def getById(self,name):
         return Core.DRIVER.find_element_by_id(name)
@@ -53,5 +56,5 @@ class Stitch(object):
         Core.DRIVER.get(args[0])
 
 if __name__ == "__main__":
-    stiki = Stitch('Stiki')
+    stiki = Stitch('leboncoin')
     stiki.process(Core.INIT_FILE)

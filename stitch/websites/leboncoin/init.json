@@ -1,0 +1,11 @@
+{
+    "elements": {
+        "searchInput": {},
+        "searchButton": {}
+    },
+    "url": "https://fr.wikipedia.org",
+    "set": [
+        {"searchInput":"avatar"}
+    ],
+    "submit": ["searchInput"]
+}
