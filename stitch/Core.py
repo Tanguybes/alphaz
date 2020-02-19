@@ -12,11 +12,13 @@ class Core:
     CAPABILITIES    = { 'chromeOptions':  { 'useAutomationExtension': False}}
 
     DRIVER          = None
+    ROOT_PATH       = ""
 
     @staticmethod
     def init():    
         print('Core initialization')
-        Core.DRIVER = webdriver.Chrome(Core.DRIVER_PATH, desired_capabilities = Core.CAPABILITIES)
+        Core.ROOT_PATH  = os.path.dirname(__file__)
+        Core.DRIVER     = webdriver.Chrome(Core.ROOT_PATH + os.sep + Core.DRIVER_PATH, desired_capabilities = Core.CAPABILITIES)
 
     @staticmethod
     def getWebsites():

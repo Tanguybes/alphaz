@@ -14,7 +14,3 @@ class Element():
 
         self.value  = None if not "value" in keys else properties["value"]
         self.type   = None if not "type" in keys else properties["type"]
-
-data = {'wpName1':"duranda1", 
-        'wpPassword1':'STAdama21it$7', 
-        'wpRemember':''} 

@@ -1,6 +1,6 @@
-import os, ast, json
+import ast, json
 
-from imports import *
+from .imports import *
 
 class Stitch(object):
     name        = None
@@ -17,12 +17,17 @@ class Stitch(object):
         self.configured = self.path in websites
 
     def process(self, file_name):
-        path = Core.WEBSITES_PATH + os.sep + self.path + os.sep + file_name
-
+        path = Core.WEBSITES_PATH + os.sep + self.path + os.sep + file_name + '.json'
+        
+        print(os.getcwd())
+        print('    ',path)
         if os.path.isfile(path):
             with open(path,'r') as f:
                 content = f.read()
             content_dict = json.loads(content)
+        else:
+            print('Folder not found')
+            exit()
 
         root_keys = content_dict.keys()
         
@@ -36,8 +41,8 @@ class Stitch(object):
                 self.get(properties)
             elif key == "set":
                 for el in properties:
-                    name = list(el.keys())[0]
-                    value = el[name]
+                    name    = list(el.keys())[0]
+                    value   = el[name]
                     self.elements[name].value = value
 
                     elem_pass = self.getById(name)
@@ -54,7 +59,3 @@ class Stitch(object):
 
     def get(self, *args):
         Core.DRIVER.get(args[0])
-
-if __name__ == "__main__":
-    stiki = Stitch('leboncoin')
-    stiki.process(Core.INIT_FILE)
