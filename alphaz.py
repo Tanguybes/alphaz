@@ -1,15 +1,19 @@
-import argparse
+import argparse, os, sys
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(prog='Golliath', description='Alpha', epilog='Alpha')
+sys.path.append(os.getcwd())
 
-    parser.add_argument('--mobba', '-m', action='store_true', help='Full mode')
-    parser.add_argument('--groups', '-g', help='Groups', nargs='+')
+parser = argparse.ArgumentParser(prog='Golliath', description='Alpha', epilog='Alpha')
 
-    args            = parser.parse_args()
+parser.add_argument('--mobba', '-m', action='store_true', help='Full mode')
+parser.add_argument('--stitch', '-st', action='store_true', help='Full mode')
+parser.add_argument('--groups', '-g', help='Groups', nargs='+')
 
-    if args.mobba:
-        from main import mobba
-        mobba()
+args            = parser.parse_args()
+
+if args.stitch:
+    from stitch import Stitch
+    prog = Stitch('Test')
+    prog.set_driver('firefox')
+    prog.process('init')
 
     

@@ -119,7 +119,6 @@ class GoogleSearch():
     words = {}
 
     def scrap_api(self,search_string):
-        print('scrap api')
         apikey = 'f22df9d6edeba41d3888a7384a4d945ed099efc202535f81ca4a58f6c7557afd'
 
         params = {
@@ -159,12 +158,7 @@ class GoogleSearch():
                         if 'extensions' in element['rich_snippet']['top']:
                             self.process_list(element['rich_snippet']['top']['extensions'])
 
-    def scrap(self,search_string):
-        force = False
-        if search_string == '': return
-
-        print('Scrapping ...',search_string)
-
+    def search(self,search_string,force=False):
         URL     = "https://www.google.com/search?"
         PARAMS  = {'q':search_string, 'num':100}
         proxy   = next(proxy_pool)
@@ -180,13 +174,21 @@ class GoogleSearch():
         else:
             with open(tmp_file,'r') as f:
                 html = f.read()
+        return html
+
+    def scrap(self,search_string,force=False):
+        if search_string == '': return
+
+        print('Scrapping ...',search_string)
+
+        html    = self.search(search_string,force)
 
         soup    = BeautifulSoup(html,"html.parser")
 
         # masters 
-        entries = []
-        globals_text = []
-        mydivs      = soup.findAll("div", {"class": "ZINbbc xpd O9g5cc uUPGi"})
+        entries         = []
+        globals_text    = []
+        mydivs          = soup.findAll("div", {"class": "ZINbbc xpd O9g5cc uUPGi"})
         for mydiv in mydivs:
             #parser  = Parser(div,"div", {"class": "ZINbbc xpd O9g5cc uUPGi"})
             #parser      = Parser(div,"div","ZINbbc xpd O9g5cc uUPGi")

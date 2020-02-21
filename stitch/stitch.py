@@ -16,6 +16,9 @@ class Stitch(object):
         websites        = Core.getWebsites()
         self.configured = self.path in websites
 
+    def set_driver(self,name):
+        Core.set_driver(name)
+
     def process(self, file_name):
         path = Core.WEBSITES_PATH + os.sep + self.path + os.sep + file_name + '.json'
         
@@ -59,3 +62,6 @@ class Stitch(object):
 
     def get(self, *args):
         Core.DRIVER.get(args[0])
+
+if __name__ == "__main__":
+    print('yeah')
