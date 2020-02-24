@@ -10,6 +10,7 @@ inbox       = namespace.GetDefaultFolder(6)
 
 messages    = inbox.Items
  
+ 
 # get message contents
 for message in messages:
     try:
