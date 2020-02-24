@@ -12,14 +12,16 @@ def ensure_file(filename):
     with open(filename,"w") as f:
         f.write("")
 
-def save_as_json(filename,data,verbose): 
+def save_as_json(filename,data,verbose=False): 
     ensure_file(filename)
     if verbose:
         print('Write json file to %s'%filename)
 
     # Writing JSON data
+    json_content = json.dumps(data, default=lambda x: None)
     with open(filename, 'w') as f:
-        json.dump(data, f)
+        f.write(json_content)
+        #json.dump(data, f)
 
 def get_proxies(nb=None):
     url         = 'https://free-proxy-list.net/'
