@@ -1,6 +1,6 @@
 import traceback, inspect, os, time, sys, uuid, datetime
 import mysql.connector, inspect
-import sql_shared
+from Libs import sql_lib
 
 class Logger():
 

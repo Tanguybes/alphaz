@@ -18,6 +18,25 @@ def check_root(root):
         os.mkdir(root)
     return root
 
+"""
+import subprocess, os, psutil, logging
+from logging.handlers import TimedRotatingFileHandler
+
+log_file    = '/home/truegolliath/logs/ensure_golliath.log'
+logger      = logging.getLogger('EnsureGolliath')
+logger.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter(
+    "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+
+log_handler = TimedRotatingFileHandler(
+    log_file, when='midnight', backupCount=30
+)
+log_handler.setFormatter(formatter)
+logger.addHandler(log_handler)
+"""
+
 class AlphaLogger():
     cmd_output  = False
     pid         = None
@@ -52,10 +71,10 @@ class AlphaLogger():
     
     def _log(self,message,level='info'):
         self.set_current_date()
-
+        self.level = level.upper()
+        
         message = self.get_formatted_message(message)
 
-        self.level = level.upper()
         if self.level == 'INFO':
             self.logger.info(message)
         elif self.level == 'WARNING':
@@ -81,7 +100,7 @@ class AlphaLogger():
             if structure%key in self.format_log:
                 msg = msg.replace(structure%key,str(value))
 
-        msg = msg.replace(structure%'message',message)
+        msg = msg.replace(structure%'message',str(message))
         return msg
 
     def info(self,message):
