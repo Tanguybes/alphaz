@@ -1,8 +1,9 @@
 
-import  os, json, inspect
+import  os, json, inspect, copy
 
 from ..libs import converter_lib
 from ..utils.logger import AlphaLogger, get_alpha_logs_root
+from .utils import merge_configuration
 
 def ensure_path(dict_object,paths=[],value=None):
     if len(paths) == 0: 
@@ -20,7 +21,10 @@ def ensure_path(dict_object,paths=[],value=None):
 class AlphaConfig():
     filename    = None
     exist       = False
+
+    data_origin = {}
     data        = {}
+    data_env    = {}
 
     def __init__(self,name='config',filepath=None,root=None,filename=None,logger=None):
         if filepath is not None:
@@ -58,14 +62,21 @@ class AlphaConfig():
 
     def load(self):
         with open(self.config_file) as json_data_file:
-            self.data = json.load(json_data_file)
+            self.data_origin = json.load(json_data_file)
+
+        if "env" in self.data_origin:
+            env = self.data_origin["env"]
+            if "envs" in self.data_origin and env in self.data_origin["envs"]:
+                self.data_env = self.data_origin["envs"][env]
+
+        self.init_data()
 
     def save(self):
         with open(self.config_file,'w') as json_data_file:
-            json.dump(self.data,json_data_file, sort_keys=True, indent=4)
+            json.dump(self.data_origin,json_data_file, sort_keys=True, indent=4)
             
     def set_data(self,value,paths=[]):
-        ensure_path(self.data,paths,value=value)
+        ensure_path(self.data_origin,paths,value=value)
 
     def isParameterPath(self,parameters,data=None):
         if data is None:
@@ -75,6 +86,20 @@ class AlphaConfig():
         if parameters[0] not in data:
             return False
         return self.isParameterPath(parameters[1:],data[parameters[0]])
+
+    def init_data(self):
+        config      = copy.deepcopy(self.data_origin)
+        config_env  = copy.deepcopy(self.data_env)
+        merge_configuration(config,config_env,replace=True)
+
+        for p,v in config.items():
+            print('   {:20} {}'.format(p,str(v)))
+
+        print('    ENV')
+        for p,v in config_env.items():
+            print('   {:20} {}'.format(p,str(v)))
+
+        self.data = config
 
     def get(self,path=[]):
         if path == '':

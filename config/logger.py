@@ -78,19 +78,19 @@ class Logger():
             return
         
         query       = "select distinct `name` from `processes_logs`"
-        names       = sql_shared.get_query_results(cnx, query, None, unique=True, close_cnx=False)
+        names       = sql_lib.get_query_results(cnx, query, None, unique=True, close_cnx=False)
 
         limit       = 2*50
 
         for name in names:
             query       = "select distinct `uuid` from `processes_logs` where `name` = %s order by `update_date` desc limit %s"
-            uuids       = sql_shared.get_query_results(cnx, query, [name, limit], unique=True, close_cnx=False)
+            uuids       = sql_lib.get_query_results(cnx, query, [name, limit], unique=True, close_cnx=False)
             uuids.append('') # So that len(uuids) >= 1)
 
             in_statement = '(' + ','.join(["'%s'"%x for x in uuids]) + ')'
             query       = "delete from `processes_logs` where `name` = %s and `uuid` not in " + in_statement
             parameters  = [name]
-            sql_shared.execute_query(cnx,query,parameters, close_cnx=False)
+            sql_lib.execute_query(cnx,query,parameters, close_cnx=False)
         try:    
             cnx.close()
         except:
@@ -151,7 +151,7 @@ class Logger():
             cnx.commit()
             cursor.close()
         except mysql.connector.Error as err:
-            print("ERROR (%s): %s"(name, str(err)))
+            print("ERROR (%s): %s"%(name, str(err)))
         
         try:
             cnx.close() 
