@@ -1,15 +1,8 @@
-import os, stat, glob
-import time, re, sys
 import hmac
 from hashlib import sha256
-from datetime import date, datetime, timedelta
 from flask import request
 
-from ..models.api.structures import isTime, AlphaFlask
-from ..models.api.utils import CustomJSONEncoder
-from ..libs.events import Event
-from ..libs import user_lib, sql_lib
-
+from ..models.api.structures import AlphaFlask
 from .apis import *
 
 class Parameter():
@@ -72,7 +65,7 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
                 api.access_denied() 
                 return api.get_return(return_status=401)
 
-            reloadCache         = request.args.get('reloadCache', None) is not None or isTime(timeout)
+            reloadCache         = request.args.get('reloadCache', None) is not None or api.isTime(timeout)
             
             api.configure_route(path,parameters=parameters,cache=cache)
             if api.keep(path,parameters) and not reloadCache: 
@@ -118,7 +111,7 @@ def register():
 
     cnx    = api.get_connection('users')
 
-    user_lib.try_register_user(
+    api_users.try_register_user(
         api,
         cnx,
         api.get('mail'), 
@@ -136,7 +129,7 @@ def register_validation():
         return api.set_error('logged')
 
     cnx             = api.get_connection('users')
-    valid, status   = user_lib.confirm_user_registration(api,token   = api.get('tmp_token'),cnx=cnx)
+    api_users.confirm_user_registration(api,token   = api.get('tmp_token'),cnx=cnx)
 
 # LOGIN
 @route('/auth', methods = ['POST'],
@@ -146,7 +139,7 @@ def register_validation():
     ])
 def login():
     cnx     = api.get_connection('users')
-    data    = user_lib.try_login(api, cnx, api.get('username'), api.get('password'), request.remote_addr)
+    api_users.try_login(api, cnx, api.get('username'), api.get('password'), request.remote_addr)
 
 @route('/password/lost', methods = ['GET', 'POST'],
     parameters = [
@@ -163,7 +156,7 @@ def password_lost():
     if username is not None or mail is not None:
         cnx                 = api.get_connection('users')
         username_or_mail    = username if mail is None else mail
-        user_lib.ask_password_reset(api,username_or_mail,cnx=cnx) 
+        api_users.ask_password_reset(api,username_or_mail,cnx=cnx) 
     else:
         api.set_error('inputs')
 
@@ -178,7 +171,7 @@ def password_reset_validation():
         return api.set_error('logged')
 
     cnx     = api.get_connection('users')
-    status  = user_lib.confirm_user_password_reset(api,token=api.get('tmp_token'), password=api.get('password'), password_confirmation=api.get('password_confirmation'),cnx=cnx)
+    api_users.confirm_user_password_reset(api,token=api.get('tmp_token'), password=api.get('password'), password_confirmation=api.get('password_confirmation'),cnx=cnx)
 
 @route('/logout',cache=False,logged=True,methods = ['GET', 'POST'],
     parameters  = [],  parameters_names=[])
@@ -186,7 +179,7 @@ def logout():
     token   = api.get_token()
     cnx     = api.get_connection('users')
 
-    user_lib.logout(api,token,cnx=cnx)
+    api_users.logout(api,token,cnx=cnx)
 
 @route('/profile/password', logged=True, methods = ['POST'],
     parameters  = [
@@ -197,7 +190,7 @@ def reset_password():
     user_data               = api.get_logged_user()
 
     cnx     = api.get_connection('users')
-    status = user_lib.try_reset_password(api,user_data, api.get('password'), api.get('password_confirmation'),cnx=cnx,log=api.log)
+    api_users.try_reset_password(api,user_data, api.get('password'), api.get('password_confirmation'),cnx=cnx,log=api.log)
     
 ##################################################################################################################
 # MAILS
@@ -206,7 +199,7 @@ def reset_password():
 @route('/mails/mailme',logged=True,cache=False)
 def mail_me():
     cnx         = api.get_connection('users')
-    apis_mails.mail_me(api,cnx,close_cnx=True)
+    api_mails.mail_me(api,cnx,close_cnx=True)
 
 @route('/mails/stayintouch',logged=False,cache=False, 
     parameters = [
@@ -219,8 +212,9 @@ def mails_stay_in_touch():
     user_mail       = api.get('mail')
     name            = api.get('name')
 
-    cnx             = sql_libW.get_survey_connection()
-    apis_mails.stay_in_touch(api,user_mail,name, token,cnx)
+    #cnx             = sql_lib.get_survey_connection()
+    cnx             = api.get_connection('users')
+    api_mails.stay_in_touch(api,user_mail,name, token,cnx)
 
 @route('/mails/requestview',logged=False,cache=False, 
     parameters = [
@@ -235,7 +229,7 @@ def mails_request_view():
     mail_type   = api.get('name')
     mail_id     = api.get('id')
 
-    apis_mails.request_view(api,user_mail,token,mail_type,mail_id,cnx,close_cnx=True)
+    api_mails.request_view(api,user_mail,token,mail_type,mail_id,cnx,close_cnx=True)
 
 @route('/mails/unsubscribe',logged=False,cache=False, 
     parameters = [
@@ -248,11 +242,13 @@ def mails_unsubscribe():
     user_mail   = api.get('mail')
     mail_type   = api.get('type')
 
-    apis_mails.request_unsubscribe(api,user_mail,token,mail_type)
+    cnx             = api.get_connection('users')
+    api_mails.request_unsubscribe(api,user_mail,token,mail_type,cnx,close_cnx=True)
 
 # COINBASE
 @route('/coinbase', methods = ['GET', 'POST'])
 def coinbase():
+    cnx             = api.get_connection('users')
     secret          = '665e62d1-8a4e-4ca8-ae7a-a52eef626493'
     request_data    = request.data.decode('utf-8')
     request_sig     = request.headers.get('X-CC-Webhook-Signature', None)
@@ -263,7 +259,7 @@ def coinbase():
                     digestmod=sha256)
         hex_comparative = mac.hexdigest()
         if hex_comparative != request_sig:
-            return api.Set_error('wrong_sig')
+            return api.set_error('wrong_sig')
 
         mail = "undefined"
         # Check for transaction confirmation
@@ -299,10 +295,10 @@ def coinbase():
 
             # update_coinbase_user(mail, nb_days, role_target)
             if transaction_name == 'Golliath - 1 Month':
-                user_lib.try_subscribe_user(api,mail, 30, 1)
+                api_users.try_subscribe_user(api,mail, 30, 1,cnx,close_cnx=True)
             elif 'Test' in transaction_name:
-                user_lib.try_subscribe_user(api,mail, 30, 1)
+                api_users.try_subscribe_user(api,mail, 30, 1,cnx,close_cnx=True)
             elif transaction_name == 'The Sovereign Individual':
-                user_lib.try_subscribe_user(api,'hourtane.axel@gmail.com', 30, 1)
+                api_users.try_subscribe_user(api,'hourtane.axel@gmail.com', 30, 1,cnx,close_cnx=True)
             else:
                 return api.set_error('unknowned_transaction')

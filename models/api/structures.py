@@ -1,13 +1,15 @@
 import os, configparser, datetime, copy
-from ...config.config import AlphaConfig
+
 from flask import Flask
 from flask import jsonify, request
 from flask_mail import Mail
 
-from ...libs import user_lib, mail_lib
+from ...libs import mail_lib
 from ...utils.logger import AlphaLogger
+from ...utils.apis import api_users
+from ...config.config import AlphaConfig
 
-from .utils import *
+from .utils import CustomJSONEncoder
 
 SEPARATOR = '::'
 pattern_mail = '{{%s}}'
@@ -117,7 +119,10 @@ class AlphaFlask(Flask):
 
     def get_config(self,name=''):
         return self.conf.get(name)
-        
+
+    def get_url(self):
+        return self.get_config('host_public')
+
     def set_data(self, data):
         self.mode       = 'data'
         self.data       = data
@@ -217,7 +222,7 @@ class AlphaFlask(Flask):
         token       = self.get_token()
         if token is not None:
             cnx         = self.get_connection('users')
-            user_data   = user_lib.get_user_dataFromToken(self,cnx,token)
+            user_data   = api_users.get_user_dataFromToken(self,cnx,token)
         return user_data
 
     def get_token(self):
@@ -247,6 +252,18 @@ class AlphaFlask(Flask):
             if user_data['role'] >= 9:
                 return True
         return False
+
+    def isTime(self,timeout, verbose=False):
+        isTime = False
+        if timeout is not None:
+            now     = datetime.datetime.now()
+            lastrun = self.get_last_request_time()
+            nextrun = lastrun + datetime.timedelta(minutes=timeout)
+            isTime  = now > nextrun
+
+            if verbose:
+                print('Time: ',isTime, ' now=',now,', lastrun=',lastrun,' nextrun=',nextrun)
+        return isTime
 
     def send_mail(self,mail_config,parameters_list,cnx,log,sender=None,close_cnx=True):
         mail_type       = mail_config['mail_type']
@@ -312,15 +329,3 @@ class Route:
         print('    > ',self.route)
         for name, parameter in self.parameters.items():
             print('    {:10} {:10} {:10}'.format(name,str(parameter.default),str(parameter.value)))
-            
-def isTime(timeout, verbose=False):
-    isTime = False
-    if timeout is not None:
-        now     = datetime.datetime.now()
-        lastrun = ApiRequest.get_last_request_time()
-        nextrun = lastrun + datetime.timedelta(minutes=timeout)
-        isTime  = now > nextrun
-
-        if verbose:
-            print('Time: ',isTime, ' now=',now,', lastrun=',lastrun,' nextrun=',nextrun)
-    return isTime

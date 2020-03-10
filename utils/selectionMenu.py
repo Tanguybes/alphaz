@@ -3,34 +3,50 @@ Created on 24 juin 2018
 
 @author: aurele
 '''
-
 import re
 
-from ..Libs.converter_lib import to_int
-from ..Config.config import Config, load_config_file, write_menu_defaults_config_files
-from ..Models.messages import Messages
+from ..libs.converter_lib import to_int
+from .logger import AlphaLogger
 
-class SelectionMenu(Messages):
-    def __init__(self, parameters, config_file=None, config_folder=Config.getMainConfigValue('config_menu_folder'), gui=False):
-        Messages.__init__(self)
+class SelectionMenu():
 
-        self.parameters                     = parameters        
-        self.returnValue                    = None
+    debug = False
+    def __init__(self, parameters, config_file=None, config_folder='config/menus', gui=False,log=None):
+        if log is None:
+            log = AlphaLogger('selection_menu')
+            
+        self.parameters     = parameters        
+        self.returnValue    = None
 
-        self.exit                           = False
+        self.exit           = False
+        self.log            = log
 
-        self.PASS_ARG                       = "pass:"
+        self.PASS_ARG       = "pass:"
 
-        self.config_folder                  = config_folder
-        self.config_file                    = config_file
+        self.config_folder  = config_folder
+        self.config_file    = config_file
         
-        defaults                            = load_config_file(config_file,directory=config_folder,sectionHeader=False,test=False)
-        self.defaultskeys                   = list(defaults.keys())
+        #TODO: change
+        #defaults                            = load_config_file(config_file,directory=config_folder,sectionHeader=False,test=False)
+        defaults            = {}
+
+        self.defaultskeys   = list(defaults.keys())
         
-        self.values                         = defaults if defaults is not None else {}
+        self.values         = defaults if defaults is not None else {}
         if defaults is None:
-            error("No default values are specified",False)
+            self.log.error("No default values are specified",False)
         
+    def debugPrint(self,string):
+        if self.debug:
+            print(__name__,string)
+
+    def debugInfo(self,string):
+        if self.debug:
+            log.info(string)
+
+    def switchDebug(self):
+        self.debug = not self.debug
+
     def getIntersectionWithDict(self,dictI):
         backtestValues = {}
         backtestParameters = dictI.keys()
@@ -417,7 +433,8 @@ class SelectionMenu(Messages):
             if key in self.defaultskeys:
                 defaultsValues[key] = value
         
-        write_menu_defaults_config_files(self.config_file,defaultsValues,test=False,directory=self.config_folder)
+        #TODO: fix
+        #write_menu_defaults_config_files(self.config_file,defaultsValues,test=False,directory=self.config_folder)
 
     def showValue(self):
         for key, value in self.values.items():

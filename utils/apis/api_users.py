@@ -1,4 +1,4 @@
-import secrets, datetime, jwt
+import datetime, jwt
 from ...libs import user_lib, sql_lib, secure_lib
 
 # Serve for registration
@@ -21,7 +21,7 @@ def try_register_user(api,cnx,mail, username, password, password_confirmation,cl
     '''if not password_check_format(password):
         return "password_format"'''
     
-    password_hashed = secure_lib.password(password)
+    password_hashed = secure_lib.secure_password(password)
     
     # ADD CHECKS FOR LENGHT OF USERNAME/MAIL!!
     
@@ -141,7 +141,7 @@ def try_reset_password(api,user_data, password, password_confirmation,cnx,log=No
     '''if not password_check_format(password):
         return "password_format"'''
     # Set New password and revoke token
-    password_hashed = secure_lib.password(password)
+    password_hashed = secure_lib.secure_password(password)
    
     # Reset password
     query   = "UPDATE users SET password = %s, password_reset_token = 'consumed' WHERE id = %s;"
@@ -176,7 +176,7 @@ def get_user_dataFromToken(api,cnx,token):
         return user_lib.get_user_dataById(cnx, user_id)
     return None
 
-def try_subscribe_user(api,mail, nb_days, target_role,cnx,log,close_cnx=True):
+def try_subscribe_user(api,mail, nb_days, target_role,cnx,close_cnx=True):
     userByMail          = user_lib.get_user_dataByMail(cnx,mail,close_cnx=False)
     user_data = None
     if 'id' in userByMail:
