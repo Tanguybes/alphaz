@@ -1,16 +1,8 @@
 
-import configparser, os, json, inspect
+import  os, json, inspect
 
 from ..libs import converter_lib
-from ..utils.logger import AlphaLogger
-
-def get_alpha_logs_root():
-    current_folder  = os.path.dirname(os.path.realpath(__file__))
-    dirs            = current_folder.split(os.sep)
-    log_dir         = os.sep.join(dirs[:-1]) + os.sep + 'logs'
-    if not os.path.isdir(log_dir):
-        os.mkdir(log_dir)
-    return log_dir
+from ..utils.logger import AlphaLogger, get_alpha_logs_root
 
 def ensure_path(dict_object,paths=[],value=None):
     if len(paths) == 0: 

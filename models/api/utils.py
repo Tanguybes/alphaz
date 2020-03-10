@@ -14,22 +14,22 @@ from flask.json import JSONEncoder
 
 # HELPER TO REPLACE DATE OBJETS (or others) IN STR FORMAT BY DEFAULT - MAGIC
 class CustomJSONEncoder(JSONEncoder):
-    def default(self, obj):
+    def default(self, o):
         try:
-            if isinstance(obj, np.int64):
-                return int(obj)
-            if isinstance(obj, datetime.datetime):
-                strDate = str(obj.strftime("%Y-%m-%d %H:%M:%S"))
+            if isinstance(o, np.int64):
+                return int(o)
+            if isinstance(o, datetime.datetime):
+                strDate = str(o.strftime("%Y-%m-%d %H:%M:%S"))
                 return strDate
-            if isinstance(obj, pd.DataFrame):
-                strObj = obj.to_json(orient='index')
+            if isinstance(o, pd.DataFrame):
+                strObj = o.to_json(orient='index')
                 return strObj
-            if isinstance(obj, bytes):
-                strObj = obj.decode('utf-8')
+            if isinstance(o, bytes):
+                strObj = o.decode('utf-8')
                 return strObj
-            iterable = iter(obj)
+            iterable = iter(o)
         except TypeError as err:
             print('ERROR:',err)
         else:
             return list(iterable)
-        return JSONEncoder.default(self, obj)
+        return JSONEncoder.default(self, o)

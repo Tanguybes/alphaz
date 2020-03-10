@@ -45,12 +45,16 @@ class AlphaLogger():
     date_str    = ""
     format_log  = "$(date) - $(level) - $(pid) - $(name): $(message)"
 
-    def __init__(self,name,filename,root=None,cmd_output=False):
+    def __init__(self,name,filename=None,root=None,cmd_output=False):
+        if filename is None:
+            filename = name
         if root is None:
-            stack       = inspect.stack()
+            """stack       = inspect.stack()
             parentframe = stack[1]
             module      = inspect.getmodule(parentframe[0])
-            root        = os.path.abspath(module.__file__).replace(module.__file__,'')
+            root        = os.path.abspath(module.__file__).replace(module.__file__,'')"""
+
+            root        = get_alpha_logs_root()
 
         root            = check_root(root)
         logname         = root + os.sep + filename + '.log'

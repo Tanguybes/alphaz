@@ -1,4 +1,3 @@
-import os, mysql, datetime
 from . import sql_lib, secure_lib
 
 def get_user_dataByUsernamePassword(cnx,username, password_attempt,log=None,close_cnx=True):
@@ -49,8 +48,8 @@ def get_user_data(cnx, value, column, close_cnx=True,log=None):
         return results[0]
     return {}
 
-def get_user_dataById(cnx, id, close_cnx=True,log=None):
-    return get_user_data(cnx, id, "id", close_cnx=close_cnx,log=log)
+def get_user_dataById(cnx, user_id, close_cnx=True,log=None):
+    return get_user_data(cnx, user_id, "id", close_cnx=close_cnx,log=log)
    
 def get_user_dataByLoggedToken(cnx, token, close_cnx=True,log=None):
     return get_user_data(cnx, token, "token", close_cnx=close_cnx,log=log)
@@ -76,19 +75,19 @@ def update_users(cnx,close_cnx=True):
     
     # Set expired states if needed
     query = "UPDATE users SET role = 0 WHERE expire <= UTC_TIMESTAMP();"
-    sql_lib.execute_query(cnx,query,close_cnx=False)
+    sql_lib.execute_query(cnx,query,None,close_cnx=False)
     
     # Set expired states if needed
     query = "UPDATE users SET password_reset_token = 'consumed' WHERE password_reset_token_expire <= UTC_TIMESTAMP();"
-    sql_lib.execute_query(cnx,query,close_cnx=False)
+    sql_lib.execute_query(cnx,query,None,close_cnx=False)
     
     # Remove non activated in time accounts
     query = "DELETE FROM users WHERE role = -1 AND date_registred + INTERVAL 15 MINUTE > UTC_TIMESTAMP();"
-    sql_lib.execute_query(cnx,query,close_cnx=False)
+    sql_lib.execute_query(cnx,query,None,close_cnx=False)
     
     # Remove expired sessions
     query = "DELETE FROM users_sessions WHERE expire <= UTC_TIMESTAMP();"
-    sql_lib.execute_query(cnx,query,close_cnx=close_cnx)
+    sql_lib.execute_query(cnx,query,None,close_cnx=close_cnx)
                  
 def is_valid_mail(cnx,email,close_cnx=True): #TODO: update
     query    = "SELECT email FROM mailing_list where email = %s;"
