@@ -1,5 +1,5 @@
 import pysftp, ftplib
-from ..Utils.logger import AlphaLogger
+from ..utils.logger import AlphaLogger
 
 class FtpFile():
     name = ""
