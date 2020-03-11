@@ -11,6 +11,8 @@ def get_alpha_logs_root():
     return log_dir
 
 def check_root(root):
+    if root == '':
+        return root
     if root is None:
         root = get_alpha_logs_root()
 

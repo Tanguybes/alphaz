@@ -52,6 +52,8 @@ class AlphaFlask(Flask):
 
     connections     = {}
 
+    file_to_send           = (None, None)
+
     def set_connection(self,name, cnx_fct):
         self.connections[name] = cnx_fct
 
@@ -79,7 +81,7 @@ class AlphaFlask(Flask):
         )
         self.mail = Mail(self)
 
-    def start(self,debug=False):
+    def start(self):
         pid                 = os.getpid()     
         self.conf.set_data(paths=['tmp','process'],value=pid)
         self.conf.save()
@@ -91,6 +93,7 @@ class AlphaFlask(Flask):
         host        = self.conf.get('host')
         port        = self.conf.get('port')
         threaded    = self.conf.get('threaded')
+        debug       = self.conf.get('debug')
 
         root_log    = self.get_config('log_directory')
         self.log    = AlphaLogger('api','api',root=root_log)
@@ -130,6 +133,10 @@ class AlphaFlask(Flask):
         self.mode       = 'data'
         self.data       = data
 
+    def set_file(self,directory, filename):
+        self.mode       = 'file'
+        self.file_to_send       = (directory, filename)
+
     def get_cached(self,api_route,parameters=[]):
         key = self.getKey(api_route,parameters)
         if self.verbose:
@@ -151,6 +158,7 @@ class AlphaFlask(Flask):
 
     def init_return(self):
         returned = {'token_status' : 'success', 'status' : 'success', 'error':0}
+        self.file_to_send = (None, None)
         self.returned, self.data = returned, {}
 
     def print(self,message):
@@ -219,6 +227,10 @@ class AlphaFlask(Flask):
     def error(self,message):
         if self.log is not None:
             self.log.error(message)
+
+    def info(self,message):
+        if self.log is not None:
+            self.log.info(message)
 
     def get_logged_user(self):
         user_data   = None

@@ -1,4 +1,5 @@
 import mysql.connector
+from .oracle_lib import Connection 
 
 class NumpyMySQLConverter(mysql.connector.conversion.MySQLConverter):
     """ A mysql.connector Converter that handles Numpy types """
@@ -15,16 +16,19 @@ class NumpyMySQLConverter(mysql.connector.conversion.MySQLConverter):
     def _int64_to_mysql(self, value):
         return int(value)
 
-def get_connection_from_infos(user,password,host,database,port=None):
+def get_connection_from_infos(user,password,host,database,port=None,sid=None,database_type='mysql'):
     cnx = None
-    try:
-        if port is not None:
-            cnx         = mysql.connector.connect(user=user, password=password, host=host, database=database,port=port)
-        else:
-            cnx         = mysql.connector.connect(user=user, password=password, host=host, database=database)        
-        cnx.set_converter_class(NumpyMySQLConverter)
-    except Exception as ex:
-        print(str(ex))
+    if database_type == 'mysql':
+        try:
+            if port is not None:
+                cnx         = mysql.connector.connect(user=user, password=password, host=host, database=database,port=port)
+            else:
+                cnx         = mysql.connector.connect(user=user, password=password, host=host, database=database)        
+            cnx.set_converter_class(NumpyMySQLConverter)
+        except Exception as ex:
+            print(str(ex))
+    elif database_type == 'oracle':
+        cnx = Connection(host, port, sid,user,password)
     return cnx
 
 def get_query_results(cnx,query,values,unique=False,close_cnx=True,log=None):

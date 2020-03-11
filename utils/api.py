@@ -1,6 +1,6 @@
 import hmac
 from hashlib import sha256
-from flask import request
+from flask import request, send_file, send_from_directory, safe_join, abort
 
 from ..models.api.structures import AlphaFlask
 from .apis import *
@@ -39,6 +39,8 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
 
         @api.route(path, methods = methods, endpoint=func.__name__)
         def api_wrapper(*args,**kwargs):
+            api.info('{:4} {}'.format(request.method,request.path))
+
             missing = False
 
             dataPost                = request.get_json()
@@ -52,7 +54,7 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
                     parameter.value = None
                 if parameter.mandatory and parameter.value is None:
                     missing = True
-                    api.log.error('Missing parameter %s'%parameter.name)
+                    api.error('Missing parameter %s'%parameter.name)
 
             token           = api.get_token()
             if logged and token is None:
@@ -80,6 +82,16 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
                 api.cache(path,parameters)
             if api.mode == 'print':
                 return api.message
+            if api.mode == 'file':
+                file_path, filename = api.file_to_send
+                if file_path is not None and filename is not None:
+                    api.info('Sending file %s from %s'%(filename,file_path))
+                    try:
+                        return send_from_directory(file_path, filename=filename, as_attachment=True)
+                    except FileNotFoundError:
+                        abort(404)
+                else:
+                    api.set_error('missing_file')
             return api.get_return()
         api_wrapper.__name__ = func.__name__
         return api_wrapper

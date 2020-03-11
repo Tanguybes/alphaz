@@ -1,7 +1,7 @@
 
 import  os, json, inspect, copy
 
-from ..libs import converter_lib
+from ..libs import converter_lib, sql_lib
 from ..utils.logger import AlphaLogger, get_alpha_logs_root
 from .utils import merge_configuration
 
@@ -26,7 +26,9 @@ class AlphaConfig():
     data        = {}
     data_env    = {}
 
-    def __init__(self,name='config',filepath=None,root=None,filename=None,logger=None,configuration=None):
+    databases   = {}
+
+    def __init__(self,name='config',filepath=None,root=None,filename=None,logger=None,configuration=None,logger_root=None):
         if filepath is not None:
             if not filepath[-5:] == '.json':
                 filepath = filepath + '.json'
@@ -44,15 +46,17 @@ class AlphaConfig():
             root        = os.path.abspath(module.__file__).replace(module.__file__,'')
         
         if logger is None:
-            logger      = AlphaLogger(type(self).__name__,type(self).__name__.lower(),root=get_alpha_logs_root())
+            logger_root = 'logs' if logger_root is None else logger_root
+            logger      = AlphaLogger(type(self).__name__,type(self).__name__.lower(),root=logger_root)
         self.log        = logger
 
         if filename is None:
             filename = name.lower()
         self.filename = filename
 
-        self.config_file = root + os.sep + self.filename + '.json'
-        print('Setting config file from %s'%self.config_file)
+        self.config_file = root + os.sep + self.filename + '.json' if root.strip() != '' else self.filename + '.json'
+
+        self.log.info('Setting config file from %s'%self.config_file)
         if not os.path.isfile(self.config_file):
             self.log.error('Config file %s does not exist !'%self.config_file)
             return
@@ -106,6 +110,27 @@ class AlphaConfig():
         print('    ENV')
         for p,v in config_env.items():
             print('   {:20} {}'.format(p,str(v)))"""
+
+        if 'databases' in config:
+            for database, cf_db in config["databases"].items():
+                content_list = ["user","pwd","host","port","type"]
+                valid = True
+                for content in content_list:
+                    if not content in cf_db:
+                        valid = False
+
+                if valid:
+                    self.databases[database] = sql_lib.get_connection_from_infos(
+                        user=cf_db['user'], 
+                        password=cf_db['pwd'], 
+                        host=cf_db['host'],
+                        database=cf_db['host'],
+                        port=cf_db['port'], 
+                        sid=cf_db['sid'],
+                        database_type=cf_db['type']
+                    )
+                else:
+                    self.log.error('Cannot configure database %s'%database)
 
         self.data = config
 
