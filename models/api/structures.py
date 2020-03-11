@@ -58,8 +58,8 @@ class AlphaFlask(Flask):
     def get_connection(self,name):
         return self.connections[name]()
 
-    def init(self,config_path):
-        self.set_config(config_path)
+    def init(self,config_path,configuration=None,root=None):
+        self.set_config(config_path,configuration,root=root)
 
         #api.debug                                   = False
         self.config['SECRET_KEY']                    = self.get_config('flask_key')
@@ -105,7 +105,7 @@ class AlphaFlask(Flask):
         if self.config_path is None:
             return
 
-        self.set_config(config_path=config_path)
+        self.set_config(config_path=config_path,configuration=self.configuration)
 
         pid = self.get_config(['tmp','process'])
 
@@ -113,15 +113,18 @@ class AlphaFlask(Flask):
 
         print('Process n°%s killed'%pid)
 
-    def set_config(self,config_path):
+    def set_config(self,config_path,configuration=None,root=None):
         self.config_path    = config_path
-        self.conf           = AlphaConfig(filepath=config_path) # root=os.path.dirname(os.path.realpath(__file__))
+        self.configuration  = configuration
+        self.conf           = AlphaConfig(filepath=config_path,configuration=configuration,root=root) # root=os.path.dirname(os.path.realpath(__file__))
 
     def get_config(self,name=''):
         return self.conf.get(name)
 
     def get_url(self):
-        return self.get_config('host_public')
+        ssl     = self.get_config('ssl')
+        pref    = 'https://' if ssl else 'http://'
+        return pref + self.get_config('host_public')
 
     def set_data(self, data):
         self.mode       = 'data'
@@ -242,7 +245,7 @@ class AlphaFlask(Flask):
 
         # Token from post
         dataPost                = request.get_json()
-        if 'token' in dataPost:
+        if dataPost is not None and 'token' in dataPost:
             token = dataPost['token']
         return token
 

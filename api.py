@@ -1,15 +1,7 @@
 #!flask/bin/python
 import os, argparse
 
-from Utils.api import route, api, Parameter
-
-@route('/oz',cache=False,
-    parameters=[]
-)
-def api_oz():
-    answer = {'oz':'yes'}
-
-    api.set_data(answer)
+from utils.api import route, api, Parameter
 
 @route('/')
 def api_welcome():

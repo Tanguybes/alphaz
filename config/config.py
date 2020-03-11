@@ -26,13 +26,14 @@ class AlphaConfig():
     data        = {}
     data_env    = {}
 
-    def __init__(self,name='config',filepath=None,root=None,filename=None,logger=None):
+    def __init__(self,name='config',filepath=None,root=None,filename=None,logger=None,configuration=None):
         if filepath is not None:
             if not filepath[-5:] == '.json':
                 filepath = filepath + '.json'
 
             filename    = os.path.basename(filepath).split('.')[0]
-            root        = os.path.abspath(filepath).replace('%s.json'%filename,'')
+            if root is None:
+                root        = os.path.abspath(filepath).replace('%s.json'%filename,'')
             if name == 'config':
                 name    = filename
 
@@ -51,23 +52,30 @@ class AlphaConfig():
         self.filename = filename
 
         self.config_file = root + os.sep + self.filename + '.json'
-
+        print('Setting config file from %s'%self.config_file)
         if not os.path.isfile(self.config_file):
             self.log.error('Config file %s does not exist !'%self.config_file)
             return
 
         self.exist = True
 
-        self.load()
+        self.load(configuration)
 
-    def load(self):
+    def load(self,configuration):
         with open(self.config_file) as json_data_file:
             self.data_origin = json.load(json_data_file)
 
-        if "env" in self.data_origin:
-            env = self.data_origin["env"]
-            if "envs" in self.data_origin and env in self.data_origin["envs"]:
-                self.data_env = self.data_origin["envs"][env]
+        if "configurations" in self.data_origin:
+            configurations = self.data_origin["configurations"]
+            
+            default_configuration = None
+            if "configuration" in self.data_origin:
+                default_configuration = self.data_origin['configuration']
+
+            if configuration is not None and configuration in configurations:
+                self.data_env = configurations[configuration]
+            elif default_configuration is not None and default_configuration in configurations:
+                self.data_env = configurations[default_configuration]
 
         self.init_data()
 
@@ -92,12 +100,12 @@ class AlphaConfig():
         config_env  = copy.deepcopy(self.data_env)
         merge_configuration(config,config_env,replace=True)
 
-        for p,v in config.items():
+        """for p,v in config.items():
             print('   {:20} {}'.format(p,str(v)))
 
         print('    ENV')
         for p,v in config_env.items():
-            print('   {:20} {}'.format(p,str(v)))
+            print('   {:20} {}'.format(p,str(v)))"""
 
         self.data = config
 

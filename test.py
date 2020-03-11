@@ -2,13 +2,16 @@
 # 
 
 import os, requests, webbrowser, selenium
-from pystray import Icon, Menu, MenuItem
-from PIL import Image, ImageDraw
+#from pystray import Icon, Menu, MenuItem
+#from PIL import Image, ImageDraw
 import sys
-
 import pandas as pd
 
-import api
+from libs.test_lib import execute_all_tests_auto
+
+execute_all_tests_auto('tests/autos')
+
+exit()
 
 with open('tns.ora','r') as f:
     content = f.read()

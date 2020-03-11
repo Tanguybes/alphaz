@@ -52,6 +52,7 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
                     parameter.value = None
                 if parameter.mandatory and parameter.value is None:
                     missing = True
+                    api.log.error('Missing parameter %s'%parameter.name)
 
             token           = api.get_token()
             if logged and token is None:
@@ -96,8 +97,14 @@ def after_request(response):
     #response.headers.set('Allow', 'GET, PUT, POST, DELETE, OPTIONS')
     response.headers.add('Access-Control-Allow-Credentials', 'true')
     return response
+
+
+@route('/test',
+parameters=[Parameter('name')])
+def api_test():
+    name = api.get('name')
+    api.print("Hello to you %s !"%name)
     
-# REGISTER @api.route('/register', methods = ['GET', 'POST'])
 @route('/register', methods = ['POST'],
     parameters = [
         Parameter('mail',mandatory=True),
