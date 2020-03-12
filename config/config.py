@@ -164,7 +164,7 @@ def fill_config(configuration,source_configuration):
         configuration[key] = value
 
 def process_configuration(configuration,source_configuration,path=None):
-    if path = None:
+    if path is None:
         fill_config(configuration,source_configuration)
 
         for key in source_configuration:
