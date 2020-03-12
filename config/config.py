@@ -18,6 +18,24 @@ def ensure_path(dict_object,paths=[],value=None):
 
     ensure_path(dict_object[paths[0]],paths[1:],value=value)
 
+def search_it(nested, target):
+    found = []
+    for key, value in nested.iteritems():
+        if key == target:
+            found.append(value)
+        elif isinstance(value, dict):
+            found.extend(search_it(value, target))
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    found.extend(search_it(item, target))
+        else:
+            if key == target:
+                found.append(value)
+    return found
+
+
+
 class AlphaConfig():
     filename    = None
     exist       = False
@@ -135,6 +153,8 @@ class AlphaConfig():
                 else:
                     self.log.error('Cannot configure database %s'%database)
 
+        values, paths = search_it(nested, "files", path=None)
+        print(values, paths)
         self.data = config
 
     def get(self,path=[]):
@@ -164,7 +184,7 @@ def fill_config(configuration,source_configuration):
         configuration[key] = value
 
 def process_configuration(configuration,source_configuration,path=None):
-    if path = None:
+    if path is None:
         fill_config(configuration,source_configuration)
 
         for key in source_configuration:
@@ -174,18 +194,33 @@ def process_configuration(configuration,source_configuration,path=None):
 
         fill_config()
 
-def search_it(nested, target):
-    found = []
+
+
+def search_it(nested, target,path=None):
+    found, paths = [], []
+    if path is None:
+        path = []
+
     for key, value in nested.iteritems():
+        path.append(key)
         if key == target:
             found.append(value)
+            paths.append(path)
         elif isinstance(value, dict):
-            found.extend(search_it(value, target))
+            f, p = search_it(value, target,path)
+            found.extend(f)
+            paths.extend(p)
         elif isinstance(value, list):
+            i = 0
             for item in value:
                 if isinstance(item, dict):
-                    found.extend(search_it(item, target))
-        else:
-            if key == target:
-                found.append(value)
-    return found
+                    path.append(i)
+                    f, p = search_it(item, target, path)
+                    found.extend(f)
+                    paths.extend(p)
+                """else:
+                    if key == target:
+                        path.append(key)
+                        found.append(value)"""
+                i += 1
+    return found, paths

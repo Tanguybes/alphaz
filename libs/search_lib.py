@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
 
 from serpapi.google_search_results import GoogleSearchResults
-from googlesearch import search
+#from googlesearch import search
 
 from itertools import cycle
 import requests, re, os
@@ -9,7 +9,10 @@ import numpy as np
 
 from . import io_lib, string_lib
 
-proxies     = io_lib.get_proxies()
+try:    
+    proxies     = io_lib.get_proxies()
+except:
+    proxies = ()
 proxy_pool  = cycle(proxies)
 
 class Search():
