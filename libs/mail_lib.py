@@ -5,6 +5,7 @@ from flask_mail import Message
 from flask import current_app
 import uuid
 from . import sql_lib
+from ..config.utils import merge_configuration, get_parameters
 
 def mail2(to_mails,subject,body,bodyHtml=None,attachments=[]):
     import win32com.client as win32
@@ -124,11 +125,6 @@ def set_parameters(content,parameters):
         if value is not None:
             content = content.replace('{{%s}}'%parameter,str(value))
     return content
-
-def get_parameters(content):
-    title_regex = r'\{\{.*?\}\}'
-    founds = re.findall(title_regex,content)
-    return founds
 
 def send_mail(host_web,mail_path,mail_type,parameters_list,sender,cnx,log,key_signature="<alpha mail>",
         default_tile='',close_cnx=True):

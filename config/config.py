@@ -3,7 +3,9 @@ import  os, json, inspect, copy
 
 from ..libs import converter_lib, sql_lib
 from ..utils.logger import AlphaLogger, get_alpha_logs_root
-from .utils import merge_configuration
+from .utils import merge_configuration, get_parameters
+
+PAREMETER_PATTERN = '{{%s}}'
 
 def ensure_path(dict_object,paths=[],value=None):
     if len(paths) == 0: 
@@ -17,24 +19,6 @@ def ensure_path(dict_object,paths=[],value=None):
         return
 
     ensure_path(dict_object[paths[0]],paths[1:],value=value)
-
-def search_it(nested, target):
-    found = []
-    for key, value in nested.iteritems():
-        if key == target:
-            found.append(value)
-        elif isinstance(value, dict):
-            found.extend(search_it(value, target))
-        elif isinstance(value, list):
-            for item in value:
-                if isinstance(item, dict):
-                    found.extend(search_it(item, target))
-        else:
-            if key == target:
-                found.append(value)
-    return found
-
-
 
 class AlphaConfig():
     filename    = None
@@ -132,36 +116,51 @@ class AlphaConfig():
         for p,v in config_env.items():
             print('   {:20} {}'.format(p,str(v)))"""
 
+        structure = {'name':None,'mandatory':True,'value':None}
         if 'databases' in config:
-            for database, cf_db in config["databases"].items():
-                content_list = ["user","pwd","host","port","type"]
-                valid = True
-                for content in content_list:
-                    if not content in cf_db:
-                        valid = False
 
+            for database, cf_db in config["databases"].items():
+                content_dict = {
+                    "user": {},
+                    "password": {},
+                    "host": {},
+                    "name": {},
+                    "port": {},
+                    "sid": {'mandatory':False},
+                    "database_type": {'name':'type'}
+                }
+
+                valid = True
+                for name, content in content_dict.items():
+                    for key, el in structure.items():
+                        if not key in content:
+                            if key == 'name':
+                                el = name
+                            content_dict[name][key] = el
+
+                    if content_dict[name]['name'] in cf_db:
+                        content_dict[name]['value'] = cf_db[content_dict[name]['name']]
+                    elif content_dict[name]['mandatory']:
+                        print('Missing %s parameter'%name)
+                        valid = False
+                
+                fct_kwargs = {x:y['value'] for x,y in content_dict.items()}
+                for key, v in fct_kwargs.items():
+                    print('   >>>',key,v)
                 if valid:
-                    self.databases[database] = sql_lib.get_connection_from_infos(
-                        user=cf_db['user'], 
-                        password=cf_db['pwd'], 
-                        host=cf_db['host'],
-                        database=cf_db['host'],
-                        port=cf_db['port'], 
-                        sid=cf_db['sid'],
-                        database_type=cf_db['type']
-                    )
+                    self.databases[database] = sql_lib.get_connection_from_infos(**fct_kwargs)
                 else:
                     self.log.error('Cannot configure database %s'%database)
 
-        values, paths = search_it(nested, "files", path=None)
-        print(values, paths)
-        self.data = config
+        self.data = replace_parameters(config)
 
     def get(self,path=[]):
         if path == '':
             return self.data
         if type(path) == str:
-            path = [path]
+            values, paths = search_it(self.data, path, path=None)
+            if len(values) != 0:
+                return values[0]
         return self.getParameterPath(path)
 
     def getParameterPath(self,parameters,data=None):
@@ -175,12 +174,31 @@ class AlphaConfig():
 
         return self.getParameterPath(parameters[1:],data[parameters[0]])
 
-pattern = '{{%s}}'
+    def get_connection(self,name):
+        if name in self.databases:
+            return self.databases[name]
+        return None
+
+def set_path(config,path,parameters,parameters_values):
+    if len(path) == 1:
+        value   = config[path[0]] 
+        for parameter in parameters:
+            #print(parameter,parameters_values)
+            if parameter in parameters_values:
+                value = value.replace(PAREMETER_PATTERN%parameter,parameters_values[parameter])
+        config[path[0]] = value
+        return
+
+    sub_config  = config[path[0]]
+    path        = path[1:]
+
+    set_path(sub_config,path,parameters,parameters_values)
+
 def fill_config(configuration,source_configuration):
     for key, value in configuration.items():
         for key2, value2 in source_configuration.items():
-            if type(value) != dict and pattern%key2 in str(value):
-                value = str(value).replace(pattern%key2,value2)
+            if type(value) != dict and PAREMETER_PATTERN%key2 in str(value):
+                value = str(value).replace(PAREMETER_PATTERN%key2,value2)
         configuration[key] = value
 
 def process_configuration(configuration,source_configuration,path=None):
@@ -194,20 +212,21 @@ def process_configuration(configuration,source_configuration,path=None):
 
         fill_config()
 
-
-
 def search_it(nested, target,path=None):
     found, paths = [], []
     if path is None:
         path = []
 
-    for key, value in nested.iteritems():
-        path.append(key)
+    for key, value in nested.items():
+        next_path = copy.copy(path)
+        next_path.append(key)
+
         if key == target:
             found.append(value)
             paths.append(path)
-        elif isinstance(value, dict):
-            f, p = search_it(value, target,path)
+        
+        if isinstance(value, dict):
+            f, p = search_it(value, target,next_path)
             found.extend(f)
             paths.extend(p)
         elif isinstance(value, list):
@@ -215,7 +234,7 @@ def search_it(nested, target,path=None):
             for item in value:
                 if isinstance(item, dict):
                     path.append(i)
-                    f, p = search_it(item, target, path)
+                    f, p = search_it(item, target, next_path)
                     found.extend(f)
                     paths.extend(p)
                 """else:
@@ -224,3 +243,99 @@ def search_it(nested, target,path=None):
                         found.append(value)"""
                 i += 1
     return found, paths
+
+def get_parameters_from_config(nested, path=None):
+    found, paths = [], []
+    if path is None:
+        path = []
+
+    for key, value in nested.items():
+        next_path = copy.copy(path)
+        next_path.append(key)
+
+        if isinstance(value, str):
+            parameters = get_parameters(value)
+            if len(parameters) != 0:
+                found.append([ x.replace('{{','').replace('}}','') for x in parameters])
+                paths.append(next_path)
+        
+        if isinstance(value, dict):
+            f, p = get_parameters_from_config(value, next_path)
+            found.extend(f)
+            paths.extend(p)
+        elif isinstance(value, list):
+            i = 0
+            for item in value:
+                if isinstance(item, dict):
+                    path.append(i)
+                    f, p = get_parameters_from_config(item, next_path)
+                    found.extend(f)
+                    paths.extend(p)
+                i += 1
+    return found, paths
+
+def get_values_for_parameters(config, parameter_name,path=None):
+    """Get the values associated to the parameter in the configuration
+    
+    Arguments:
+        config {json dict} -- configuration as a json dict 
+        parameter_name {str} -- parameter_name to search
+    
+    Keyword Arguments:
+        path {list} -- the current path in the json dict as a list (default: {None})
+    
+    Returns:
+        tuple -- a tuple of the parameter values and the parameter path
+    """
+    found, paths = [], []
+    if path is None:
+        path = []
+
+    for key, value in config.items():
+        next_path = copy.copy(path)
+        next_path.append(key)
+
+        if key == parameter_name:
+            found.append(value)
+            paths.append(path)
+        
+        if isinstance(value, dict):
+            f, p = search_it(value, parameter_name, next_path)
+            found.extend(f)
+            paths.extend(p)
+        elif isinstance(value, list):
+            i = 0
+            for item in value:
+                if isinstance(item, dict):
+                    path.append(i)
+                    f, p = search_it(item, parameter_name, next_path)
+                    found.extend(f)
+                    paths.extend(p)
+                i += 1
+    return found, paths
+
+def replace_parameters(config):
+    """Replace parameters formatted has {{<parameter>}} by their values in a json dict
+    
+    Arguments:
+        config {dict} -- json dict to analyse and replace parameters formatted has {{<parameter>}}
+    
+    Returns:
+        dict -- the input dict with parameters replace by their values
+    """
+    parameters_values, paths = get_parameters_from_config(config, path=None)
+    parameters = []
+    for i in range(len(parameters_values)):
+        parameters.extend(parameters_values[i])
+
+    parameters = list(set(parameters))
+    parameters_value = {}
+    for parameter in parameters:
+        values = search_it(config,parameter)
+        if len(values) != 0:
+            value = values[0][0]
+            parameters_value[parameter] = value
+
+    for i in range(len(parameters_values)):
+        set_path(config, paths[i], parameters_values[i], parameters_value)
+    return config

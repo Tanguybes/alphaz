@@ -63,6 +63,9 @@ class AlphaFlask(Flask):
     def init(self,config_path,configuration=None,root=None):
         self.set_config(config_path,configuration,root=root)
 
+        for database, fct in config.databases.items():
+            self.connections[database] = fct
+            
         #api.debug                                   = False
         self.config['SECRET_KEY']                    = self.get_config('flask_key')
         self.config['JWT_SECRET_KEY']                = self.get_config('jwt_key')

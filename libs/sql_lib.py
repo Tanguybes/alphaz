@@ -16,19 +16,22 @@ class NumpyMySQLConverter(mysql.connector.conversion.MySQLConverter):
     def _int64_to_mysql(self, value):
         return int(value)
 
-def get_connection_from_infos(user,password,host,database,port=None,sid=None,database_type='mysql'):
+def get_connection_from_infos(user,password,host,name,port=None,sid=None,database_type='mysql'):
     cnx = None
     if database_type == 'mysql':
+        print('heyyyy')
         try:
             if port is not None:
-                cnx         = mysql.connector.connect(user=user, password=password, host=host, database=database,port=port)
+                cnx         = mysql.connector.connect(user=user, password=password, host=host, database=name,port=port)
             else:
-                cnx         = mysql.connector.connect(user=user, password=password, host=host, database=database)        
+                cnx         = mysql.connector.connect(user=user, password=password, host=host, database=name)        
             cnx.set_converter_class(NumpyMySQLConverter)
         except Exception as ex:
             print(str(ex))
     elif database_type == 'oracle':
         cnx = Connection(host, port, sid,user,password)
+    else:
+        print('Database type not recognized')
     return cnx
 
 def get_query_results(cnx,query,values,unique=False,close_cnx=True,log=None):
