@@ -42,11 +42,9 @@ def archive_object(object_to_save,filename):
         pickle.dump(object_to_save, f,protocol=pickle.HIGHEST_PROTOCOL)
         
 def unarchive_object(filename):
-    object_to_get= None
-    try:
+    object_to_get = None
+    if os.path.exists(filename):
         with open(filename, 'rb') as f:
             object_to_get     = pickle.load(f)
-    except Exception as ex:
-        print(ex)
-        #log.trace_show()
+            #log.trace_show()
     return object_to_get

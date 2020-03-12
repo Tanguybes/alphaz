@@ -28,7 +28,7 @@ class AlphaConfig():
 
     databases   = {}
 
-    def __init__(self,name='config',filepath=None,root=None,filename=None,logger=None,configuration=None,logger_root=None):
+    def __init__(self,name='config',filepath=None,root=None,filename=None,log=None,configuration=None,logger_root=None):
         if filepath is not None:
             if not filepath[-5:] == '.json':
                 filepath = filepath + '.json'
@@ -45,10 +45,10 @@ class AlphaConfig():
             module      = inspect.getmodule(parentframe[0])
             root        = os.path.abspath(module.__file__).replace(module.__file__,'')
         
-        if logger is None:
+        if log is None:
             logger_root = 'logs' if logger_root is None else logger_root
-            logger      = AlphaLogger(type(self).__name__,type(self).__name__.lower(),root=logger_root)
-        self.log        = logger
+            log         = AlphaLogger(type(self).__name__,type(self).__name__.lower(),root=logger_root)
+        self.log        = log
 
         if filename is None:
             filename = name.lower()
@@ -98,6 +98,9 @@ class AlphaConfig():
         if parameters[0] not in data:
             return False
         return self.isParameterPath(parameters[1:],data[parameters[0]])
+
+    def isPath(self,parameters,data=None):
+        return self.isParameterPath(parameters,data=data)
 
     def init_data(self):
         config      = copy.deepcopy(self.data_origin)
@@ -152,5 +155,37 @@ class AlphaConfig():
 
         return self.getParameterPath(parameters[1:],data[parameters[0]])
 
+pattern = '{{%s}}'
+def fill_config(configuration,source_configuration):
+    for key, value in configuration.items():
+        for key2, value2 in source_configuration.items():
+            if type(value) != dict and pattern%key2 in str(value):
+                value = str(value).replace(pattern%key2,value2)
+        configuration[key] = value
 
-        
+def process_configuration(configuration,source_configuration,path=None):
+    if path = None:
+        fill_config(configuration,source_configuration)
+
+        for key in source_configuration:
+            fill_config(configuration,source_configuration[key])
+
+        source  = source_configuration[keys[level]]
+
+        fill_config()
+
+def search_it(nested, target):
+    found = []
+    for key, value in nested.iteritems():
+        if key == target:
+            found.append(value)
+        elif isinstance(value, dict):
+            found.extend(search_it(value, target))
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    found.extend(search_it(item, target))
+        else:
+            if key == target:
+                found.append(value)
+    return found
