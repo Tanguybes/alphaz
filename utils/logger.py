@@ -47,7 +47,7 @@ class AlphaLogger():
     date_str    = ""
     format_log  = "$(date) - $(level) - $(pid) - $(name): $(message)"
 
-    def __init__(self,name,filename=None,root=None,cmd_output=False):
+    def __init__(self,name,filename=None,root=None,cmd_output=True):
         if filename is None:
             filename = name
         if root is None:
