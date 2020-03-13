@@ -16,7 +16,7 @@ class NumpyMySQLConverter(mysql.connector.conversion.MySQLConverter):
     def _int64_to_mysql(self, value):
         return int(value)
 
-def get_connection_from_infos(user,password,host,name,port=None,sid=None,database_type='mysql'):
+def get_connection_from_infos(user,password,host,name=None,port=None,sid=None,database_type='mysql'):
     cnx = None
     if database_type == 'mysql':
         print('heyyyy')

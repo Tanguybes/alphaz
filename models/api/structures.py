@@ -63,7 +63,7 @@ class AlphaFlask(Flask):
     def init(self,config_path,configuration=None,root=None):
         self.set_config(config_path,configuration,root=root)
 
-        for database, fct in config.databases.items():
+        for database, fct in self.conf.databases.items():
             self.connections[database] = fct
             
         #api.debug                                   = False

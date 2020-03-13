@@ -124,7 +124,7 @@ class AlphaConfig():
                     "user": {},
                     "password": {},
                     "host": {},
-                    "name": {},
+                    "name": {'mandatory':False},
                     "port": {},
                     "sid": {'mandatory':False},
                     "database_type": {'name':'type'}
@@ -145,8 +145,7 @@ class AlphaConfig():
                         valid = False
                 
                 fct_kwargs = {x:y['value'] for x,y in content_dict.items()}
-                for key, v in fct_kwargs.items():
-                    print('   >>>',key,v)
+
                 if valid:
                     self.databases[database] = sql_lib.get_connection_from_infos(**fct_kwargs)
                 else:
@@ -332,7 +331,8 @@ def replace_parameters(config):
     parameters_value = {}
     for parameter in parameters:
         values = search_it(config,parameter)
-        if len(values) != 0:
+        if len(values) != 0 and len(values[0]) != 0:
+            print(values)
             value = values[0][0]
             parameters_value[parameter] = value
 
