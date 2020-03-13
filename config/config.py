@@ -1,6 +1,6 @@
 
 import  os, json, inspect, copy
-
+import numpy as np
 from ..libs import converter_lib, sql_lib
 from ..utils.logger import AlphaLogger, get_alpha_logs_root
 from .utils import merge_configuration, get_parameters
@@ -159,7 +159,9 @@ class AlphaConfig():
         if type(path) == str:
             values, paths = search_it(self.data, path, path=None)
             if len(values) != 0:
-                return values[0]
+                nbs     = [len(x) for x in paths]
+                index   = np.argmin(nbs)
+                return values[index]
         return self.getParameterPath(path)
 
     def getParameterPath(self,parameters,data=None):
