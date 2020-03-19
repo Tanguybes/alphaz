@@ -23,6 +23,7 @@ def ensure_path(dict_object,paths=[],value=None):
 class AlphaConfig():
     filename    = None
     exist       = False
+    valid       = True
 
     data_origin = {}
     data        = {}
@@ -66,6 +67,17 @@ class AlphaConfig():
         self.exist = True
 
         self.load(configuration)
+
+        self.check_required()
+
+    def check_required(self):
+        if not 'required' in self.data:
+            return
+
+        for path in self.data['required']:
+            if not self.isPath(path):
+                self.log.error("Missing '%s' key in config file"%('/'.join(path)))
+                self.valid = False
 
     def load(self,configuration):
         with open(self.config_file) as json_data_file:

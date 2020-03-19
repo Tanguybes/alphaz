@@ -4,11 +4,14 @@ from ..utils.logger import AlphaLogger
 class FtpFile():
     name = ""
     size = 0
+    modification_time = None
 
     def __init__(self,name,parameters=None):
         self.name  = name
         if parameters is not None:
             self.size   = parameters.st_size
+            self.modification_time = parameters.st_mtime
+        #print (attr.filename,attr.st_uid, attr.st_gid, attr.st_mode,attr.st_mtime,attr.st_size)
 
 class AlphaFtp():
     cnx     = None
@@ -17,7 +20,7 @@ class AlphaFtp():
     files   = []
     index   = 0
 
-    def __init__(self,host,user,password=None,port=22,key=None,sftp=False,log=None):
+    def __init__(self,host,user,password=None,port=22,key=None,key_pass=None,sftp=False,log=None):
         self.cnopts = pysftp.CnOpts()
         self.cnopts.hostkeys = None
 
@@ -25,6 +28,7 @@ class AlphaFtp():
         self.port       = port
         self.user       = user
         self.key        = key
+        self.key_pass   = key_pass
         self.password   = password
         self.sftp       = sftp
 
@@ -35,7 +39,7 @@ class AlphaFtp():
             if self.key is None:
                 cnx = pysftp.Connection(self.host, port=self.port, username=self.user, password=self.password, cnopts=self.cnopts)
             else:
-                cnx = pysftp.Connection(self.host, port=self.port, username=self.user, password=self.password, cnopts=self.cnopts, private_key=self.key)
+                cnx = pysftp.Connection(self.host, port=self.port, username=self.user, password=self.password, cnopts=self.cnopts, private_key=self.key,private_key_pass=self.key_pass)
         else:
             cnx = ftplib.FTP(host=self.host,user=self.user,passwd=self.password)
         self.cnx = cnx

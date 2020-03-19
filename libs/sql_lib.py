@@ -19,7 +19,6 @@ class NumpyMySQLConverter(mysql.connector.conversion.MySQLConverter):
 def get_connection_from_infos(user,password,host,name=None,port=None,sid=None,database_type='mysql'):
     cnx = None
     if database_type == 'mysql':
-        print('heyyyy')
         try:
             if port is not None:
                 cnx         = mysql.connector.connect(user=user, password=password, host=host, database=name,port=port)
