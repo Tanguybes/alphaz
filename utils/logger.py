@@ -17,7 +17,7 @@ def check_root(root):
         root = get_alpha_logs_root()
 
     if not os.path.isdir(root):
-        os.mkdir(root)
+        os.makedirs(root)
     return root
 
 """
@@ -47,7 +47,7 @@ class AlphaLogger():
     date_str    = ""
     format_log  = "$(date) - $(level) - $(pid) - $(name): $(message)"
 
-    def __init__(self,name,filename=None,root=None,cmd_output=True):
+    def __init__(self,name,filename=None,root=None,cmd_output=True,level='INFO'):
         if filename is None:
             filename = name
         if root is None:
@@ -63,7 +63,8 @@ class AlphaLogger():
 
         # Create logger
         self.logger = logging.getLogger(name)
-        self.logger.setLevel(logging.INFO)
+
+        self.set_level(level)
 
         # File handler
         handler         = TimedRotatingFileHandler(logname, when="midnight", interval=1,backupCount=7)
@@ -75,11 +76,22 @@ class AlphaLogger():
         self.name       = name
         self.cmd_output = cmd_output
     
+    def set_level(self,level):
+        self.level_show = level
+        lvl = logging.INFO 
+        if level.upper() == 'ERROR':
+            lvl = logging.ERROR 
+        elif level.upper() == 'DEBUG':
+            lvl = logging.DEBUG 
+        elif level.upper() == 'WARNING':
+            lvl = logging.WARNING 
+        self.logger.setLevel(lvl)
+
     def _log(self,message,level='info'):
         self.set_current_date()
-        self.level = level.upper()
+        self.level      = level.upper()
         
-        message = self.get_formatted_message(message)
+        message         = self.get_formatted_message(message)
 
         if self.level == 'INFO':
             self.logger.info(message)
@@ -87,9 +99,8 @@ class AlphaLogger():
             self.logger.warning(message)
         elif self.level == 'ERROR':
             self.logger.error(message)
-        
-        if self.cmd_output:
-            print(message)
+        elif self.level == 'DEBUG':
+            self.logger.debug(message)
 
     def get_formatted_message(self,message):
         msg = self.format_log
@@ -117,6 +128,9 @@ class AlphaLogger():
 
     def error(self,message):
         self._log(message,'error')
+
+    def debug(self,message):
+        self._log(message,'debug')
 
     def set_current_date(self):
         current_date        = datetime.datetime.now()

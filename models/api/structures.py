@@ -117,11 +117,12 @@ class AlphaFlask(Flask):
 
         os.kill(pid, 9)
 
-        print('Process n°%s killed'%pid)
+        self.log.info('Process n°%s killed'%pid)
 
     def set_config(self,config_path,configuration=None,root=None):
         self.config_path    = config_path
         self.configuration  = configuration
+        print('Set api configuration ...')
         self.conf           = AlphaConfig(filepath=config_path,configuration=configuration,root=root) # root=os.path.dirname(os.path.realpath(__file__))
 
     def get_config(self,name=''):

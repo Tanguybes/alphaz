@@ -5,6 +5,10 @@ from ..libs import converter_lib, sql_lib
 from ..utils.logger import AlphaLogger, get_alpha_logs_root
 from .utils import merge_configuration, get_parameters
 
+import platform
+
+system_platform    = platform.system()
+
 PAREMETER_PATTERN = '{{%s}}'
 
 def ensure_path(dict_object,paths=[],value=None):
@@ -21,6 +25,8 @@ def ensure_path(dict_object,paths=[],value=None):
     ensure_path(dict_object[paths[0]],paths[1:],value=value)
 
 class AlphaConfig():
+    name        = None
+    root        = None
     filename    = None
     exist       = False
     valid       = True
@@ -31,7 +37,8 @@ class AlphaConfig():
 
     databases   = {}
 
-    def __init__(self,name='config',filepath=None,root=None,filename=None,log=None,configuration=None,logger_root=None):
+    def __init__(self,name='config',filepath=None,root=None,filename=None,log=None,configuration=None,logger_root=None,data=None):
+        self.name = name
         if filepath is not None:
             if not filepath[-5:] == '.json':
                 filepath = filepath + '.json'
@@ -47,28 +54,49 @@ class AlphaConfig():
             parentframe = stack[1]
             module      = inspect.getmodule(parentframe[0])
             root        = os.path.abspath(module.__file__).replace(module.__file__,'')
+        self.root       = root
         
         if log is None:
-            logger_root = 'logs' if logger_root is None else logger_root
-            log         = AlphaLogger(type(self).__name__,type(self).__name__.lower(),root=logger_root)
-        self.log        = log
+            logger_root     = 'logs' if logger_root is None else logger_root
+            log             = AlphaLogger(type(self).__name__,type(self).__name__.lower(),root=logger_root)
+        self.log            = log
+        self.logger_root    = logger_root
 
         if filename is None:
-            filename = name.lower()
-        self.filename = filename
+            filename        = name.lower()
+        self.filename       = filename
 
-        self.config_file = root + os.sep + self.filename + '.json' if root.strip() != '' else self.filename + '.json'
+        self.config_file    = root + os.sep + self.filename + '.json' if root.strip() != '' else self.filename + '.json'
 
-        self.log.info('Setting config file from %s'%self.config_file)
-        if not os.path.isfile(self.config_file):
-            self.log.error('Config file %s does not exist !'%self.config_file)
-            return
+        if data is None:
+            self.log.info('Setting config file from %s'%self.config_file)
+            
+            if not os.path.isfile(self.config_file):
+                self.log.error('Config file %s does not exist !'%self.config_file)
+                return
 
-        self.exist = True
+            self.exist = True
 
-        self.load(configuration)
+            self.load(configuration)
+            self.configuration = configuration
 
-        self.check_required()
+            self.check_required()
+        else:
+            self.data_origin = data
+            self.data = data
+
+    def getConfig(self,path=[]):
+        config_data = self.get(path)
+
+        config      = AlphaConfig(
+            name=self.name,
+            root=self.root,
+            log=self.log,
+            configuration=self.configuration,
+            logger_root=self.logger_root,
+            data=config_data
+        )
+        return config
 
     def check_required(self):
         if not 'required' in self.data:
@@ -130,7 +158,6 @@ class AlphaConfig():
 
         structure = {'name':None,'mandatory':True,'value':None}
         if 'databases' in config:
-
             for database, cf_db in config["databases"].items():
                 content_dict = {
                     "user": {},
@@ -194,12 +221,12 @@ class AlphaConfig():
 
 def set_path(config,path,parameters,parameters_values):
     if len(path) == 1:
-        value   = config[path[0]] 
+        value   = convert_value(config[path[0]])
         for parameter in parameters:
             #print(parameter,parameters_values)
             if parameter in parameters_values:
-                value = value.replace(PAREMETER_PATTERN%parameter,parameters_values[parameter])
-        config[path[0]] = value
+                value           = value.replace(PAREMETER_PATTERN%parameter,parameters_values[parameter])
+        config[path[0]]         = value
         return
 
     sub_config  = config[path[0]]
@@ -231,6 +258,7 @@ def search_it(nested, target,path=None):
         path = []
 
     for key, value in nested.items():
+        value = convert_value(value)
         next_path = copy.copy(path)
         next_path.append(key)
 
@@ -263,7 +291,8 @@ def get_parameters_from_config(nested, path=None):
         path = []
 
     for key, value in nested.items():
-        next_path = copy.copy(path)
+        value       = convert_value(value)
+        next_path   = copy.copy(path)
         next_path.append(key)
 
         if isinstance(value, str):
@@ -305,7 +334,8 @@ def get_values_for_parameters(config, parameter_name,path=None):
         path = []
 
     for key, value in config.items():
-        next_path = copy.copy(path)
+        value       = convert_value(value)
+        next_path   = copy.copy(path)
         next_path.append(key)
 
         if key == parameter_name:
@@ -341,15 +371,21 @@ def replace_parameters(config):
     for i in range(len(parameters_values)):
         parameters.extend(parameters_values[i])
 
-    parameters = list(set(parameters))
-    parameters_value = {}
+    parameters          = list(set(parameters))
+    parameters_value    = {}
     for parameter in parameters:
-        values = search_it(config,parameter)
+        values      = search_it(config,parameter)
         if len(values) != 0 and len(values[0]) != 0:
-            print(values)
-            value = values[0][0]
-            parameters_value[parameter] = value
+            value   = values[0][0]
+            parameters_value[parameter] = convert_value(value)
 
     for i in range(len(parameters_values)):
         set_path(config, paths[i], parameters_values[i], parameters_value)
     return config
+
+def convert_value(value):
+    systems = ['windows', 'unix']
+    if type(value) == dict and system_platform.lower() in systems and system_platform.lower() in value:
+        value = value[system_platform.lower()]
+
+    return value
