@@ -1,6 +1,63 @@
-from inspect import getmembers, isfunction, isclass
+import os, inspect
+from functools import wraps
 
-class Test():
+from ..libs.io_lib import archive_object, unarchive_object
+
+class AlphaSave():
+    root    = None
+    ext     = '.ast'
+    
+    @staticmethod
+    def set_root(root):
+        AlphaSave.root = root
+
+    @staticmethod
+    def get_file_path(filename):
+        file_path = AlphaSave.root + os.sep + filename + '.ast'
+        return file_path
+
+    @staticmethod
+    def save(object_to_save,filename):
+        file_path = AlphaSave.get_file_path(filename)
+        directory = os.path.dirname(file_path)
+        os.makedirs(directory,exist_ok=True)
+        archive_object(object_to_save,file_path)
+
+    @staticmethod
+    def load(filename):
+        file_path = AlphaSave.get_file_path(filename)
+        return unarchive_object(file_path)
+
+save_method_name = "save_method_result"  
+def save(func):
+    def save_method_result(*args, **kwargs):  
+        get_return, get_name = False, False
+        new_kwargs = {}
+        args = list(args)
+        #print('must-have arguments are:')
+        """for i in args:
+            print(i)   """       
+        #print('optional arguments are:')
+        for kw in kwargs.keys():
+            #print( kw+'='+str( kwargs[kw] ) )
+            if kw == "get_return":
+                get_return = True
+            elif kw == "get_name":
+                get_name = True
+            else:
+                new_kwargs[kw] = kwargs[kw]
+
+        return_save = AlphaSave.load(func.__name__)
+
+        if get_return:
+            return func(*args, **new_kwargs)
+        elif get_name:
+            return func.__name__
+        else:
+            return func(*args, **new_kwargs) == return_save
+    return save_method_result
+
+class AlphaTest():
     verbose = False
     output  = True
     
@@ -12,6 +69,16 @@ class Test():
         if fct is None:
             return False
         return fct()
+
+    def save(self,name):
+        fct = getattr(self,name)
+        if fct is None:
+            return False
+            
+        if inspect.unwrap(fct).__name__ == save_method_name:
+            object_to_save      = fct(get_return=True)
+            object_name_to_save = fct(get_name=True)
+            AlphaSave.save(object_to_save,object_name_to_save)
 
     def array_equal(self,a,b):
         equal = len(a) == len(b)
@@ -45,6 +112,12 @@ class TestFunction():
         self.valid          = classObject.test(self.raw_name)
         return self.valid
 
+    def save(self,verbose=False):
+        classObject         = self.classObject()
+        classObject.verbose = verbose
+
+        classObject.save(self.raw_name)
+
     def is_valid(self):
         return self.valid != None and self.valid
 
@@ -65,7 +138,7 @@ class TestGroup():
         self.tests          = {}
 
         for method_name, method in classObject.__dict__.items():
-            if isfunction(method) and 'test_' in method_name.lower():
+            if inspect.isfunction(method) and 'test_' in method_name.lower():
                 test_function                   = TestFunction(classObject,method_name,method)
                 self.tests[test_function.name]  = test_function
 
@@ -73,13 +146,17 @@ class TestGroup():
         for method in self.tests.values():
             method.test(verbose=verbose)
 
+    def save_all(self,verbose=False):
+        for method in self.tests.values():
+            method.save(verbose=verbose)
+
     def get_tests_names(self):
         return list(self.tests.keys())
 
     def print(self,output=True):
         txt = ""
         for test_name, test_def in self.tests.items():
-            txt += '{:40} {:4}'.format(test_name,test_def.print()) + '\n'
+            txt += '{:60} {:4}'.format(test_name,test_def.print()) + '\n'
         if output:
             print(txt)
         return txt
@@ -98,6 +175,12 @@ class TestGroups():
             if test_group.is_verbose():
                 print('\n__________ %s __________\n\n'%group_name)
             test_group.test_all(verbose=verbose)
+
+    def save_all(self,verbose=False):
+        for group_name, test_group in self.tests.items():   
+            if test_group.is_verbose():
+                print('\n__________ %s __________\n\n'%group_name)
+            test_group.save_all(verbose=verbose)
 
     def print(self,output=True):
         txt = ""

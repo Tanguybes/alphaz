@@ -1,11 +1,12 @@
 
 from alphaz.utils.api import api
-from alphaz.models.tests import Test
+from alphaz.models.tests import AlphaTest
+
 import requests, os
 
 from alphaz.utils.api import api
 
-class API_tests(Test):
+class API_tests(AlphaTest):
     def __init__(self):
         print(os.getcwd())
         api.init(config_path='api')

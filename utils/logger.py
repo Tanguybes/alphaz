@@ -39,6 +39,16 @@ log_handler.setFormatter(formatter)
 logger.addHandler(log_handler)
 """
 
+def get_level(level):
+    lvl = logging.INFO 
+    if level.upper() == 'ERROR':
+        lvl = logging.ERROR 
+    elif level.upper() == 'DEBUG':
+        lvl = logging.DEBUG 
+    elif level.upper() == 'WARNING':
+        lvl = logging.WARNING 
+    return lvl
+
 class AlphaLogger():
     cmd_output  = False
     pid         = None
@@ -47,7 +57,7 @@ class AlphaLogger():
     date_str    = ""
     format_log  = "$(date) - $(level) - $(pid) - $(name): $(message)"
 
-    def __init__(self,name,filename=None,root=None,cmd_output=True,level='INFO'):
+    def __init__(self,name,filename=None,root=None,cmd_output=True,level='DEBUG'):
         if filename is None:
             filename = name
         if root is None:
@@ -62,7 +72,7 @@ class AlphaLogger():
         logname         = root + os.sep + filename + '.log'
 
         # Create logger
-        self.logger = logging.getLogger(name)
+        self.logger     = logging.getLogger(name)
 
         self.set_level(level)
 
@@ -74,18 +84,11 @@ class AlphaLogger():
 
         self.pid        = os.getpid()
         self.name       = name
-        self.cmd_output = cmd_output
+        self.cmd_output = cmd_output if cmd_output is not None else True
     
     def set_level(self,level):
-        self.level_show = level
-        lvl = logging.INFO 
-        if level.upper() == 'ERROR':
-            lvl = logging.ERROR 
-        elif level.upper() == 'DEBUG':
-            lvl = logging.DEBUG 
-        elif level.upper() == 'WARNING':
-            lvl = logging.WARNING 
-        self.logger.setLevel(lvl)
+        self.level_show = get_level(level)
+        self.logger.setLevel(self.level_show)
 
     def _log(self,message,level='info'):
         self.set_current_date()
@@ -101,6 +104,9 @@ class AlphaLogger():
             self.logger.error(message)
         elif self.level == 'DEBUG':
             self.logger.debug(message)
+
+        if self.cmd_output and get_level(self.level) >= self.level_show:
+            print('   ',message)
 
     def get_formatted_message(self,message):
         msg = self.format_log

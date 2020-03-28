@@ -1,11 +1,13 @@
 
 import  os, json, inspect, copy
 import numpy as np
-from ..libs import converter_lib, sql_lib
+from ..libs import converter_lib, sql_lib, io_lib
 from ..utils.logger import AlphaLogger, get_alpha_logs_root
 from .utils import merge_configuration, get_parameters
+from ..models.database import AlphaDatabase
 
-import platform
+
+import platform, getpass
 
 system_platform    = platform.system()
 
@@ -34,6 +36,7 @@ class AlphaConfig():
     data_origin = {}
     data        = {}
     data_env    = {}
+    data_user   = {}
 
     databases   = {}
 
@@ -41,20 +44,20 @@ class AlphaConfig():
         self.name = name
         if filepath is not None:
             if not filepath[-5:] == '.json':
-                filepath = filepath + '.json'
+                filepath    = filepath + '.json'
 
-            filename    = os.path.basename(filepath).split('.')[0]
+            filename        = os.path.basename(filepath).split('.')[0]
             if root is None:
                 root        = os.path.abspath(filepath).replace('%s.json'%filename,'')
             if name == 'config':
-                name    = filename
+                name        = filename
 
         if root is None:
-            stack       = inspect.stack()
-            parentframe = stack[1]
-            module      = inspect.getmodule(parentframe[0])
-            root        = os.path.abspath(module.__file__).replace(module.__file__,'')
-        self.root       = root
+            stack           = inspect.stack()
+            parentframe     = stack[1]
+            module          = inspect.getmodule(parentframe[0])
+            root            = os.path.abspath(module.__file__).replace(module.__file__,'')
+        self.root           = root
         
         if log is None:
             logger_root     = 'logs' if logger_root is None else logger_root
@@ -123,6 +126,13 @@ class AlphaConfig():
             elif default_configuration is not None and default_configuration in configurations:
                 self.data_env = configurations[default_configuration]
 
+        if "users" in self.data_origin:
+            users = self.data_origin["users"]
+            
+            user = getpass.getuser()
+            if user in users:
+                self.data_user = self.data_origin["users"][user]
+
         self.init_data()
 
     def save(self):
@@ -147,14 +157,25 @@ class AlphaConfig():
     def init_data(self):
         config      = copy.deepcopy(self.data_origin)
         config_env  = copy.deepcopy(self.data_env)
+        config_user = copy.deepcopy(self.data_user)
+
+        merge_configuration(config,config_user,replace=True)
+
         merge_configuration(config,config_env,replace=True)
 
-        """for p,v in config.items():
-            print('   {:20} {}'.format(p,str(v)))
+        debug = False
+        if debug:
+            print('\n    USER\n')
+            for p,v in config_user.items():
+                print('   {:20} {}'.format(p,str(v)))
 
-        print('    ENV')
-        for p,v in config_env.items():
-            print('   {:20} {}'.format(p,str(v)))"""
+            print('\n    ENV\n')
+            for p,v in config_env.items():
+                print('   {:20} {}'.format(p,str(v)))
+
+            print('\n    FULL\n')
+            for p,v in config.items():
+                print('   {:20} {}'.format(p,str(v)))
 
         structure = {'name':None,'mandatory':True,'value':None}
         if 'databases' in config:
@@ -186,7 +207,7 @@ class AlphaConfig():
                 fct_kwargs = {x:y['value'] for x,y in content_dict.items()}
 
                 if valid:
-                    self.databases[database] = sql_lib.get_connection_from_infos(**fct_kwargs)
+                    self.databases[database] = AlphaDatabase(**fct_kwargs)
                 else:
                     self.log.error('Cannot configure database %s'%database)
 
@@ -214,7 +235,7 @@ class AlphaConfig():
 
         return self.getParameterPath(parameters[1:],data[parameters[0]])
 
-    def get_connection(self,name):
+    def get_database(self,name):
         if name in self.databases:
             return self.databases[name]
         return None
@@ -225,7 +246,8 @@ def set_path(config,path,parameters,parameters_values):
         for parameter in parameters:
             #print(parameter,parameters_values)
             if parameter in parameters_values:
-                value           = value.replace(PAREMETER_PATTERN%parameter,parameters_values[parameter])
+                parameter_value = convert_value(parameters_values[parameter])
+                value           = value.replace(PAREMETER_PATTERN%parameter,parameter_value)
         config[path[0]]         = value
         return
 
@@ -258,8 +280,8 @@ def search_it(nested, target,path=None):
         path = []
 
     for key, value in nested.items():
-        value = convert_value(value)
-        next_path = copy.copy(path)
+        value       = convert_value(value)
+        next_path   = copy.copy(path)
         next_path.append(key)
 
         if key == target:
@@ -300,8 +322,7 @@ def get_parameters_from_config(nested, path=None):
             if len(parameters) != 0:
                 found.append([ x.replace('{{','').replace('}}','') for x in parameters])
                 paths.append(next_path)
-        
-        if isinstance(value, dict):
+        elif isinstance(value, dict):
             f, p = get_parameters_from_config(value, next_path)
             found.extend(f)
             paths.extend(p)
@@ -367,6 +388,7 @@ def replace_parameters(config):
         dict -- the input dict with parameters replace by their values
     """
     parameters_values, paths = get_parameters_from_config(config, path=None)
+
     parameters = []
     for i in range(len(parameters_values)):
         parameters.extend(parameters_values[i])
@@ -374,18 +396,39 @@ def replace_parameters(config):
     parameters          = list(set(parameters))
     parameters_value    = {}
     for parameter in parameters:
-        values      = search_it(config,parameter)
+        values          = search_it(config,parameter)
+        # take the first value if any
         if len(values) != 0 and len(values[0]) != 0:
-            value   = values[0][0]
+            value                       = values[0][0]
             parameters_value[parameter] = convert_value(value)
+    set_parameter_value(parameters_value)
 
-    for i in range(len(parameters_values)):
-        set_path(config, paths[i], parameters_values[i], parameters_value)
+    levels = list(set([len(x) for x in paths]))
+
+    for level in levels:
+        for i in range(len(parameters_values)):
+            if len(paths[i]) == level:
+                set_path(config, paths[i], parameters_values[i], parameters_value)
+
+    #io_lib.print_dict(config)
+
     return config
+
+def set_parameter_value(parameters_value):
+    replaced    = False
+    keys        = list(parameters_value.keys())
+    for key, value in parameters_value.items():
+        for k in keys:
+            if "{{%s}}"%k in value:
+                value       = value.replace("{{%s}}"%k,parameters_value[k])
+                replaced    = True
+        parameters_value[key] = value
+    if replaced:
+        set_parameter_value(parameters_value)
 
 def convert_value(value):
     systems = ['windows', 'unix']
-    if type(value) == dict and system_platform.lower() in systems and system_platform.lower() in value:
-        value = value[system_platform.lower()]
-
+    if type(value) == dict and system_platform.lower() in systems:
+        if system_platform.lower() in value:
+            value = value[system_platform.lower()]
     return value

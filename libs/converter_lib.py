@@ -31,6 +31,13 @@ def is_num(s):
             return True
         except ValueError:
             return False
+
+def is_int(val):
+    try:
+        num = int(val)
+    except ValueError:
+        return False
+    return True
         
 def format_as_string_if_not_num(s):
     s = "'%s'"%s if not is_num(s) else s

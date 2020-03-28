@@ -1,4 +1,4 @@
-import requests, json, os, pickle
+import requests, json, os, pickle, pathlib
 from lxml.html import fromstring
 
 def ensure_dir(file_path):
@@ -37,14 +37,29 @@ def get_proxies(nb=None):
             proxies.add(proxy)
     return proxies
 
-def archive_object(object_to_save,filename):
+def archive_object(object_to_save,filename, ext='dmp'):
+    ensure_dir(filename)
+    if ext is not None and pathlib.Path(filename).suffix == '':
+        filename = filename + '.' + ext
     with open(filename, 'wb') as f:
         pickle.dump(object_to_save, f,protocol=pickle.HIGHEST_PROTOCOL)
         
-def unarchive_object(filename):
+def unarchive_object(filename, ext='dmp'):
+    if ext is not None and pathlib.Path(filename).suffix == '':
+        filename = filename + '.' + ext
     object_to_get = None
     if os.path.exists(filename):
         with open(filename, 'rb') as f:
             object_to_get     = pickle.load(f)
             #log.trace_show()
     return object_to_get
+
+def print_dict(dictio,level=1):
+    for key, value in dictio.items():
+        if type(value) == dict:
+            print("{} {:20}".format(level*'  ',key))
+            print_dict(value,level + 1)
+        else:
+            print("{} {:20} {}".format(level*'  ',key,value))
+
+    
