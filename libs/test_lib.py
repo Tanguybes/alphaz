@@ -4,7 +4,7 @@ import importlib
 from inspect import getmembers, isfunction, isclass
 from .py_lib import reload_modules
 
-def get_tests_auto(test_directory,rejects=[],name=None):
+def get_tests_auto(test_directory,rejects=[],name=None,group=None):
     #if test_directory:
     #test_directory = os.path.basename(os.path.dirname(os.path.realpath(__file__)))
 
@@ -25,7 +25,9 @@ def get_tests_auto(test_directory,rejects=[],name=None):
             functions_list      = [o for o in getmembers(module) if isclass(o[1]) and '_tests' in o[0].lower()]
 
             for el in functions_list:
-                test_groups.set_test_group(TestGroup(file_name, el[0],el[1]))
+                test_group = TestGroup(file_name, el[0],el[1])
+                if group is None or group == test_group.name:
+                    test_groups.set_test_group(test_group)
     return test_groups
 
 def execute_all_tests_auto(directory,output=True,verbose=False,refresh=True,name=None):
@@ -36,11 +38,11 @@ def save_all_tests_auto(directory,output=True,verbose=False,refresh=True,name=No
     return operate_all_tests_auto(directory,output=output,verbose=verbose,refresh=refresh,name=name,
         action='save')
 
-def operate_all_tests_auto(directory,output=True,verbose=False,refresh=True,name=None,action='execute'):
+def operate_all_tests_auto(directory,output=True,verbose=False,refresh=True,name=None,action='execute',group=None):
     if refresh:
-        reload_modules(os.getcwd())
+        reload_modules(os.getcwd(),verbose=False)
 
-    tests_groups = get_tests_auto(directory)
+    tests_groups = get_tests_auto(directory,group=group)
 
     if action == 'execute':
         tests_groups.test_all(verbose=verbose)
