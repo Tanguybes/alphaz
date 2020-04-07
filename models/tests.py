@@ -143,6 +143,7 @@ class TestGroup():
                 self.tests[test_function.name]  = test_function
 
     def test_all(self,verbose=False):
+        self.classObject.verbose = verbose
         for method in self.tests.values():
             method.test(verbose=verbose)
 
