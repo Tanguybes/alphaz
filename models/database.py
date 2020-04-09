@@ -89,3 +89,6 @@ class AlphaDatabase():
         cursor.close()
         if close_cnx:
             self.cnx.close()
+
+    def close(self):
+        self.cnx.close()

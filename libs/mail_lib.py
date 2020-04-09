@@ -1,8 +1,9 @@
 import smtplib, socks
 
 import hashlib, re, os, datetime
-from flask_mail import Message
 from flask import current_app
+from flask_mail import Message
+
 import uuid
 from . import sql_lib
 from ..config.utils import merge_configuration, get_parameters
@@ -74,7 +75,7 @@ def get_mail_content(mail_root, mail_type,log):
             if len(regex_find) != 0:
                 result = regex_find[0]
             else:
-                log.error('Cannot find mail content at %s'%(file_name))
+                log.error('Mail content is incorrect for %s, cannot div block by %s content (regex expression not matched: %s )'%(mail_path,file_name,div_block))
                 return None
 
             with open(file_name) as f:
@@ -94,7 +95,7 @@ def get_mail_content(mail_root, mail_type,log):
     for script_block in script_blocks:
         content = content.replace(script_block,'')
 
-    with open('/home/truegolliath/svntools/aurele/mails/debug.html','w') as f:
+    with open(mail_root + os.sep + 'generated_mail.html','w') as f:
         f.write(content)
 
     #return set_parameters(content,CoreW.CONSTANTS)
@@ -126,23 +127,24 @@ def set_parameters(content,parameters):
             content = content.replace('{{%s}}'%parameter,str(value))
     return content
 
-def send_mail(host_web,mail_path,mail_type,parameters_list,sender,cnx,log,key_signature="<alpha mail>",
+def send_mail(api,host_web,mail_path,mail_type,parameters_list,sender,cnx,log,key_signature="<alpha mail>",
         default_tile='',close_cnx=True):
+    print('Getting mail at %s/%s'%(mail_path,mail_type))
     content                 = get_mail_content(mail_path,mail_type,log)
-    parameters_to_specify   = get_parameters(content)
-
+    
     if content is None:
         return False
+    parameters_to_specify   = get_parameters(content)
 
     valid_signature     = key_signature in str(content) 
     title               = get_title(content,default=default_tile)
 
-    now = datetime.datetime.now()
-    year = now.year
-    month = now.month
-    hour = now.hour
-    minute = now.minute
-    second=now.second
+    now     = datetime.datetime.now()
+    year    = now.year
+    month   = now.month
+    hour    = now.hour
+    minute  = now.minute
+    second  = now.second
 
     for parameters in parameters_list:
         for key, value in parameters.items():
@@ -182,22 +184,25 @@ def send_mail(host_web,mail_path,mail_type,parameters_list,sender,cnx,log,key_si
             log.error('Missing parameters %s for mail "%s"'%(','.join(parameters_not_specified),mail_type))
             return False
 
-        if not valid_signature:
+        """if not valid_signature:
             log.error('Invalid mail signature !')
-            return False
+            return False"""
 
         if is_mail_already_send(cnx,mail_type,parameters_to_keep,close_cnx=False,log=log):
             return False
 
-        if is_blacklisted(cnx,user_mail,mail_type,close_cnx=False,log=log):
+        if is_blacklisted(cnx,user_mail,mail_type,close_cnx=False):
             return False
 
         # Send mail
-        msg = Message(title,
+        msg     = Message(title,
                     sender=sender,
                     recipients=[user_mail])
         msg.html = content
+
+        
         current_app.extensions["mail"].send(msg)
+        #api.mail.send(msg)
 
         # insert in history
         set_mail_history(cnx,mail_type,uuidValue,parameters_to_keep,close_cnx=False,log=log)
@@ -209,7 +214,7 @@ def set_mail_history(cnx, mail_type,uuidValue,parameters,close_cnx=True,log=None
     unique_parameters = get_unique_parameters(parameters)
     query   = "INSERT INTO mails_history (uuid, mail_type, parameters, parameters_full) VALUES (%s,%s,%s,%s)"
     values  = (uuidValue,mail_type,str(unique_parameters),str(parameters))
-    return sql_lib.execute_query(cnx, query,values,close_cnx=close_cnx,log=log)
+    return cnx.execute_query(query,values,close_cnx=close_cnx)
 
 def get_unique_parameters(parameter):
     unique_parameters = {}
@@ -222,11 +227,11 @@ def is_mail_already_send(cnx,mail_type,parameters, close_cnx=True,log=None):
     unique_parameters = get_unique_parameters(parameters)
     query   = "SELECT * from mails_history where mail_type = %s and parameters = %s"
     values  = (mail_type,str(unique_parameters))
-    results = sql_lib.get_query_results(cnx,query,values,unique=False,close_cnx=close_cnx,log=log)
+    results = cnx.get_query_results(query,values,unique=False,close_cnx=close_cnx)
     return len(results) != 0
 
 def is_blacklisted(cnx,user_mail,mail_type,close_cnx=True,log=None):
     query   = "SELECT * from mails_blacklist where mail_type = %s and mail = %s "
     values  = (mail_type,user_mail)
-    results = sql_lib.get_query_results(cnx,query,values,unique=False,close_cnx=close_cnx,log=log)
+    results = cnx.get_query_results(query,values,unique=False,close_cnx=close_cnx)
     return len(results) != 0

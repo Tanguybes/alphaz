@@ -45,6 +45,13 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
 
             dataPost                = request.get_json()
 
+            if api.debug:
+                print('POST:',dataPost)
+                print('GET:',request.args)
+                print('JSON:',request.get_json())
+                print('VALUES:',request.values)
+                print('PARAMETERS',parameters)
+
             for parameter in parameters:
                 parameter.value         = request.args.get(parameter.name,parameter.default)
                 if parameter.value is None and dataPost is not None and parameter.name in dataPost:
@@ -175,6 +182,7 @@ def password_lost():
     if username is not None or mail is not None:
         cnx                 = api.get_connection('users')
         username_or_mail    = username if mail is None else mail
+
         api_users.ask_password_reset(api,username_or_mail,cnx=cnx) 
     else:
         api.set_error('inputs')
@@ -215,9 +223,10 @@ def reset_password():
 # MAILS
 ##################################################################################################################
 
-@route('/mails/mailme',logged=True,cache=False)
+@route('/mails/mailme',logged=False,cache=False)
 def mail_me():
     cnx         = api.get_connection('users')
+    print('mailme')
     api_mails.mail_me(api,cnx,close_cnx=True)
 
 @route('/mails/stayintouch',logged=False,cache=False, 
@@ -231,7 +240,7 @@ def mails_stay_in_touch():
     user_mail       = api.get('mail')
     name            = api.get('name')
 
-    #cnx             = sql_lib.get_survey_connection()
+    #cnx             = cnx.get_survey_connection()
     cnx             = api.get_connection('users')
     api_mails.stay_in_touch(api,user_mail,name, token,cnx)
 

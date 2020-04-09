@@ -22,6 +22,10 @@ def stay_in_touch(api,user_mail,name,token,cnx,close_cnx=True):
 def mail_me(api,cnx,close_cnx=True):
     parameters          = {'mail':"durand.aurele@gmail.com",'name':'Aurele'}
     mail_config         = api.get_config(['mails','mail'])
+    
+    if mail_config is None:
+        api.log.error('Missing "mailme" mail configuration ')
+        return False
 
     api.send_mail(
         mail_config     = mail_config,
@@ -57,7 +61,7 @@ def request_view(api,user_mail,token,mail_type,mail_id,cnx,close_cnx=True):
     
     query       = "SELECT * from mails_history where mail_type = %s and uuid = %s"
     values      = (mail_type,mail_id)
-    results     = sql_lib.get_query_results(cnx,query,values,unique=False,close_cnx=close_cnx)
+    results     = cnx.get_query_results(query,values,unique=False,close_cnx=close_cnx)
     valid       = len(results) != 0
     if not valid:
         return api.set_error('no_mail')
@@ -75,7 +79,7 @@ def request_unsubscribe(api,user_mail, token, mail_type,cnx,close_cnx=True):
 
     query   = "INSERT INTO mails_blacklist (mail,mail_type) VALUES (%s,%s)"
     values  = (user_mail,mail_type)
-    valid   = sql_lib.execute_query(cnx, query,values,close_cnx=close_cnx)
+    valid   = cnx.execute_query(cnx, query,values,close_cnx=close_cnx)
 
     if not valid:
         return api.set_error('fail')

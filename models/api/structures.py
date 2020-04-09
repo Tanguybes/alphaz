@@ -39,6 +39,8 @@ class AlphaFlask(Flask):
     data            = {}
     returned        = {}
 
+    debug           = False
+
     conf            = None
     config_path     = ''
 
@@ -58,21 +60,25 @@ class AlphaFlask(Flask):
         self.connections[name] = cnx_fct
 
     def get_connection(self,name):
-        return self.connections[name]()
+        return self.connections[name]
 
     def init(self,config_path,configuration=None,root=None):
         self.set_config(config_path,configuration,root=root)
 
         for database, fct in self.conf.databases.items():
             self.connections[database] = fct
+        
+        if not 'users' in self.connections:
+            print('Missing "users" database in configuration file')
+            exit()
             
-        #api.debug                                   = False
         self.config['SECRET_KEY']                    = self.get_config('flask_key')
         self.config['JWT_SECRET_KEY']                = self.get_config('jwt_key')
         self.config['JSONIFY_PRETTYPRINT_REGULAR']   = False
         self.json_encoder                            = CustomJSONEncoder
 
         mail_config = self.get_config('mail_server')
+
 
         self.config.update(
             MAIL_USE_TLS    = mail_config['tls'],
@@ -83,6 +89,9 @@ class AlphaFlask(Flask):
             MAIL_PASSWORD   = mail_config['password']
         )
         self.mail = Mail(self)
+
+        root_log    = self.get_config('log_directory')
+        self.log    = AlphaLogger('api','api',root=root_log)
 
     def start(self):
         pid                 = os.getpid()     
@@ -96,14 +105,11 @@ class AlphaFlask(Flask):
         host        = self.conf.get('host')
         port        = self.conf.get('port')
         threaded    = self.conf.get('threaded')
-        debug       = self.conf.get('debug')
+        self.debug  = self.conf.get('debug')
 
-        root_log    = self.get_config('log_directory')
-        self.log    = AlphaLogger('api','api',root=root_log)
+        self.log.info('Run api on host %s port %s %s'%(host,port,'DEBUG MODE' if self.debug else ''))
 
-        self.log.info('Run api on host %s port %s '%(host,port))
-
-        self.run(host=host,port=port,debug=debug,threaded=threaded,ssl_context=ssl_context)
+        self.run(host=host,port=port,debug=self.debug,threaded=threaded,ssl_context=ssl_context)
 
     def stop(self,config_path=None):
         if config_path is None:
@@ -126,7 +132,8 @@ class AlphaFlask(Flask):
         self.conf           = AlphaConfig(filepath=config_path,configuration=configuration,root=root) # root=os.path.dirname(os.path.realpath(__file__))
 
     def get_config(self,name=''):
-        return self.conf.get(name)
+        conf = self.conf.get(name)
+        return conf
 
     def get_url(self):
         ssl     = self.get_config('ssl')
@@ -285,16 +292,26 @@ class AlphaFlask(Flask):
         return isTime
 
     def send_mail(self,mail_config,parameters_list,cnx,log,sender=None,close_cnx=True):
+        if mail_config is None or type(mail_config) != dict:
+            log.error('Missing mail configuration')
+            return False
+
+        print('Mail config',mail_config)
         mail_type       = mail_config['mail_type']
 
-        sender = self.get_config('mail_sender')
+        sender           = self.get_config('mail_sender')
         if mail_config['sender'] is not None:
             sender              = mail_config['sender']
         
         full_parameters_list = []
         for parameters in parameters_list:
             root_configuration          = copy.deepcopy(self.get_config())
-            parameters_config           = copy.deepcopy(mail_config['parameters'])
+
+            parameters_config = {}
+            print(' mp ',parameters)
+            if 'parameters' in mail_config:
+                parameters_config           = copy.deepcopy(mail_config['parameters'])
+                print('Mail parameters:',parameters_config)
 
             full_parameters = {}
 
@@ -315,9 +332,10 @@ class AlphaFlask(Flask):
             exit()"""
         
         valid = mail_lib.send_mail(
-            host_web=self.get_config('host_web'),
-            mail_path=self.get_config('mail_path'),
-            mail_type=mail_type,
+            api=self,
+            host_web  = self.get_config('host_web'),
+            mail_path = self.get_config('mail_path'),
+            mail_type = mail_type,
             parameters_list=full_parameters_list,
             sender=sender,
             cnx=cnx,

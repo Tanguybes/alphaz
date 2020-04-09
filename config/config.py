@@ -131,9 +131,14 @@ class AlphaConfig():
             
             user = getpass.getuser()
             if user in users:
+                self.log.info('User "%s" detected in configuration'%user)
                 self.data_user = self.data_origin["users"][user]
+            #del self.data_origin["users"]
 
         self.init_data()
+
+    def show(self):
+        show(self.data)
 
     def save(self):
         with open(self.config_file,'w') as json_data_file:
@@ -162,6 +167,9 @@ class AlphaConfig():
         merge_configuration(config,config_user,replace=True)
 
         merge_configuration(config,config_env,replace=True)
+
+        if 'users' in config:
+            del config['users']
 
         debug = False
         if debug:
@@ -224,21 +232,34 @@ class AlphaConfig():
                 return values[index]
         return self.getParameterPath(path)
 
-    def getParameterPath(self,parameters,data=None):
+    def getParameterPath(self,parameters,data=None,level=1):
+        if type(parameters) == str:
+            parameters = [parameters]
+
+        #print('%s%s'%('   '*level,' > '.join(parameters)))
+
         if data is None:
             data = self.data
 
         if parameters[0] not in data:
             return None
         if len(parameters) == 1:
+            #print('%s%s: %s'%('   '*level,' > '.join(parameters),data[parameters[0]]))
             return data[parameters[0]]
 
-        return self.getParameterPath(parameters[1:],data[parameters[0]])
+        return self.getParameterPath(parameters[1:],data[parameters[0]],level = level + 1)
 
     def get_database(self,name):
         if name in self.databases:
             return self.databases[name]
         return None
+
+def show(config,level=0):
+    for key, cf in config.items():
+        val = '' if type(cf) == dict else str(cf)
+        print('{} {:30} {}'.format('   '*level,key,val))
+        if type(cf) == dict:
+            show(cf,level + 1)
 
 def set_path(config,path,parameters,parameters_values):
     if len(path) == 1:
@@ -389,6 +410,10 @@ def replace_parameters(config):
     """
     parameters_values, paths = get_parameters_from_config(config, path=None)
 
+    """for i in range(len(parameters_values)):
+        print(parameters_values[i],paths[i])"""
+
+
     parameters = []
     for i in range(len(parameters_values)):
         parameters.extend(parameters_values[i])
@@ -412,6 +437,11 @@ def replace_parameters(config):
 
     #io_lib.print_dict(config)
 
+    """parameters_values, paths = get_parameters_from_config(config, path=None)
+    if len(parameters_values) != 0:
+        print('ERROR: not all parameters have been converted\n\n',parameters_values,paths)
+        exit()""" #TODO: do
+
     return config
 
 def set_parameter_value(parameters_value):
@@ -419,7 +449,7 @@ def set_parameter_value(parameters_value):
     keys        = list(parameters_value.keys())
     for key, value in parameters_value.items():
         for k in keys:
-            if "{{%s}}"%k in value:
+            if "{{%s}}"%k in value and "{{%s}}"%k != value:
                 value       = value.replace("{{%s}}"%k,parameters_value[k])
                 replaced    = True
         parameters_value[key] = value

@@ -59,6 +59,11 @@ class SelectionMenu():
         return self.returnValue
         
     def execute(self,conf):
+        if type(conf) == list:
+            for sub_conf in conf:
+                self.execute(sub_conf)
+            return
+
         if 'command' in conf:
             self.in_command = True
 
@@ -322,10 +327,11 @@ class SelectionMenu():
 
         return selections
 
-    def set_value(self,name,value):
-        name = replace_name(name)
-        self.values[name] = self.convert_value(value)
+    def set_value(self,name,value,convert=True):
+        name                = replace_name(name)
+        self.values[name]   = self.convert_value(value) if convert else value
         self.debug_print('   Set value %s to %s'%(name,self.values[name]))
+        print('   Set value %s to %s'%(name,self.values[name]))
 
     def switch_value(self,name):
         name = replace_name(name)
@@ -346,7 +352,9 @@ class SelectionMenu():
                 if type(config) == dict:
                     if  'kwargs' in config.keys():
                         raw_kwargs                                  = config['kwargs']
+                        print('a',raw_kwargs)
                         kwargs                                      = self.convert_values(raw_kwargs)
+                        print('b',kwargs)
                     
                     if 'method' in config.keys():
                         fct                                         = config['method']
@@ -356,8 +364,10 @@ class SelectionMenu():
 
                 if fct is not None:
                     self.debug_print('Exec fct %s with kwargs %s'%(fct,kwargs))
+                    print('Exec fct %s with kwargs %s'%(fct,kwargs))
                     functionReturn = fct(**kwargs)
-                    self.set_value('return',functionReturn)
+                    print('      return: %s'%(functionReturn))
+                    self.set_value('returned',functionReturn,convert=False)
 
                     if type(config) == dict and 'name' in config:
                         self.set_value(config['name'],functionReturn)
@@ -372,27 +382,34 @@ class SelectionMenu():
         value = rawValue
         
         if type(rawValue) == dict:
-            return rawValue
+            for key, v in rawValue.items():
+                value[self.convert_value(key)] = self.convert_value(v)
+            return value
+        if type(rawValue) == list:
+            new_list = []
+            for v in rawValue:
+                new_list.append(self.convert_value(v))
+            return new_list
 
         # List
         elementList = False
         regex   = "\[\d+\]"
         m       = re.search(regex, str(rawValue))
         if m is not None:
-            group = m.group(0)
+            group       = m.group(0)
             positionRaw = group.replace('[','').replace(']','')
-            position = self.convert_value(positionRaw,convert=int)
-            rawValue = rawValue.replace(group,'')
+            position    = self.convert_value(positionRaw,convert=int)
+            rawValue    = rawValue.replace(group,'')
             elementList = True
 
         # Range
-        regex   = "\[.*:.*\]"
+        regex   = "\[[\d*]:[\d*]\]"
         m       = re.search(regex, str(rawValue))
         if m is not None:
-            values = m.group(0).replace('[','').replace(']','').split(':')
-            v1 = self.convert_value(values[0],convert=int)
-            v2 = self.convert_value(values[1],convert=int)
-            value = range(v1,v2)
+            values  = m.group(0).replace('[','').replace(']','').split(':')
+            v1      = self.convert_value(values[0],convert=int)
+            v2      = self.convert_value(values[1],convert=int)
+            value   = range(v1,v2)
             return value
         
         # Call dynamically a method from this class

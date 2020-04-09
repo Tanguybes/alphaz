@@ -29,7 +29,7 @@ def try_register_user(api,cnx,mail, username, password, password_confirmation,cl
     token   = secure_lib.get_token()
     query   = "INSERT INTO users (username, mail, password, role, date_registred, last_activity, registration_token) VALUES (%s, %s, %s, -1, UTC_TIMESTAMP(), UTC_TIMESTAMP(), %s)"
     values  = (username, mail, password_hashed, token,)
-    sql_lib.execute_query(cnx,query,values,close_cnx=close_cnx)
+    cnx.execute_query(query,values,close_cnx=close_cnx)
 
     # MAILS
     mail_config = api.get_config(['mails','registration'])
@@ -38,7 +38,8 @@ def try_register_user(api,cnx,mail, username, password, password_confirmation,cl
 
     parameters = {
         "token": token,
-        "username": username
+        "name": username,
+        "mail": mail
     }
 
     api.send_mail(
@@ -67,7 +68,7 @@ def ask_password_reset(api,username_or_mail,cnx,close_cnx=True):
     query   = "UPDATE users SET password_reset_token = %s, password_reset_token_expire = UTC_TIMESTAMP() + INTERVAL 20 MINUTE WHERE id = %s;"
     values  = (token, user_data['id'],)
 
-    if not sql_lib.execute_query(cnx,query,values,close_cnx=False,log=None):
+    if not cnx.execute_query(query,values,close_cnx=False,log=None):
         return api.set_error('sql_error')    
 
     # MAIL
@@ -93,7 +94,7 @@ def confirm_user_registration(api,token,cnx):
         # Set Role to 0 and revoke token
         query   = "UPDATE users SET role = 0, registration_token = 'consumed' WHERE id = %s"
         values  = (user_data['id'],)
-        valid   = sql_lib.execute_query(cnx,query,values,close_cnx=True,log=api.log)
+        valid   = cnx.execute_query(query,values,close_cnx=True,log=api.log)
         if not valid:
             return api.set_error('error')   
 
@@ -101,7 +102,7 @@ def confirm_user_registration(api,token,cnx):
 def try_login(api,cnx,login, password, ip):
     user_data = user_lib.get_user_data_FromLogin(cnx,login, password,close_cnx=False,log=api.log)
     if user_data is not None:
-        if user_data['role'] > 0:
+        if user_data['role'] >= 0:
             # Generate token
             encoded_jwt = jwt.encode({
                 'username': user_data['username'], 
@@ -111,7 +112,7 @@ def try_login(api,cnx,login, password, ip):
             # Add new token session related to user
             query   = "INSERT INTO users_sessions (user_id, token, ip, expire) VALUES (%s, %s, %s, UTC_TIMESTAMP() + INTERVAL 7 DAY)"
             values  = (user_data['id'], encoded_jwt, ip,)
-            valid   = sql_lib.execute_query(cnx,query,values,close_cnx=True,log=api.log)
+            valid   = cnx.execute_query(query,values,close_cnx=True,log=api.log)
             if valid:
                 data = {
                     'user':user_data,
@@ -146,21 +147,21 @@ def try_reset_password(api,user_data, password, password_confirmation,cnx,log=No
     # Reset password
     query   = "UPDATE users SET password = %s, password_reset_token = 'consumed' WHERE id = %s;"
     values  = (password_hashed, user_data['id'],)
-    valid   = sql_lib.execute_query(cnx,query,values,close_cnx=False,log=api.log)
+    valid   = cnx.execute_query(query,values,close_cnx=False,log=api.log)
     if not valid:
         api.set_error('reset_error') 
     
     # Reset all sessions as password changed
     query   = "DELETE FROM users_sessions WHERE user_id = %s;"
     values  = (user_data['id'],)
-    valid   = sql_lib.execute_query(cnx,query,values,close_cnx=close_cnx,log=api.log)
+    valid   = cnx.execute_query(query,values,close_cnx=close_cnx,log=api.log)
     if not valid:
         api.set_error('clean_error')
 
 def logout(api,token,cnx,log=None,close_cnx=True):
     query = "DELETE FROM users_sessions WHERE token = %s;"
     values = (token,)
-    valid   = sql_lib.execute_query(cnx,query,values,close_cnx=close_cnx,log=api.log)
+    valid   = cnx.execute_query(query,values,close_cnx=close_cnx,log=api.log)
     if not valid:
         api.set_error('fail')
 
@@ -168,7 +169,7 @@ def get_user_dataFromToken(api,cnx,token):
     user_id     = None
     query       = ("SELECT user_id FROM users_sessions WHERE token = %s")
     values      = (token,)
-    results     = sql_lib.get_query_results(cnx,query,values,unique=True,close_cnx=False,log=api.log)
+    results     = cnx.get_query_results(query,values,unique=True,close_cnx=False)
     if len(results) != 0:
         user_id = results[0]
 
@@ -187,7 +188,7 @@ def try_subscribe_user(api,mail, nb_days, target_role,cnx,close_cnx=True):
         # Reset password
         query  = "UPDATE users SET role = %s, expire = %s WHERE id = %s;"
         values = (target_role, expired_date, user_data['id'],)
-        valid  = sql_lib.execute_query(cnx,query,values,close_cnx=close_cnx)
+        valid  = cnx.execute_query(query,values,close_cnx=close_cnx)
         if not valid:
             api.set_error('update_error')
     api.set_error('unknow_user')
