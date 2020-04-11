@@ -332,6 +332,7 @@ class AlphaFlask(Flask):
             exit()"""
         
         valid = mail_lib.send_mail(
+            title= mail_config['title'],
             api=self,
             host_web  = self.get_config('host_web'),
             mail_path = self.get_config('mail_path'),

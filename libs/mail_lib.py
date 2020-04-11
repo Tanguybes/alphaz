@@ -127,8 +127,7 @@ def set_parameters(content,parameters):
             content = content.replace('{{%s}}'%parameter,str(value))
     return content
 
-def send_mail(api,host_web,mail_path,mail_type,parameters_list,sender,cnx,log,key_signature="<alpha mail>",
-        default_tile='',close_cnx=True):
+def send_mail(title,api,host_web,mail_path,mail_type,parameters_list,sender,cnx,log,key_signature="<alpha mail>",close_cnx=True):
     print('Getting mail at %s/%s'%(mail_path,mail_type))
     content                 = get_mail_content(mail_path,mail_type,log)
     
@@ -137,7 +136,7 @@ def send_mail(api,host_web,mail_path,mail_type,parameters_list,sender,cnx,log,ke
     parameters_to_specify   = get_parameters(content)
 
     valid_signature     = key_signature in str(content) 
-    title               = get_title(content,default=default_tile)
+    #title               = get_title(content,default=default_tile)
 
     now     = datetime.datetime.now()
     year    = now.year

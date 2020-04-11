@@ -7,7 +7,7 @@ def try_register_user(api,cnx,mail, username, password, password_confirmation,cl
     userByUsername      = user_lib.get_user_dataByUsername(cnx,username,close_cnx=False)
 
     if 'id' in userByMail or 'id' in userByUsername:
-        if ('id' in userByMail and userByMail['role'] == 0) or userByUsername['role'] == 0:
+        if ('id' in userByMail and userByMail['role'] < 0) or userByUsername['role'] < 0:
             return api.set_error('account_not_validated')
         return api.set_error('account_duplicated')
     

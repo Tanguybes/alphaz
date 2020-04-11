@@ -1,4 +1,4 @@
-import sys, imp, inspect
+import sys, imp, inspect, os
 from ..models.watcher import ModuleWatcher
 
 def reload_modules(root,verbose=True):
@@ -24,3 +24,11 @@ def watch_modules(roots: [],verbose=True):
                     print('   Add %s to the watcher'%module)
                 mw.watch_module(str(module))
     mw.start_watching()
+
+def execute_cmd(cmd='',root=None):
+    current_folder = os.getcwd()
+    if root is not None:
+        os.chdir(root)
+    print('   Execute: ',cmd)
+    os.system(cmd)
+    os.chdir(current_folder) 

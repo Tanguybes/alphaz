@@ -64,6 +64,8 @@ class SelectionMenu():
                 self.execute(sub_conf)
             return
 
+        conf = self.convert_parameters(conf)
+
         if 'command' in conf:
             self.in_command = True
 
@@ -352,9 +354,9 @@ class SelectionMenu():
                 if type(config) == dict:
                     if  'kwargs' in config.keys():
                         raw_kwargs                                  = config['kwargs']
-                        print('a',raw_kwargs)
+                        print('kwargs a',raw_kwargs)
                         kwargs                                      = self.convert_values(raw_kwargs)
-                        print('b',kwargs)
+                        print('kwargs b',kwargs)
                     
                     if 'method' in config.keys():
                         fct                                         = config['method']
@@ -416,9 +418,7 @@ class SelectionMenu():
         if "self." in str(rawValue) and rawValue.replace('self','') in dir(self):
             value = getattr(self, rawValue)
         
-        for key, val in self.values.items():
-            if '{{%s}}'%key in str(rawValue):
-                value = val
+        value = self.convert_parameters(value)
 
         #if elementList:
         #    print("%s > %s %s"%(rawValue,value,self.values.keys()))
@@ -431,6 +431,20 @@ class SelectionMenu():
             if ok:
                 value = convertion
 
+        return value
+
+    def convert_parameters(self,value):
+        """if 'configuration' in str(value):
+            print('      HHHH ',value)"""
+
+        if type(value) != str:
+            return value
+
+        for key, val in self.values.items():
+            if '{{%s}}'%key == str(value):
+                return val
+            if '{{%s}}'%key in str(value):
+                value = value.replace('{{%s}}'%key,val)
         return value
 
     def quit(self):
@@ -493,7 +507,13 @@ class SelectionMenu():
     def load_default_values(self):
         defaults            = {}
         filename            = self.save_directory + os.sep + self.name
-        values              = io_lib.unarchive_object(filename)
+
+        values              = None
+        try:
+            values          = io_lib.unarchive_object(filename)
+        except:
+            print('ERROR with configuration file')
+
         if values is not None:
             defaults        = values
         else:
