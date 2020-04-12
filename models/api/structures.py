@@ -9,7 +9,7 @@ from ...utils.logger import AlphaLogger
 from ...utils.apis import api_users
 from ...config.config import AlphaConfig
 
-from .utils import CustomJSONEncoder
+from .utils import AlphaJSONEncoder
 
 SEPARATOR = '::'
 pattern_mail = '{{%s}}'
@@ -62,7 +62,7 @@ class AlphaFlask(Flask):
     def get_connection(self,name):
         return self.connections[name]
 
-    def init(self,config_path,configuration=None,root=None):
+    def init(self,config_path,configuration=None,root=None,encode_rules={}):
         self.set_config(config_path,configuration,root=root)
 
         for database, fct in self.conf.databases.items():
@@ -75,7 +75,9 @@ class AlphaFlask(Flask):
         self.config['SECRET_KEY']                    = self.get_config('flask_key')
         self.config['JWT_SECRET_KEY']                = self.get_config('jwt_key')
         self.config['JSONIFY_PRETTYPRINT_REGULAR']   = False
-        self.json_encoder                            = CustomJSONEncoder
+        self.json_encoder                            = AlphaJSONEncoder
+        for key_rule, fct in encode_rules.items():
+            AlphaJSONEncoder.rules[key_rule] = fct
 
         mail_config = self.get_config('mail_server')
 

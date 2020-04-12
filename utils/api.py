@@ -45,12 +45,12 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
 
             dataPost                = request.get_json()
 
-            if api.debug:
+            """if api.debug:
                 print('POST:',dataPost)
                 print('GET:',request.args)
                 print('JSON:',request.get_json())
                 print('VALUES:',request.values)
-                print('PARAMETERS',parameters)
+                print('PARAMETERS',parameters)"""
 
             for parameter in parameters:
                 parameter.value         = request.args.get(parameter.name,parameter.default)

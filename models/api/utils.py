@@ -9,27 +9,40 @@ import numpy as np
 
 from ...libs import user_lib
 
+from ...utils.decorators import overrides
+
 from flask import jsonify, request
 from flask.json import JSONEncoder
 
-# HELPER TO REPLACE DATE OBJETS (or others) IN STR FORMAT BY DEFAULT - MAGIC
-class CustomJSONEncoder(JSONEncoder):
-    def default(self, o):
+def datetime_to_str(o):
+    return str(o.strftime("%Y-%m-%d %H:%M:%S"))
+
+def object_to_panda(o):
+    return o.to_json(orient='index')
+
+def object_decode(o):
+    return o.decode('utf-8')
+
+class AlphaJSONEncoder(JSONEncoder):
+    rules = {}
+
+    def __init__(self, *args, **kwargs):
+        super(AlphaJSONEncoder, self).__init__(*args, **kwargs)
+
+        self.rules[np.int64]            = int
+        self.rules[datetime.datetime]   = datetime_to_str
+        self.rules[pd.DataFrame]        = object_to_panda
+        self.rules[bytes]               = object_decode
+
+    def default(self, o): # pylint: disable=E0202
         try:
-            if isinstance(o, np.int64):
-                return int(o)
-            if isinstance(o, datetime.datetime):
-                strDate = str(o.strftime("%Y-%m-%d %H:%M:%S"))
-                return strDate
-            if isinstance(o, pd.DataFrame):
-                strObj = o.to_json(orient='index')
-                return strObj
-            if isinstance(o, bytes):
-                strObj = o.decode('utf-8')
-                return strObj
+            for key_type, fct in self.rules.items():
+                if isinstance(o, key_type):
+                    returned_value = fct(o)
+                    return returned_value
             iterable = iter(o)
         except TypeError as err:
             print('ERROR:',err)
         else:
             return list(iterable)
-        return JSONEncoder.default(self, o)
+        return JSONEncoder.default(self, o=o)
