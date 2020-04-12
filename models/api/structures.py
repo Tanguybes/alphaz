@@ -291,17 +291,25 @@ class AlphaFlask(Flask):
                 print('Time: ',isTime, ' now=',now,', lastrun=',lastrun,' nextrun=',nextrun)
         return isTime
 
-    def send_mail(self,mail_config,parameters_list,cnx,log,sender=None,close_cnx=True):
+    def send_mail(self,mail_config,parameters_list,cnx,sender=None,close_cnx=True):
+        # Configuration
+        main_mail_config    = self.get_config(['mails'])
+        mail_config         = self.get_config(['mails',"configurations",mail_config])
         if mail_config is None or type(mail_config) != dict:
-            log.error('Missing mail configuration')
+            self.log.error('Missing mail configuration')
             return False
 
-        print('Mail config',mail_config)
-        mail_type       = mail_config['mail_type']
+        # Parameters
+        root_config = copy.copy(main_mail_config['parameters'])
+        for key, parameter in mail_config['parameters'].items():
+            root_config[key] = parameter
 
-        sender           = self.get_config('mail_sender')
-        if mail_config['sender'] is not None:
-            sender              = mail_config['sender']
+        # Sender
+        if sender is None:
+            if 'sender' in mail_config:
+                sender              = mail_config['sender']
+            else:
+                sender              = main_mail_config['sender']
         
         full_parameters_list = []
         for parameters in parameters_list:
@@ -310,7 +318,7 @@ class AlphaFlask(Flask):
             parameters_config = {}
             print(' mp ',parameters)
             if 'parameters' in mail_config:
-                parameters_config           = copy.deepcopy(mail_config['parameters'])
+                parameters_config           = copy.deepcopy(root_config)
                 print('Mail parameters:',parameters_config)
 
             full_parameters = {}
@@ -332,17 +340,16 @@ class AlphaFlask(Flask):
             exit()"""
         
         valid = mail_lib.send_mail(
-            title= mail_config['title'],
-            api=self,
-            host_web  = self.get_config('host_web'),
-            mail_path = self.get_config('mail_path'),
-            mail_type = mail_type,
-            parameters_list=full_parameters_list,
-            sender=sender,
-            cnx=cnx,
-            log=log,
-            key_signature = self.get_config('mail_key_signature'),
-            close_cnx=close_cnx
+            title           = mail_config['title'],
+            host_web        = self.get_config('host_web'),
+            mail_path       = self.get_config('mail_path'),
+            mail_type       = mail_config['mail_type'],
+            parameters_list = full_parameters_list,
+            sender          = sender,
+            cnx             = cnx,
+            log             = self.log,
+            key_signature   = self.get_config('mail_key_signature'),
+            close_cnx       = close_cnx
         )
         if not valid:
             self.set_error('mail_error')

@@ -127,7 +127,7 @@ def set_parameters(content,parameters):
             content = content.replace('{{%s}}'%parameter,str(value))
     return content
 
-def send_mail(title,api,host_web,mail_path,mail_type,parameters_list,sender,cnx,log,key_signature="<alpha mail>",close_cnx=True):
+def send_mail(title,host_web,mail_path,mail_type,parameters_list,sender,cnx,log,key_signature="<alpha mail>",close_cnx=True):
     print('Getting mail at %s/%s'%(mail_path,mail_type))
     content                 = get_mail_content(mail_path,mail_type,log)
     
@@ -198,8 +198,6 @@ def send_mail(title,api,host_web,mail_path,mail_type,parameters_list,sender,cnx,
                     sender=sender,
                     recipients=[user_mail])
         msg.html = content
-
-        
         current_app.extensions["mail"].send(msg)
         #api.mail.send(msg)
 

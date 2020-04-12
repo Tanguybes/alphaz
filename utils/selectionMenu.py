@@ -59,6 +59,8 @@ class SelectionMenu():
         return self.returnValue
         
     def execute(self,conf):
+        conf = copy.copy(conf)
+        
         if type(conf) == list:
             for sub_conf in conf:
                 self.execute(sub_conf)
@@ -141,6 +143,8 @@ class SelectionMenu():
             self.in_command = False
 
     def select(self,selections_config):
+        selections_config       = copy.copy(selections_config)
+
         commands_selections     = self.get_commands()
         formatStr               = '{:7} {:40} {:30} {}'
         header                  = '   '*self.level
@@ -381,7 +385,7 @@ class SelectionMenu():
         return convertedArgs
 
     def convert_value(self,rawValue,convert=None):
-        value = rawValue
+        value = copy.copy(rawValue)
         
         if type(rawValue) == dict:
             for key, v in rawValue.items():

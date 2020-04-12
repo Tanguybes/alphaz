@@ -27,14 +27,6 @@ def try_register_user(api,cnx,mail, username, password, password_confirmation,cl
     
     # Generate token
     token   = secure_lib.get_token()
-    query   = "INSERT INTO users (username, mail, password, role, date_registred, last_activity, registration_token) VALUES (%s, %s, %s, -1, UTC_TIMESTAMP(), UTC_TIMESTAMP(), %s)"
-    values  = (username, mail, password_hashed, token,)
-    cnx.execute_query(query,values,close_cnx=close_cnx)
-
-    # MAILS
-    mail_config = api.get_config(['mails','registration'])
-
-    #parameters  = registration_mail_config['parameters']
 
     parameters = {
         "token": token,
@@ -43,10 +35,15 @@ def try_register_user(api,cnx,mail, username, password, password_confirmation,cl
     }
 
     api.send_mail(
-        mail_config     = mail_config,
+        mail_config     = 'registration',
         parameters_list = [parameters],
-        cnx=cnx,log=api.log,close_cnx=close_cnx
+        cnx             = cnx,
+        close_cnx       = close_cnx
     )
+
+    query   = "INSERT INTO users (username, mail, password, role, date_registred, last_activity, registration_token) VALUES (%s, %s, %s, -1, UTC_TIMESTAMP(), UTC_TIMESTAMP(), %s)"
+    values  = (username, mail, password_hashed, token,)
+    cnx.execute_query(query,values,close_cnx=close_cnx)
 
     #sender      = CoreW.CONSTANTS['email-registration']
 
