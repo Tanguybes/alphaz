@@ -5,9 +5,11 @@ class FtpFile():
     name = ""
     size = 0
     modification_time = None
+    origin = None
 
-    def __init__(self,name,parameters=None):
+    def __init__(self,name,parameters=None,origin=None):
         self.name  = name
+        self.origin = origin
         if parameters is not None:
             self.size   = parameters.st_size
             self.modification_time = parameters.st_mtime
@@ -60,7 +62,7 @@ class AlphaFtp():
             self.valid = False
         return self.valid
 
-    def list_dir(self,directory,contain=None):
+    def list_dir(self,directory,contain=None,origin=None):
         files = []
 
         # Switch to a remote directory
@@ -70,7 +72,8 @@ class AlphaFtp():
         if self.sftp:
             for attr in self.cnx.listdir_attr():
                 if contain is None or contain in attr.filename:
-                    files.append(FtpFile(attr.filename,attr))
+                    ftp_file = FtpFile(attr.filename,attr,origin=origin if origin is not None else directory)
+                    files.append(ftp_file)
                     #print (attr.filename,attr.st_uid, attr.st_gid, attr.st_mode,attr.st_mtime,attr.st_size)
         else:
             for attr in self.cnx.nlst():
