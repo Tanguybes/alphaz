@@ -1,1 +1,0 @@
-from .stitch import Stitch
