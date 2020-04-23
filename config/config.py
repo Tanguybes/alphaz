@@ -219,6 +219,8 @@ class AlphaConfig():
                 else:
                     self.log.error('Cannot configure database %s'%database)
 
+
+
         self.data = replace_parameters(config)
 
     def get(self,path=[]):

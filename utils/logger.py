@@ -65,11 +65,10 @@ class AlphaLogger():
             parentframe = stack[1]
             module      = inspect.getmodule(parentframe[0])
             root        = os.path.abspath(module.__file__).replace(module.__file__,'')"""
-
             root        = get_alpha_logs_root()
 
         root            = check_root(root)
-        logname         = root + os.sep + filename + '.log'
+        log_path         = root + os.sep + filename + '.log'
 
         # Create logger
         self.logger     = logging.getLogger(name)
@@ -77,7 +76,8 @@ class AlphaLogger():
         self.set_level(level)
 
         # File handler
-        handler         = TimedRotatingFileHandler(logname, when="midnight", interval=1,backupCount=7)
+        print('Setting a logger at %s'%log_path)
+        handler         = TimedRotatingFileHandler(log_path, when="midnight", interval=1,backupCount=7)
         #handler.suffix  = "%Y%m%d"
 
         self.logger.addHandler(handler)
