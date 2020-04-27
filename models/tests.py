@@ -3,6 +3,46 @@ from functools import wraps
 
 from ..libs.io_lib import archive_object, unarchive_object
 
+test_method_name = 'test_call'
+class test(object):
+    def __init__ (self, *args, **kwargs):
+        # store arguments passed to the decorator
+        self.args = args
+        self.kwargs = kwargs
+
+    def __call__(self, func):
+        def test_call(*args, **kwargs):
+            print('oooooh',self.args,self.kwargs)
+            #the 'self' for a method function is passed as args[0]
+            slf = args[0]
+
+            # replace and store the attributes
+            saved = {}
+            for k,v in self.kwargs.items():
+                if hasattr(slf, k):
+                    saved[k] = getattr(slf,k)
+                    setattr(slf, k, v)
+
+            # call the method
+            ret = func(*args, **kwargs)
+
+            #put things back
+            for k,v in saved.items():
+                setattr(slf, k, v)
+
+            return ret
+        test_call.__doc__ = func.__doc__
+        return test_call 
+
+"""def test(save=False):
+    def test_alpha_in(func):
+        def test_wrapper(*args,**kwargs):
+            return func(*args, **kwargs)
+        print('exe',func)
+        test_wrapper.__name__ = func.__name__
+        return test_wrapper
+    return test_alpha_in"""
+
 class AlphaSave():
     root    = None
     ext     = '.ast'
@@ -27,6 +67,7 @@ class AlphaSave():
     def load(filename):
         file_path = AlphaSave.get_file_path(filename)
         return unarchive_object(file_path)
+
 
 save_method_name = "save_method_result"  
 def save(func):
@@ -94,14 +135,12 @@ class AlphaTest():
 
 class TestFunction():
     name        = ""
-    raw_name    = ""
     method      = None
     valid       = None
     classObject = None
 
-    def __init__(self,classObject,raw_name,method):
-        self.name           = raw_name.lower().replace('test_','')
-        self.raw_name       = raw_name
+    def __init__(self,classObject,name,method):
+        self.name           = name
         self.method         = method
         self.classObject    = classObject
         
@@ -109,14 +148,14 @@ class TestFunction():
         classObject         = self.classObject()
         classObject.verbose = verbose
 
-        self.valid          = classObject.test(self.raw_name)
+        self.valid          = classObject.test(self.name)
         return self.valid
 
     def save(self,verbose=False):
         classObject         = self.classObject()
         classObject.verbose = verbose
 
-        classObject.save(self.raw_name)
+        classObject.save(self.name)
 
     def is_valid(self):
         return self.valid != None and self.valid
@@ -138,7 +177,9 @@ class TestGroup():
         self.tests          = {}
 
         for method_name, method in classObject.__dict__.items():
-            if inspect.isfunction(method) and 'test_' in method_name.lower():
+            if inspect.isfunction(method) and method.__name__ == test_method_name:
+                #print('>',method_name,method.__name__)
+
                 test_function                   = TestFunction(classObject,method_name,method)
                 self.tests[test_function.name]  = test_function
 

@@ -79,21 +79,23 @@ class AlphaFlask(Flask):
         for key_rule, fct in encode_rules.items():
             AlphaJSONEncoder.rules[key_rule] = fct
 
-        mail_config = self.get_config('mail_server')
-
-
-        self.config.update(
-            MAIL_USE_TLS    = mail_config['tls'],
-            MAIL_USE_SSL    = mail_config['ssl'],
-            MAIL_SERVER     = mail_config['server'],
-            MAIL_PORT       = mail_config['port'],
-            MAIL_USERNAME   = mail_config['mail'],
-            MAIL_PASSWORD   = mail_config['password']
-        )
-        self.mail = Mail(self)
-
         root_log    = self.get_config('log_directory')
         self.log    = AlphaLogger('api','api',root=root_log)
+
+        mail_config = self.get_config('mail_server')
+
+        if mail_config is not None:
+            self.config.update(
+                MAIL_USE_TLS    = mail_config['tls'],
+                MAIL_USE_SSL    = mail_config['ssl'],
+                MAIL_SERVER     = mail_config['server'],
+                MAIL_PORT       = mail_config['port'],
+                MAIL_USERNAME   = mail_config['mail'],
+                MAIL_PASSWORD   = mail_config['password']
+            )
+            self.mail = Mail(self)
+        else:
+            self.log.error('Mail configuration is not defined')        
 
     def start(self):
         pid                 = os.getpid()     
@@ -133,6 +135,9 @@ class AlphaFlask(Flask):
         print('Set api configuration ...')
         self.conf           = AlphaConfig(filepath=config_path,configuration=configuration,root=root) # root=os.path.dirname(os.path.realpath(__file__))
 
+    def get_database(self,name):
+        return self.conf.get_database(name)
+
     def get_config(self,name=''):
         conf = self.conf.get(name)
         return conf
@@ -151,7 +156,7 @@ class AlphaFlask(Flask):
         self.file_to_send       = (directory, filename)
 
     def get_cached(self,api_route,parameters=[]):
-        key = self.getKey(api_route,parameters)
+        key = self.get_key(api_route,parameters)
         if self.verbose:
             print('   GET cache for %s'%api_route)
         if key in self.routes_values:
@@ -206,31 +211,31 @@ class AlphaFlask(Flask):
         self.routes[api_route]   = Route(api_route,parameters,cache=cache)
         self.current_route       = self.routes[api_route]
 
-    def getRoute(self,api_route):
+    def get_route(self,api_route):
         if not api_route in self.routes:
             return None
         return self.routes[api_route]
 
     def keep(self,api_route,parameters=[]):
-        route = self.getRoute(api_route)
+        route = self.get_route(api_route)
         if not route.cache:
             if self.verbose:
                 print('Api %s not cacheable'%api_route)
             return False
-        key             = self.getKey(api_route,parameters)
+        key             = self.get_key(api_route,parameters)
         return_cache    = key in self.routes_values.keys()
         return return_cache
 
     def cache(self,api_route,parameters=[]):
         self.current_route.lasttime     = datetime.datetime.now()
-        key                             = self.getKey(api_route,parameters)
+        key                             = self.get_key(api_route,parameters)
         if self.verbose:
             print('   SET new cache for %s (last run = %s)'%(api_route,datetime.datetime.now()))
 
         self.routes_values[key] = (self.returned, self.data)
         return self.routes_values[key]
 
-    def getKey(self,api_route,parameters=[]):
+    def get_key(self,api_route,parameters=[]):
         key =  '%s%s'%(api_route, SEPARATOR)
         for parameter in parameters:
             if parameter.cacheable:
@@ -249,8 +254,8 @@ class AlphaFlask(Flask):
         user_data   = None
         token       = self.get_token()
         if token is not None:
-            cnx         = self.get_connection('users')
-            user_data   = api_users.get_user_dataFromToken(self,cnx,token)
+            db         = self.get_database('users')
+            user_data   = api_users.get_user_dataFromToken(self,db,token)
         return user_data
 
     def get_token(self):
@@ -281,19 +286,19 @@ class AlphaFlask(Flask):
                 return True
         return False
 
-    def isTime(self,timeout, verbose=False):
-        isTime = False
+    def is_time(self,timeout, verbose=False):
+        is_time = False
         if timeout is not None:
             now     = datetime.datetime.now()
             lastrun = self.get_last_request_time()
             nextrun = lastrun + datetime.timedelta(minutes=timeout)
-            isTime  = now > nextrun
+            is_time  = now > nextrun
 
             if verbose:
-                print('Time: ',isTime, ' now=',now,', lastrun=',lastrun,' nextrun=',nextrun)
-        return isTime
+                print('Time: ',is_time, ' now=',now,', lastrun=',lastrun,' nextrun=',nextrun)
+        return is_time
 
-    def send_mail(self,mail_config,parameters_list,cnx,sender=None,close_cnx=True):
+    def send_mail(self,mail_config,parameters_list,db,sender=None,close_cnx=True):
         # Configuration
         main_mail_config    = self.get_config(['mails'])
         mail_config         = self.get_config(['mails',"configurations",mail_config])
@@ -348,7 +353,7 @@ class AlphaFlask(Flask):
             mail_type       = mail_config['mail_type'],
             parameters_list = full_parameters_list,
             sender          = sender,
-            cnx             = cnx,
+            db              = db,
             log             = self.log,
             key_signature   = self.get_config('mail_key_signature'),
             close_cnx       = close_cnx

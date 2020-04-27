@@ -39,7 +39,7 @@ class Event(object):
                 (t.month      in self.months) and
                 (t.weekday()  in self.weekdaw))
 
-    def isTime(self):
+    def is_time(self):
         t = datetime(*datetime.now().timetuple()[:5])
         return self.matchtime(t)
 

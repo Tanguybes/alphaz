@@ -1,5 +1,5 @@
 
-import  os, json, inspect, copy
+import  os, json, inspect, copy, sys
 import numpy as np
 from ..libs import converter_lib, sql_lib, io_lib
 from ..utils.logger import AlphaLogger, get_alpha_logs_root
@@ -29,9 +29,13 @@ def ensure_path(dict_object,paths=[],value=None):
 class AlphaConfig():
     name        = None
     root        = None
+    log         = None
     filename    = None
     exist       = False
     valid       = True
+    configuration = None
+
+    logger_root = None
 
     data_origin = {}
     data        = {}
@@ -39,6 +43,9 @@ class AlphaConfig():
     data_user   = {}
 
     databases   = {}
+    loggers     = {}
+
+    infos       = []
 
     def __init__(self,name='config',filepath=None,root=None,filename=None,log=None,configuration=None,logger_root=None,data=None):
         self.name = name
@@ -59,45 +66,48 @@ class AlphaConfig():
             root            = os.path.abspath(module.__file__).replace(module.__file__,'')
         self.root           = root
         
-        if log is None:
-            logger_root     = 'logs' if logger_root is None else logger_root
-            log             = AlphaLogger(type(self).__name__,type(self).__name__.lower(),root=logger_root)
-        self.log            = log
-        self.logger_root    = logger_root
-
+        # config file
         if filename is None:
             filename        = name.lower()
         self.filename       = filename
-
         self.config_file    = root + os.sep + self.filename + '.json' if root.strip() != '' else self.filename + '.json'
 
+        self.log = log
+        
         if data is None:
-            self.log.info('Setting config file from %s'%self.config_file)
+            self.info('Setting config file from %s'%self.config_file)
             
-            if not os.path.isfile(self.config_file):
-                self.log.error('Config file %s does not exist !'%self.config_file)
-                return
-
-            self.exist = True
-
-            self.load(configuration)
-            self.configuration = configuration
-
-            self.check_required()
+            if os.path.isfile(self.config_file):
+                self.exist = True
+                self.load(configuration)
+                self.check_required()
+            else:
+                print('Config file %s does not exist !'%self.config_file)
+                exit()
         else:
             self.data_origin = data
             self.data = data
 
-    def getConfig(self,path=[]):
+    def info(self,message):
+        if self.log is not None:
+            if len(self.infos) != 0:
+                for info in self.infos:
+                    self.log.info(info)
+                self.infos = []
+            self.log.info(message)
+        else:
+            self.infos.append(message)
+
+    def get_config(self,path=[]):
         config_data = self.get(path)
 
         config      = AlphaConfig(
-            name=self.name,
-            root=self.root,
-            log=self.log,
-            configuration=self.configuration,
-            logger_root=self.logger_root,
-            data=config_data
+            name    = self.name,
+            root    = self.root,
+            log     = self.log,
+            configuration   = self.configuration,
+            logger_root     = self.logger_root,
+            data            = config_data
         )
         return config
 
@@ -106,7 +116,7 @@ class AlphaConfig():
             return
 
         for path in self.data['required']:
-            if not self.isPath(path):
+            if not self.is_path(path):
                 self.log.error("Missing '%s' key in config file"%('/'.join(path)))
                 self.valid = False
 
@@ -126,16 +136,21 @@ class AlphaConfig():
             elif default_configuration is not None and default_configuration in configurations:
                 self.data_env = configurations[default_configuration]
 
+        self.configuration = configuration
+
         if "users" in self.data_origin:
             users = self.data_origin["users"]
             
             user = getpass.getuser()
+
             if user in users:
-                self.log.info('User "%s" detected in configuration'%user)
+                self.info('User "%s" detected in configuration'%user)
                 self.data_user = self.data_origin["users"][user]
             #del self.data_origin["users"]
 
         self.init_data()
+
+        self.info('Configuration initiated')
 
     def show(self):
         show(self.data)
@@ -147,17 +162,19 @@ class AlphaConfig():
     def set_data(self,value,paths=[]):
         ensure_path(self.data_origin,paths,value=value)
 
-    def isParameterPath(self,parameters,data=None):
+    def is_parameter_path(self,parameters,data=None):
+        if type(parameters) == str:
+            parameters  = [parameters]
         if data is None:
             data = self.data
         if len(parameters) == 0:
             return True
         if parameters[0] not in data:
             return False
-        return self.isParameterPath(parameters[1:],data[parameters[0]])
+        return self.is_parameter_path(parameters[1:],data[parameters[0]])
 
-    def isPath(self,parameters,data=None):
-        return self.isParameterPath(parameters,data=data)
+    def is_path(self,parameters,data=None):
+        return self.is_parameter_path(parameters,data=data)
 
     def init_data(self):
         config      = copy.deepcopy(self.data_origin)
@@ -185,6 +202,13 @@ class AlphaConfig():
             for p,v in config.items():
                 print('   {:20} {}'.format(p,str(v)))
 
+        self.data = replace_parameters(config)
+
+        if "paths" in config:
+            for path in config["paths"]:
+                sys.path.append(path)
+
+        # Databases
         structure = {'name':None,'mandatory':True,'value':None}
         if 'databases' in config:
             for database, cf_db in config["databases"].items():
@@ -219,9 +243,51 @@ class AlphaConfig():
                 else:
                     self.log.error('Cannot configure database %s'%database)
 
+        # loggers
+        if self.logger_root is None:
+            self.logger_root    = self.root + os.sep + 'logs' if "log_directory" not in config else config.get("log_directory")
+        
+        # log
+        if self.log is None:
+            log_filename        = "alpha" #type(self).__name__.lower()
+            self.log            = AlphaLogger(type(self).__name__,log_filename,root=self.logger_root)
 
+        if self.is_path("loggers"):
+            for logger_name in self.get("loggers").keys():
+                logger_config   = self.get_config(["loggers",logger_name])
 
-        self.data = replace_parameters(config)
+                root            = logger_config.get("root")
+
+                self.loggers[logger_name] = AlphaLogger(
+                    logger_name,
+                    filename    = logger_config.get("filename"),
+                    root        = root if root is not None else self.logger_root,
+                    cmd_output  = logger_config.get("cmd_output"),
+                    level       = logger_config.get("level")
+                )
+            
+        main_logger_name = "main"
+        if not main_logger_name in self.loggers:
+            self.log = AlphaLogger(
+                main_logger_name,
+                root        = self.logger_root,
+                cmd_output  = True
+            )
+            self.loggers[main_logger_name] = self.log
+        """else:
+            self.log        = self.loggers[main_logger_name]"""
+
+        for database in self.databases:
+            if self.databases[database].log is None:
+                self.databases[database].log = self.log
+
+        #self.show()
+
+    def get_logger(self,name):
+        if name not in self.loggers:
+            self.log.error('%s is not configure as a logger'%name)
+            return self.log
+        return  self.loggers[name] 
 
     def get(self,path=[]):
         if path == '':
@@ -232,9 +298,9 @@ class AlphaConfig():
                 nbs     = [len(x) for x in paths]
                 index   = np.argmin(nbs)
                 return values[index]
-        return self.getParameterPath(path)
+        return self.get_parameter_path(path)
 
-    def getParameterPath(self,parameters,data=None,level=1):
+    def get_parameter_path(self,parameters,data=None,level=1):
         if type(parameters) == str:
             parameters = [parameters]
 
@@ -249,7 +315,7 @@ class AlphaConfig():
             #print('%s%s: %s'%('   '*level,' > '.join(parameters),data[parameters[0]]))
             return data[parameters[0]]
 
-        return self.getParameterPath(parameters[1:],data[parameters[0]],level = level + 1)
+        return self.get_parameter_path(parameters[1:],data[parameters[0]],level = level + 1)
 
     def get_database(self,name):
         if name in self.databases:
@@ -270,7 +336,10 @@ def set_path(config,path,parameters,parameters_values):
             #print(parameter,parameters_values)
             if parameter in parameters_values:
                 parameter_value = convert_value(parameters_values[parameter])
-                value           = value.replace(PAREMETER_PATTERN%parameter,parameter_value)
+                if value == PAREMETER_PATTERN%parameter:
+                    value = parameter_value
+                else:
+                    value = value.replace(PAREMETER_PATTERN%parameter,parameter_value)
         config[path[0]]         = value
         return
 
@@ -415,7 +484,6 @@ def replace_parameters(config):
     """for i in range(len(parameters_values)):
         print(parameters_values[i],paths[i])"""
 
-
     parameters = []
     for i in range(len(parameters_values)):
         parameters.extend(parameters_values[i])
@@ -423,11 +491,24 @@ def replace_parameters(config):
     parameters          = list(set(parameters))
     parameters_value    = {}
     for parameter in parameters:
-        values          = search_it(config,parameter)
+        # ([3306, 3308], [['variables'], []])
+        values_paths          = search_it(config,parameter)
+
         # take the first value if any
-        if len(values) != 0 and len(values[0]) != 0:
-            value                       = values[0][0]
+        if len(values_paths) != 0 and len(values_paths[0]) != 0:
+            values, pths               = values_paths
+            index, path_len = 0, None
+            for i in range(len(pths)):
+                if path_len is None:
+                    path_len = len(pths[i])
+                    index = i
+                else:
+                    if len(pths[i]) < path_len:
+                        index = i
+            
+            value                       = values[index]
             parameters_value[parameter] = convert_value(value)
+
     set_parameter_value(parameters_value)
 
     levels = list(set([len(x) for x in paths]))
@@ -451,7 +532,7 @@ def set_parameter_value(parameters_value):
     keys        = list(parameters_value.keys())
     for key, value in parameters_value.items():
         for k in keys:
-            if "{{%s}}"%k in value and "{{%s}}"%k != value:
+            if "{{%s}}"%k in str(value) and "{{%s}}"%k != value:
                 value       = value.replace("{{%s}}"%k,parameters_value[k])
                 replaced    = True
         parameters_value[key] = value

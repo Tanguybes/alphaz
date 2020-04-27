@@ -15,3 +15,7 @@ class NumpyMySQLConverter(mysql.connector.conversion.MySQLConverter):
     def _int64_to_mysql(self, value):
         return int(value)
 
+
+def get_strategies_columns(db, table):
+    query   = ("SHOW COLUMNS FROM %s")
+    columns = db.get_query_results(query,(table),unique=True)

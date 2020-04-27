@@ -1,12 +1,12 @@
 from ...libs import user_lib, sql_lib, secure_lib, mail_lib
 
-def stay_in_touch(api,user_mail,name,token,cnx,close_cnx=True):
+def stay_in_touch(api,user_mail,name,token,db,close_cnx=True):
     status        = None
     valid_token   = mail_lib.is_mail_token_valid(user_mail, token)
     if not valid_token:
         api.set_error('invalid_token')
 
-    status                  = user_lib.is_valid_mail(cnx,user_mail,close_cnx=True)
+    status                  = user_lib.is_valid_mail(db,user_mail,close_cnx=True)
     if not status:
         return api.set_error('invalid_mail')
 
@@ -16,10 +16,10 @@ def stay_in_touch(api,user_mail,name,token,cnx,close_cnx=True):
     api.send_mail(
         mail_config     = mail_config,
         parameters_list = [parameters],
-        cnx=cnx,log=api.log,close_cnx=close_cnx
+        db=db,log=api.log,close_cnx=close_cnx
     )
 
-def mail_me(api,cnx,close_cnx=True):
+def mail_me(api,db,close_cnx=True):
     parameters          = {'mail':"durand.aurele@gmail.com",'name':'Aurele'}
     mail_config         = api.get_config(['mails','mail'])
     
@@ -30,7 +30,7 @@ def mail_me(api,cnx,close_cnx=True):
     api.send_mail(
         mail_config     = mail_config,
         parameters_list = [parameters],
-        cnx=cnx,log=api.log,close_cnx=close_cnx
+        db=db,log=api.log,close_cnx=close_cnx
     )
 
 def unstring_value(value):
@@ -51,7 +51,7 @@ def str_parameters_to_dict(parameters_str):
         parameters[unstring_value(key)] = unstring_value(value)
     return parameters
 
-def request_view(api,user_mail,token,mail_type,mail_id,cnx,close_cnx=True):
+def request_view(api,user_mail,token,mail_type,mail_id,db,close_cnx=True):
     parameters  = None
     mail_token  = mail_lib.get_mail_token(user_mail)
     valid       = mail_token == token
@@ -61,7 +61,7 @@ def request_view(api,user_mail,token,mail_type,mail_id,cnx,close_cnx=True):
     
     query       = "SELECT * from mails_history where mail_type = %s and uuid = %s"
     values      = (mail_type,mail_id)
-    results     = cnx.get_query_results(query,values,unique=False,close_cnx=close_cnx)
+    results     = db.get_query_results(query,values,unique=False,close_cnx=close_cnx)
     valid       = len(results) != 0
     if not valid:
         return api.set_error('no_mail')
@@ -70,7 +70,7 @@ def request_view(api,user_mail,token,mail_type,mail_id,cnx,close_cnx=True):
     parameters = [{'key':x,'value':y} for x,y in parameters.items()]
     api.set_data(parameters)
 
-def request_unsubscribe(api,user_mail, token, mail_type,cnx,close_cnx=True):
+def request_unsubscribe(api,user_mail, token, mail_type,db,close_cnx=True):
     mail_token  = mail_lib.get_mail_token(user_mail)
     valid       = mail_token == token
 
@@ -79,7 +79,7 @@ def request_unsubscribe(api,user_mail, token, mail_type,cnx,close_cnx=True):
 
     query   = "INSERT INTO mails_blacklist (mail,mail_type) VALUES (%s,%s)"
     values  = (user_mail,mail_type)
-    valid   = cnx.execute_query(cnx, query,values,close_cnx=close_cnx)
+    valid   = db.execute_query(query,values,close_cnx=close_cnx)
 
     if not valid:
         return api.set_error('fail')

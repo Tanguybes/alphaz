@@ -4,8 +4,8 @@ from Libs import sql_lib
 
 class Logger():
 
-    def __init__(self, cnx_fct=None, log_file=None):
-        self.CNX_FCT     = cnx_fct
+    def __init__(self, db=None, log_file=None):
+        self.db     = db
         self.LOG_FILE    = log_file
 
         self.PROCESSES   = {}
@@ -73,28 +73,24 @@ class Logger():
         self.__execute_query('process_log',query, parameters)
 
     def processes_clean(self):
-        cnx     = self.CNX_FCT()
-        if cnx is None:
+        if self.db is None:
             return
         
         query       = "select distinct `name` from `processes_logs`"
-        names       = cnx.get_query_results(query, None, unique=True, close_cnx=False)
+        names       = self.db.get_query_results(query, None, unique=True, close_cnx=False)
 
         limit       = 2*50
 
         for name in names:
             query       = "select distinct `uuid` from `processes_logs` where `name` = %s order by `update_date` desc limit %s"
-            uuids       = cnx.get_query_results(query, [name, limit], unique=True, close_cnx=False)
+            uuids       = self.db.get_query_results(query, [name, limit], unique=True, close_cnx=False)
             uuids.append('') # So that len(uuids) >= 1)
 
             in_statement = '(' + ','.join(["'%s'"%x for x in uuids]) + ')'
             query       = "delete from `processes_logs` where `name` = %s and `uuid` not in " + in_statement
             parameters  = [name]
-            cnx.execute_query(query,parameters, close_cnx=False)
-        try:    
-            cnx.close()
-        except:
-            pass
+            self.db.execute_query(query,parameters, close_cnx=False)
+        self.db.close()
 
     def append_log(self, text):
         log_path = self.LOG_FILE
@@ -121,42 +117,18 @@ class Logger():
         # Connect to db
         stackraw    = traceback.format_stack()
         stack       = ''.join(stackraw) if stackraw is not None else ''
-        try:
-        #         cnx     = mysql.connector.connect(user=Core.LOGIN, password=Core.PWD, host=Core.HOST, database=Core.DATABASE)
-            cnx     = None if self.CNX_FCT is None else self.CNX_FCT()
-            if cnx is None:
-                return
 
-            query   = ("INSERT INTO golliath_logs (type, origin, message, stack, date) VALUES (%s, %s, %s, %s, UTC_TIMESTAMP())")
-            cursor  = cnx.cursor()
-            cursor.execute(query, (type, origin, message, stack))
-            cnx.commit()
-            cursor.close()
-        except mysql.connector.Error as err:
-            # The only one place where we don't want to call error()
-            print("ERROR (log in db): ", err)
-        
-        try:
-            cnx.close() 
-        except:
-            pass
+        if self.db is None:
+            return
+
+        query   = ("INSERT INTO golliath_logs (type, origin, message, stack, date) VALUES (%s, %s, %s, %s, UTC_TIMESTAMP())")
+        self.db.execute(query, (type, origin, message, stack),close_cnx=True)
+    
 
     def __execute_query(self, name, query,values):
-        try:
-            cnx     = self.CNX_FCT()
-            if cnx is None:
-                return
-            cursor  = cnx.cursor()
-            cursor.execute(query, values)
-            cnx.commit()
-            cursor.close()
-        except mysql.connector.Error as err:
-            print("ERROR (%s): %s"%(name, str(err)))
-        
-        try:
-            cnx.close() 
-        except:
-            pass
+        if self.db is None:
+            return
+        self.db.execute(query, values)
 
 def exception_to_string(excp,short=False):
     if not short:

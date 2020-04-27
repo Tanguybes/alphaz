@@ -60,7 +60,7 @@ class SelectionMenu():
         
     def execute(self,conf):
         conf = copy.copy(conf)
-        
+
         if type(conf) == list:
             for sub_conf in conf:
                 self.execute(sub_conf)
@@ -354,13 +354,14 @@ class SelectionMenu():
 
         if len(functions_config) != 0:
             for config in functions_config:
-                kwargs = {}
+                args, kwargs = [], {}
                 if type(config) == dict:
+                    if 'args' in config.keys():
+                        raw_args                                    = config['args']
+                        args                                        = self.convert_list(raw_args)
                     if  'kwargs' in config.keys():
                         raw_kwargs                                  = config['kwargs']
-                        print('kwargs a',raw_kwargs)
-                        kwargs                                      = self.convert_values(raw_kwargs)
-                        print('kwargs b',kwargs)
+                        kwargs                                      = self.convert_dict(raw_kwargs)
                     
                     if 'method' in config.keys():
                         fct                                         = config['method']
@@ -369,16 +370,23 @@ class SelectionMenu():
                     fct = config
 
                 if fct is not None:
-                    self.debug_print('Exec fct %s with kwargs %s'%(fct,kwargs))
-                    print('Exec fct %s with kwargs %s'%(fct,kwargs))
-                    functionReturn = fct(**kwargs)
+                    self.debug_print('Exec fct %s with args %s and kwargs %s'%(fct,args,kwargs))
+                    print('Exec fct %s with args %s and kwargs %s'%(fct,args,kwargs))
+                    functionReturn = fct(*args,**kwargs)
                     print('      return: %s'%(functionReturn))
                     self.set_value('returned',functionReturn,convert=False)
 
                     if type(config) == dict and 'name' in config:
                         self.set_value(config['name'],functionReturn)
         
-    def convert_values(self,args):
+        
+    def convert_list(self,args):
+        convertedArgs = []
+        for value in args:
+            convertedArgs.append(self.convert_value(value))
+        return convertedArgs
+
+    def convert_dict(self,args):
         convertedArgs = {}
         for key, value in args.items():
             convertedArgs[key] = self.convert_value(value)
@@ -484,7 +492,7 @@ class SelectionMenu():
     def format_string(self,conf):
         if type(conf) == str:
             return conf
-        args = self.convert_values(conf['values']).values()
+        args = self.convert_dict(conf['values']).values()
         return conf['str'].format(*args)
                 
     def save_config(self):

@@ -75,7 +75,7 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
                 api.access_denied() 
                 return api.get_return(return_status=401)
 
-            reloadCache         = request.args.get('reloadCache', None) is not None or api.isTime(timeout)
+            reloadCache         = request.args.get('reloadCache', None) is not None or api.is_time(timeout)
             
             api.configure_route(path,parameters=parameters,cache=cache)
             if api.keep(path,parameters) and not reloadCache: 
@@ -135,11 +135,11 @@ def register():
     if api.get_logged_user() is not None:
         return api.set_error('logged')
 
-    cnx    = api.get_connection('users')
+    db    = api.get_database('users')
 
     api_users.try_register_user(
         api,
-        cnx,
+        db,
         api.get('mail'), 
         api.get('username'), 
         api.get('password'), 
@@ -154,8 +154,8 @@ def register_validation():
     if api.get_logged_user() is not None:
         return api.set_error('logged')
 
-    cnx             = api.get_connection('users')
-    api_users.confirm_user_registration(api,token   = api.get('tmp_token'),cnx=cnx)
+    db             = api.get_database('users')
+    api_users.confirm_user_registration(api,token   = api.get('tmp_token'),db=db)
 
 # LOGIN
 @route('/auth', methods = ['POST'],
@@ -164,8 +164,8 @@ def register_validation():
         Parameter('password',mandatory=True)
     ])
 def login():
-    cnx     = api.get_connection('users')
-    api_users.try_login(api, cnx, api.get('username'), api.get('password'), request.remote_addr)
+    db     = api.get_database('users')
+    api_users.try_login(api, db, api.get('username'), api.get('password'), request.remote_addr)
 
 @route('/password/lost', methods = ['GET', 'POST'],
     parameters = [
@@ -180,10 +180,10 @@ def password_lost():
     mail        = api.get('mail')
 
     if username is not None or mail is not None:
-        cnx                 = api.get_connection('users')
+        db                 = api.get_database('users')
         username_or_mail    = username if mail is None else mail
 
-        api_users.ask_password_reset(api,username_or_mail,cnx=cnx) 
+        api_users.ask_password_reset(api,username_or_mail,db=db) 
     else:
         api.set_error('inputs')
 
@@ -197,16 +197,16 @@ def password_reset_validation():
     if api.get_logged_user() is not None:
         return api.set_error('logged')
 
-    cnx     = api.get_connection('users')
-    api_users.confirm_user_password_reset(api,token=api.get('tmp_token'), password=api.get('password'), password_confirmation=api.get('password_confirmation'),cnx=cnx)
+    db     = api.get_connection('users')
+    api_users.confirm_user_password_reset(api,token=api.get('tmp_token'), password=api.get('password'), password_confirmation=api.get('password_confirmation'),db=db)
 
 @route('/logout',cache=False,logged=True,methods = ['GET', 'POST'],
     parameters  = [],  parameters_names=[])
 def logout():
     token   = api.get_token()
-    cnx     = api.get_connection('users')
+    db     = api.get_connection('users')
 
-    api_users.logout(api,token,cnx=cnx)
+    api_users.logout(api,token,db=db)
 
 @route('/profile/password', logged=True, methods = ['POST'],
     parameters  = [
@@ -216,8 +216,8 @@ def logout():
 def reset_password():
     user_data               = api.get_logged_user()
 
-    cnx     = api.get_connection('users')
-    api_users.try_reset_password(api,user_data, api.get('password'), api.get('password_confirmation'),cnx=cnx,log=api.log)
+    db     = api.get_connection('users')
+    api_users.try_reset_password(api,user_data, api.get('password'), api.get('password_confirmation'),db=db,log=api.log)
     
 ##################################################################################################################
 # MAILS
@@ -225,9 +225,9 @@ def reset_password():
 
 @route('/mails/mailme',logged=False,cache=False)
 def mail_me():
-    cnx         = api.get_connection('users')
+    db         = api.get_connection('users')
     print('mailme')
-    api_mails.mail_me(api,cnx,close_cnx=True)
+    api_mails.mail_me(api,db,close_cnx=True)
 
 @route('/mails/stayintouch',logged=False,cache=False, 
     parameters = [
@@ -240,9 +240,9 @@ def mails_stay_in_touch():
     user_mail       = api.get('mail')
     name            = api.get('name')
 
-    #cnx             = cnx.get_survey_connection()
-    cnx             = api.get_connection('users')
-    api_mails.stay_in_touch(api,user_mail,name, token,cnx)
+    #db             = db.get_survey_connection()
+    db             = api.get_connection('users')
+    api_mails.stay_in_touch(api,user_mail,name, token,db)
 
 @route('/mails/requestview',logged=False,cache=False, 
     parameters = [
@@ -257,7 +257,7 @@ def mails_request_view():
     mail_type   = api.get('name')
     mail_id     = api.get('id')
 
-    api_mails.request_view(api,user_mail,token,mail_type,mail_id,cnx,close_cnx=True)
+    api_mails.request_view(api,user_mail,token,mail_type,mail_id,db,close_cnx=True)
 
 @route('/mails/unsubscribe',logged=False,cache=False, 
     parameters = [
@@ -270,63 +270,30 @@ def mails_unsubscribe():
     user_mail   = api.get('mail')
     mail_type   = api.get('type')
 
-    cnx             = api.get_connection('users')
-    api_mails.request_unsubscribe(api,user_mail,token,mail_type,cnx,close_cnx=True)
+    db             = api.get_connection('users')
+    api_mails.request_unsubscribe(api,user_mail,token,mail_type,db,close_cnx=True)
 
-# COINBASE
-@route('/coinbase', methods = ['GET', 'POST'])
-def coinbase():
-    cnx             = api.get_connection('users')
-    secret          = '665e62d1-8a4e-4ca8-ae7a-a52eef626493'
-    request_data    = request.data.decode('utf-8')
-    request_sig     = request.headers.get('X-CC-Webhook-Signature', None)
-    dataPost        = request.get_json()
-    if dataPost is not None and request_sig is not None:
-        mac = hmac.new(secret.encode('utf-8'),
-                    msg=request_data.encode('utf-8'),
-                    digestmod=sha256)
-        hex_comparative = mac.hexdigest()
-        if hex_comparative != request_sig:
-            return api.set_error('wrong_sig')
+@route('/admin/logs/clear', methods = ['GET'], admin=True,
+    parameters = [
 
-        mail = "undefined"
-        # Check for transaction confirmation
-        confirmed = False
-        transaction = False
-        transaction_name = "undefined"
-        if 'event' in dataPost:
-            event = dataPost['event']
-            if 'type' in event:
-                if 'confirmed' in event['type'] or 'failed' in event['type']:
-                    confirmed = True
-                if 'data' in event:
-                    data = event['data']
-                    if 'name' in data:
-                        transaction_name = data['name']
-                    if 'timeline' in data:
-                        for element in data['timeline']:
-                            if element['status'] == 'COMPLETED':
-                                transaction = True
-                            if element['status'] == 'UNRESOLVED':
-                                # We should also accept underpaid, within some limit...
-                                if element['context'] == 'UNDERPAID':
-                                    if 'payments' in data:
-                                        if 'CONFIRMED' in data['payments']['status']:
-                                            if data['payments']['value']['local']['currency']['EUR']:
-                                                value = data['payments']['value']['local']['amount']
-                    if 'metadata' in data:
-                        if 'email' in data['metadata']:
-                            mail = data['metadata']
+    ])
+def admin_logs():
+    done = api_logs.clear_logs(api)
+    if not done:
+        api.set_error('database')
 
-            if not confirmed or not transaction:
-                return api.set_error('inputs')
+@route('/admin/logs', methods = ['POST', 'GET'],admin=True,
+    parameters = [
+        Parameter('page',mandatory=True),
+        Parameter('startDate',mandatory=True),
+        Parameter('endDate',mandatory=True)
+    ])
+def admin_logs():
+    page = int(api.get('page'))
+    limit = True
+    if page == 0: limit = False
+    start_date  = api.get('startDate') 
+    end_date    = api.get('endDate')
 
-            # update_coinbase_user(mail, nb_days, role_target)
-            if transaction_name == 'Golliath - 1 Month':
-                api_users.try_subscribe_user(api,mail, 30, 1,cnx,close_cnx=True)
-            elif 'Test' in transaction_name:
-                api_users.try_subscribe_user(api,mail, 30, 1,cnx,close_cnx=True)
-            elif transaction_name == 'The Sovereign Individual':
-                api_users.try_subscribe_user(api,'hourtane.axel@gmail.com', 30, 1,cnx,close_cnx=True)
-            else:
-                return api.set_error('unknowned_transaction')
+    data = api_logs.get_logs(api,start_date=start_date, end_date=end_date, useLimit=limit, pageForLimit=page)
+    api.set_data(data)

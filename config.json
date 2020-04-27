@@ -1,0 +1,29 @@
+{
+    "sources": "src",
+    "project_name": "alphaz",
+    "tests" : {
+        "auto_directory": "tests/auto",
+        "auto_import": "alphaz.tests.auto",
+        "save_directory": "{{save_root}}/tests"
+    },
+    "menus": {
+        "save_directory": "{{save_root}}/menus"
+    },
+    "loggers": {
+        "main": {
+            "level": "debug"
+        }
+    },
+    "root": "/home/aurele/alphaz",
+    "databases": {
+        "test": {
+            "host": "127.0.0.1",
+            "password": "testalpha7",
+            "user": "alpha",
+            "port": "3306",
+            "type": "mysql",
+            "name": "alpha"
+        },
+        "users": "{{test}}"
+    }
+}

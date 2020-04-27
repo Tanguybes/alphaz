@@ -1,10 +1,12 @@
-import sys, imp, inspect, os
+import sys, imp, inspect, os, glob, copy
 from ..models.watcher import ModuleWatcher
 
 def reload_modules(root,verbose=True):
     root = root.replace("\\","\\\\")
 
-    for module in sys.modules.values():
+    modules = [ x for x in sys.modules.values()]
+
+    for module in modules:
         if root in str(module) and not 'core' in str(module).lower():
             if verbose:
                 print('   Reload %s'%module)
@@ -17,7 +19,8 @@ def watch_modules(roots: [],verbose=True):
     mw      = ModuleWatcher()
     roots   = [root.replace("\\","\\\\") for root in roots]
 
-    for module in sys.modules.values():
+    modules = [ x for x in sys.modules.values()]
+    for module in modules:
         for root in roots:
             if root in str(module) and not 'core' in str(module).lower():
                 if verbose:
@@ -32,3 +35,6 @@ def execute_cmd(cmd='',root=None):
     print('   Execute: ',cmd)
     os.system(cmd)
     os.chdir(current_folder) 
+
+def get_directory_log_files(directory):
+    return glob.glob(directory + os.sep + '*.log*')

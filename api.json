@@ -12,8 +12,18 @@
     "mails": {
         "registration": {
             "sender": "contact@zetetique.fr",
-            "title": "Welcome to Golliath !",
-
+            "title": "Welcome to Golliath !"
         }
+    },
+    "databases": {
+        "test": {
+            "host": "127.0.0.1",
+            "password": "testalpha7",
+            "user": "alpha",
+            "port": "3306",
+            "type": "mysql",
+            "name": "alpha"
+        },
+        "users": "{{test}}"
     }
 }
