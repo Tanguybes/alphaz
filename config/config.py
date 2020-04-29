@@ -85,8 +85,8 @@ class AlphaConfig():
                 print('Config file %s does not exist !'%self.config_file)
                 exit()
         else:
-            self.data_origin = data
-            self.data = data
+            self.data_origin  = data
+            self.data         = data
 
     def info(self,message):
         if self.log is not None:
@@ -138,11 +138,15 @@ class AlphaConfig():
 
         self.configuration = configuration
 
+        if "user" in self.data_origin:
+            print('   ERROR: "user" entry in configuration is reserved')
+            exit()
+        user = getpass.getuser()
+        self.data_origin['user'] = user
+
         if "users" in self.data_origin:
             users = self.data_origin["users"]
             
-            user = getpass.getuser()
-
             if user in users:
                 self.info('User "%s" detected in configuration'%user)
                 self.data_user = self.data_origin["users"][user]
@@ -156,6 +160,8 @@ class AlphaConfig():
         show(self.data)
 
     def save(self):
+        self.info('Save configuration file at %s')
+        del self.data_origin['user']
         with open(self.config_file,'w') as json_data_file:
             json.dump(self.data_origin,json_data_file, sort_keys=True, indent=4)
             
@@ -244,8 +250,12 @@ class AlphaConfig():
                     self.log.error('Cannot configure database %s'%database)
 
         # loggers
+        self.logger_root = config.get("logs_directory")
         if self.logger_root is None:
-            self.logger_root    = self.root + os.sep + 'logs' if "log_directory" not in config else config.get("log_directory")
+          print('   ERROR: Missing "logs_directory" entry in configuration file %s'%self.config_file)
+          exit()
+        #if self.logger_root is None:
+        #    self.logger_root    = self.root + os.sep + 'logs' if "log_directory" not in config else config.get("log_directory")
         
         # log
         if self.log is None:

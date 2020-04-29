@@ -16,7 +16,7 @@ class Core(AlphaCore):
 
     def __init__(self,file:str):
         super().__init__(file)
-        self.root    = os.path.basename(os.path.dirname(os.path.realpath(__file__)))
+        self.root    = os.path.dirname(os.path.realpath(__file__))
 
         self.config  = AlphaConfig('config',filepath=self.root + os.sep + 'config')
 

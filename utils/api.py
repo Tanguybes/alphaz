@@ -277,7 +277,7 @@ def mails_unsubscribe():
     parameters = [
 
     ])
-def admin_logs():
+def clear_logs():
     done = api_logs.clear_logs(api)
     if not done:
         api.set_error('database')
