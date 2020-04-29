@@ -1,0 +1,11 @@
+flask
+flask_mail
+mysql.connector
+cx_Oracle
+pysocks
+numpy
+bcrypt
+jwt
+requests
+lxml
+pandas
