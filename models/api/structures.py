@@ -11,14 +11,16 @@ from ...config.config import AlphaConfig
 
 from .utils import AlphaJSONEncoder
 
+import jwt
+
 SEPARATOR = '::'
-pattern_mail = '{{%s}}'
+MAIL_PARAMETERS_PATTERN = '[[%s]]'
 
 def fill_config(configuration,source_configuration):
     for key, value in configuration.items():
         for key2, value2 in source_configuration.items():
-            if type(value) != dict and pattern_mail%key2 in str(value):
-                value = str(value).replace(pattern_mail%key2,value2)
+            if type(value) != dict and MAIL_PARAMETERS_PATTERN%key2 in str(value):
+                value = str(value).replace(MAIL_PARAMETERS_PATTERN%key2,value2)
         configuration[key] = value
 
 def merge_configuration(configuration,source_configuration,replace=False):
@@ -69,7 +71,7 @@ class AlphaFlask(Flask):
             self.connections[database] = fct
         
         if not 'users' in self.connections:
-            print('Missing "users" database in configuration file')
+            print('Missing "users" database in configuration file "%s.json"'%config_path)
             exit()
             
         self.config['SECRET_KEY']                    = self.get_config('flask_key')
@@ -139,6 +141,8 @@ class AlphaFlask(Flask):
         return self.conf.get_database(name)
 
     def get_config(self,name=''):
+        if '/' in name:
+            name = name.split('/')
         conf = self.conf.get(name)
         return conf
 
@@ -189,10 +193,20 @@ class AlphaFlask(Flask):
 
     def set_status(self,status):
         self.returned['status'] = status
+
+    def timeout(self):
+        self.returned['status'] = 'timeout'
         
     def access_denied(self):
         self.returned['token_status'] = 'denied'
         self.returned['error']      = 1
+
+    def log_user(self,user_data):
+        self.returned['role']        = 'user'
+        if user_data['role'] >= 9:
+            self.returned['role']    = 'admin'
+        self.returned['token']       = jwt.encode({'username': user_data['username'], 'id': user_data['id'], 'time': str(datetime.datetime.now())}, api.config['JWT_SECRET_KEY'], algorithm='HS256').decode('utf-8')
+        self.returned['valid_until'] = datetime.datetime.now() + datetime.timedelta(days=7)
 
     def get_last_request_time(self):
         return None if self.current_route is None else self.current_route.lasttime
@@ -301,43 +315,48 @@ class AlphaFlask(Flask):
     def send_mail(self,mail_config,parameters_list,db,sender=None,close_cnx=True):
         # Configuration
         main_mail_config    = self.get_config(['mails'])
-        mail_config         = self.get_config(['mails',"configurations",mail_config])
-        if mail_config is None or type(mail_config) != dict:
-            self.log.error('Missing mail configuration')
+        config              = self.get_config(['mails',"configurations",mail_config])
+        if config is None or type(config) != dict:
+            self.log.error('Missing "%s" mail configuration in "%s"'%(config,self.config_path))
             return False
+        else:
+            print('\n\n %s: \n\n%s\n\n'%(mail_config,config))
 
         # Parameters
         root_config = copy.copy(main_mail_config['parameters'])
-        for key, parameter in mail_config['parameters'].items():
+        for key, parameter in main_mail_config['parameters'].items():
             root_config[key] = parameter
 
         # Sender
         if sender is None:
-            if 'sender' in mail_config:
-                sender              = mail_config['sender']
-            else:
+            if 'sender' in config:
+                sender              = config['sender']
+            elif 'sender' in main_mail_config:
                 sender              = main_mail_config['sender']
+            elif 'sender' in main_mail_config['parameters']:
+                sender              = main_mail_config['parameters']['sender']
+            else:
+                self.set_error('sender_error')
+                return False
         
         full_parameters_list = []
         for parameters in parameters_list:
-            root_configuration          = copy.deepcopy(self.get_config())
+            #root_configuration          = copy.deepcopy(self.get_config())
 
             parameters_config = {}
-            print(' mp ',parameters)
-            if 'parameters' in mail_config:
-                parameters_config           = copy.deepcopy(root_config)
-                print('Mail parameters:',parameters_config)
+            if 'parameters' in config:
+                parameters_config           = copy.deepcopy(config['parameters'])
 
             full_parameters = {}
 
             fill_config(parameters_config,source_configuration=parameters)
-            fill_config(root_configuration,source_configuration=parameters)
-            fill_config(root_configuration,source_configuration=parameters_config)
-            fill_config(parameters_config,source_configuration=root_configuration)
+            fill_config(root_config,source_configuration=parameters)
+            fill_config(root_config,source_configuration=parameters_config)
+            fill_config(parameters_config,source_configuration=root_config)
             fill_config(parameters,source_configuration=parameters_config)
-            fill_config(parameters,source_configuration=root_configuration)
+            fill_config(parameters,source_configuration=root_config)
 
-            merge_configuration(full_parameters, source_configuration=root_configuration,replace=True)
+            merge_configuration(full_parameters, source_configuration=root_config,replace=True)
             merge_configuration(full_parameters, source_configuration=parameters_config,replace=True)
             merge_configuration(full_parameters, source_configuration=parameters,replace=True)
 
@@ -347,19 +366,20 @@ class AlphaFlask(Flask):
             exit()"""
         
         valid = mail_lib.send_mail(
-            title           = mail_config['title'],
+            title           = config['title'],
             host_web        = self.get_config('host_web'),
-            mail_path       = self.get_config('mail_path'),
-            mail_type       = mail_config['mail_type'],
+            mail_path       = self.get_config('mails/path'),
+            mail_type       = config['mail_type'],
             parameters_list = full_parameters_list,
             sender          = sender,
             db              = db,
             log             = self.log,
-            key_signature   = self.get_config('mail_key_signature'),
+            key_signature   = self.get_config('mails/key_signature'),
             close_cnx       = close_cnx
         )
         if not valid:
             self.set_error('mail_error')
+        return valid
 
 class Route:
     cache           = False

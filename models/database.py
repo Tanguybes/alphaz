@@ -1,4 +1,4 @@
-import mysql.connector
+import mysql.connector, inspect, os
 from ..libs.oracle_lib import Connection 
 from ..libs.sql_lib import NumpyMySQLConverter 
 
@@ -31,6 +31,9 @@ class Row(MutableMapping):
 
     def __keytransform__(self, key):
         return key
+
+    def keys(self):
+        return list(super().keys())
 
 class AlphaDatabase():
     cnx             = None
@@ -70,6 +73,9 @@ class AlphaDatabase():
 
     def test(self):
         query   = "SHOW TABLES;"
+        cnx     = self.get_cnx()
+        if cnx is None:
+            return False
         results = self.get_query_results(query,None)
         return len(results) != 0
 
@@ -100,8 +106,16 @@ class AlphaDatabase():
             if close_cnx:
                 self.cnx.close()
         except mysql.connector.Error as err:
+            stack           = inspect.stack()
+            parentframe     = stack[1]
+            module          = inspect.getmodule(parentframe[0])
+            root            = os.path.abspath(module.__file__).replace(module.__file__,'')
+            error_message = 'In file {} line {}:\n {} \n\n {}'.format(parentframe.filename,parentframe.lineno,'\n'.join(parentframe.code_context),err)
             if self.log is not None:
-                self.log.error(err)
+                self.log.error(error_message)
+            #print(parentframe.frame)
+            #function    = parentframe.function
+            #index       = parentframe.index
         return rows
 
     def execute(self,query,values=None,close_cnx=True,log=None):

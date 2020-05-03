@@ -1,4 +1,4 @@
-import smtplib, socks
+import smtplib, socks, copy, json
 
 import hashlib, re, os, datetime
 from flask import current_app
@@ -6,7 +6,9 @@ from flask_mail import Message
 
 import uuid
 from . import sql_lib
-from ..config.utils import merge_configuration, get_parameters
+from ..config.utils import merge_configuration, get_mails_parameters
+
+MAIL_PARAMETERS_PATTERN = "[[%s]]"
 
 def mail2(to_mails,subject,body,bodyHtml=None,attachments=[]):
     import win32com.client as win32
@@ -46,7 +48,12 @@ def mail(to_mails,from_mails,proxy_host, proxy_port):
     except Exception as ex:
        print ("Error: unable to send email: ",ex)
     
-
+def get_mail_type(raw_mail_url):
+    if 'mail-content=' in raw_mail_url:
+        raw_mail_url = raw_mail_url.split('mail-content=')[1]
+    if '&' in raw_mail_url:
+        raw_mail_url = raw_mail_url.split('&')[0]
+    return raw_mail_url
 
 """ MAILS """
 def get_mail_content(mail_root, mail_type,log):
@@ -124,7 +131,7 @@ def get_title(content,default=''):
 def set_parameters(content,parameters):
     for parameter, value in parameters.items():
         if value is not None:
-            content = content.replace('{{%s}}'%parameter,str(value))
+            content = content.replace(MAIL_PARAMETERS_PATTERN%parameter,str(value))
     return content
 
 def send_mail(title,host_web,mail_path,mail_type,parameters_list,sender,db,log,key_signature="<alpha mail>",close_cnx=True):
@@ -133,9 +140,9 @@ def send_mail(title,host_web,mail_path,mail_type,parameters_list,sender,db,log,k
     
     if content is None:
         return False
-    parameters_to_specify   = get_parameters(content)
+    parameters_to_specify   = get_mails_parameters(content)
 
-    valid_signature     = key_signature in str(content) 
+    valid_signature         = key_signature in str(content) 
     #title               = get_title(content,default=default_tile)
 
     now     = datetime.datetime.now()
@@ -147,8 +154,8 @@ def send_mail(title,host_web,mail_path,mail_type,parameters_list,sender,db,log,k
 
     for parameters in parameters_list:
         for key, value in parameters.items():
-            if '{{%s}}'%key in title:
-                title = title.replace('{{%s}}'%key,value)
+            if MAIL_PARAMETERS_PATTERN%key in title:
+                title = title.replace(MAIL_PARAMETERS_PATTERN%key,value)
 
         uuidValue = str(uuid.uuid4())
 
@@ -160,24 +167,36 @@ def send_mail(title,host_web,mail_path,mail_type,parameters_list,sender,db,log,k
         token               = get_mail_token(user_mail)
 
         parameters['year']                  = year
-        parameters['page_view_in_browser'] = "%s/mails" \
+        parameters['mail']                  = user_mail
+        parameters['uuid']                  = uuidValue
+        parameters['configuration']         = get_mail_type(mail_type)
+        parameters['mail_token']            = token
+
+        raw_parameters = copy.copy(parameters)
+        for key, value in raw_parameters.items():
+            for k, v in parameters.items():
+                if MAIL_PARAMETERS_PATTERN%key in str(v):
+                    parameters[k] = v.replace(MAIL_PARAMETERS_PATTERN%key,value)
+
+        """parameters['page_view_in_browser'] = "%s/mails" \
              "?action=view&type=%s&id=%s&mail=%s&token=%s"%(host_web,mail_type,uuidValue,user_mail,token)
         parameters['page_unsuscribe'] = "%s/mails" \
               "?action=unsuscribe&type=%s&token=%s"%(host_web,mail_type,token)
         parameters['page_terms_of_use'] = '%s/terms-of-use'%(host_web)
-        parameters['page_cgu']          = '%s/cgu'%(host_web)
+        parameters['page_cgu']          = '%s/cgu'%(host_web)"""
 
         parameters_to_keep          = {}
         for key, value in parameters.items():
-            if '{{%s}}'%key in parameters_to_specify:
+            if MAIL_PARAMETERS_PATTERN%key in parameters_to_specify:
                 parameters_to_keep[key] = value
 
-        """for key, value in parameters.items():
-            print('   {:20} {}'.format(key,value))"""
+        print('Mail parameters:')
+        for key, value in parameters_to_keep.items():
+            print('   {:20} {}'.format(key,value))
 
         content                     = set_parameters(content,parameters_to_keep)
 
-        parameters_not_specified    = get_parameters(content)
+        parameters_not_specified    = list(set(get_mails_parameters(content)))
 
         if len(parameters_not_specified) != 0:
             log.error('Missing parameters %s for mail "%s"'%(','.join(parameters_not_specified),mail_type))
@@ -202,15 +221,17 @@ def send_mail(title,host_web,mail_path,mail_type,parameters_list,sender,db,log,k
         #api.mail.send(msg)
 
         # insert in history
+        mail_type   = get_mail_type(mail_type)
         set_mail_history(db,mail_type,uuidValue,parameters_to_keep,close_cnx=False,log=log)
     if close_cnx:
         db.close()
     return True
 
 def set_mail_history(db, mail_type,uuidValue,parameters,close_cnx=True,log=None):
-    unique_parameters = get_unique_parameters(parameters)
+    mail_type           = get_mail_type(mail_type)
+    unique_parameters   = get_unique_parameters(parameters)
     query   = "INSERT INTO mails_history (uuid, mail_type, parameters, parameters_full) VALUES (%s,%s,%s,%s)"
-    values  = (uuidValue,mail_type,str(unique_parameters),str(parameters))
+    values  = (uuidValue,mail_type,json.dumps(unique_parameters),json.dumps(parameters))
     return db.execute_query(query,values,close_cnx=close_cnx)
 
 def get_unique_parameters(parameter):
@@ -221,13 +242,15 @@ def get_unique_parameters(parameter):
     return unique_parameters
 
 def is_mail_already_send(db,mail_type,parameters, close_cnx=True,log=None):
+    mail_type   = get_mail_type(mail_type)
     unique_parameters = get_unique_parameters(parameters)
     query   = "SELECT * from mails_history where mail_type = %s and parameters = %s"
-    values  = (mail_type,str(unique_parameters))
+    values  = (mail_type,json.dumps(unique_parameters))
     results = db.get_query_results(query,values,unique=False,close_cnx=close_cnx)
     return len(results) != 0
 
 def is_blacklisted(db,user_mail,mail_type,close_cnx=True,log=None):
+    mail_type   = get_mail_type(mail_type)
     query   = "SELECT * from mails_blacklist where mail_type = %s and mail = %s "
     values  = (mail_type,user_mail)
     results = db.get_query_results(query,values,unique=False,close_cnx=close_cnx)

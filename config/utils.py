@@ -9,3 +9,8 @@ def get_parameters(content):
     title_regex = r'\{\{.*?\}\}'
     founds      = re.findall(title_regex,content)
     return founds
+
+def get_mails_parameters(content):
+    title_regex = r'\[\[.*?\]\]'
+    founds      = re.findall(title_regex,content)
+    return founds

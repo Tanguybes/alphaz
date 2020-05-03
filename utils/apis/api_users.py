@@ -7,7 +7,7 @@ def try_register_user(api,db,mail, username, password, password_confirmation,clo
     userByUsername      = user_lib.get_user_data_by_username(db,username,close_cnx=False)
 
     if 'id' in userByMail or 'id' in userByUsername:
-        if ('id' in userByMail and userByMail['role'] < 0) or userByUsername['role'] < 0:
+        if ('id' in userByMail and userByMail['role'] < 0) or ('id' in userByUsername and userByUsername['role'] < 0):
             return api.set_error('account_not_validated')
         return api.set_error('account_duplicated')
     
@@ -65,22 +65,22 @@ def ask_password_reset(api,username_or_mail,db,close_cnx=True):
     query   = "UPDATE users SET password_reset_token = %s, password_reset_token_expire = UTC_TIMESTAMP() + INTERVAL 20 MINUTE WHERE id = %s;"
     values  = (token, user_data['id'],)
 
+    print('values,',values)
+
     if not db.execute_query(query,values,close_cnx=False,log=None):
         return api.set_error('sql_error')    
 
     # MAIL
-    mail_config             = api.get_config(['mails','password_reset'])
-
     parameters              = {}
     parameters["mail"]      = user_data['mail']
     parameters["token"]     = token
     parameters["username"]  = user_data['username']
     parameters["name"]      = user_data['username']
 
-    api.send_mail(
-        mail_config     = mail_config,
+    mail_sent = api.send_mail(
+        mail_config     = 'password_reset',
         parameters_list = [parameters],
-        db=db,log=api.log,close_cnx=close_cnx
+        db=db,close_cnx=close_cnx
     )  
 
 def confirm_user_registration(api,token,db):

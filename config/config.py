@@ -1,5 +1,5 @@
 
-import  os, json, inspect, copy, sys
+import  os, json, inspect, copy, sys, socket
 import numpy as np
 from ..libs import converter_lib, sql_lib, io_lib
 from ..utils.logger import AlphaLogger, get_alpha_logs_root
@@ -31,6 +31,7 @@ class AlphaConfig():
     root        = None
     log         = None
     filename    = None
+    filepath: str = None
     exist       = False
     valid       = True
     configuration = None
@@ -46,6 +47,8 @@ class AlphaConfig():
     loggers     = {}
 
     infos       = []
+
+    reserved    =  ['user']
 
     def __init__(self,name='config',filepath=None,root=None,filename=None,log=None,configuration=None,logger_root=None,data=None):
         self.name = name
@@ -64,13 +67,13 @@ class AlphaConfig():
             parentframe     = stack[1]
             module          = inspect.getmodule(parentframe[0])
             root            = os.path.abspath(module.__file__).replace(module.__file__,'')
-        self.root           = root
-        
+        self.root           = root        
         # config file
         if filename is None:
             filename        = name.lower()
         self.filename       = filename
-        self.config_file    = root + os.sep + self.filename + '.json' if root.strip() != '' else self.filename + '.json'
+        self.filepath       = root + os.sep + filename + '.json'
+        self.config_file    = self.filepath if root.strip() != '' else self.filename + '.json'
 
         self.log = log
         
@@ -98,6 +101,15 @@ class AlphaConfig():
         else:
             self.infos.append(message)
 
+    def error(self,message):
+        for info in self.infos:
+            print('   INFO: %s'%info)
+        if self.log is not None:
+            self.log.error(message)
+        else:
+            print('   ERROR: %s'%message)
+        exit()
+
     def get_config(self,path=[]):
         config_data = self.get(path)
 
@@ -120,9 +132,29 @@ class AlphaConfig():
                 self.log.error("Missing '%s' key in config file"%('/'.join(path)))
                 self.valid = False
 
+    def __check_reserved(self):
+        for reserved_name in self.reserved:
+            if reserved_name in self.data_origin:
+                self.error('"%s" entry in configuration %s is reserved'%(reserved_name,self.filepath))
+                exit()
+
     def load(self,configuration):
         with open(self.config_file) as json_data_file:
             self.data_origin = json.load(json_data_file)
+        
+        self.__check_reserved()
+
+        """if "imports" in self.data_origin:
+            imports = self.data_origin['imports']
+            for filepath in imports:
+                if not os.path.isfile(filepath + '.json'):
+                    self.error('Cannot import file %s'%(filepath + '.json'))
+                    exit()
+            data = {}
+            with open(filepath + '.json') as json_data_file:
+                data[filepath] = json.load(json_data_file)
+
+            exit()"""
 
         if "configurations" in self.data_origin:
             configurations = self.data_origin["configurations"]
@@ -138,9 +170,6 @@ class AlphaConfig():
 
         self.configuration = configuration
 
-        if "user" in self.data_origin:
-            print('   ERROR: "user" entry in configuration is reserved')
-            exit()
         user = getpass.getuser()
         self.data_origin['user'] = user
 
@@ -152,6 +181,15 @@ class AlphaConfig():
                 self.data_user = self.data_origin["users"][user]
             #del self.data_origin["users"]
 
+        current_ip = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
+
+        if "ips" in self.data_origin:
+            ips = self.data_origin["ips"]
+            
+            if current_ip in ips:
+                self.info('Ip "%s" detected in configuration'%current_ip)
+                self.data_user = self.data_origin["ips"][current_ip]
+
         self.init_data()
 
         self.info('Configuration initiated')
@@ -160,7 +198,7 @@ class AlphaConfig():
         show(self.data)
 
     def save(self):
-        self.info('Save configuration file at %s')
+        self.info('Save configuration file at %s'%self.config_file)
         del self.data_origin['user']
         with open(self.config_file,'w') as json_data_file:
             json.dump(self.data_origin,json_data_file, sort_keys=True, indent=4)
@@ -208,51 +246,16 @@ class AlphaConfig():
             for p,v in config.items():
                 print('   {:20} {}'.format(p,str(v)))
 
-        self.data = replace_parameters(config)
+        self.data = self.replace_parameters(config)
 
         if "paths" in config:
             for path in config["paths"]:
                 sys.path.append(path)
 
-        # Databases
-        structure = {'name':None,'mandatory':True,'value':None}
-        if 'databases' in config:
-            for database, cf_db in config["databases"].items():
-                content_dict = {
-                    "user": {},
-                    "password": {},
-                    "host": {},
-                    "name": {'mandatory':False},
-                    "port": {},
-                    "sid": {'mandatory':False},
-                    "database_type": {'name':'type'}
-                }
-
-                valid = True
-                for name, content in content_dict.items():
-                    for key, el in structure.items():
-                        if not key in content:
-                            if key == 'name':
-                                el = name
-                            content_dict[name][key] = el
-
-                    if content_dict[name]['name'] in cf_db:
-                        content_dict[name]['value'] = cf_db[content_dict[name]['name']]
-                    elif content_dict[name]['mandatory']:
-                        print('Missing %s parameter'%name)
-                        valid = False
-                
-                fct_kwargs = {x:y['value'] for x,y in content_dict.items()}
-
-                if valid:
-                    self.databases[database] = AlphaDatabase(**fct_kwargs)
-                else:
-                    self.log.error('Cannot configure database %s'%database)
-
         # loggers
         self.logger_root = config.get("logs_directory")
         if self.logger_root is None:
-          print('   ERROR: Missing "logs_directory" entry in configuration file %s'%self.config_file)
+          self.error('Missing "logs_directory" entry in configuration file %s'%self.config_file)
           exit()
         #if self.logger_root is None:
         #    self.logger_root    = self.root + os.sep + 'logs' if "log_directory" not in config else config.get("log_directory")
@@ -287,6 +290,55 @@ class AlphaConfig():
         """else:
             self.log        = self.loggers[main_logger_name]"""
 
+        # Databases
+        structure = {'name':None,'required':True,'value':None}
+        if 'databases' in config:
+            for database, cf_db in config["databases"].items():
+                content_dict = {
+                    "user": {},
+                    "password": {},
+                    "host": {},
+                    "name": {'required':False},
+                    "port": {},
+                    "sid": {'required':False},
+                    "database_type": {'name':'type'},
+                    "log": {'default':self.log,'required':False}
+                }
+
+                valid = True
+                for name, content in content_dict.items():
+                    for key, el in structure.items():
+                        if not key in content:
+                            if key == 'name':
+                                el = name
+                            content_dict[name][key] = el
+
+                    if content_dict[name]['name'] in cf_db:
+                        content_dict[name]['value'] = cf_db[content_dict[name]['name']]
+                    elif content_dict[name]['required']:
+                        print('Missing %s parameter'%name)
+                        valid = False
+                    
+                    if 'default' in content_dict[name] and not valid:
+                        content_dict[name]['value'] = content_dict[name]['default']
+                    elif name == 'log':
+                        if type(content_dict[name]['value']) == str and content_dict[name]['value'] in self.loggers:
+                            content_dict[name]['value'] = self.loggers[content_dict[name]['value']]
+                        else:
+                            print('Wrong logger configuration for database %s'%database)
+                            content_dict[name]['value'] = self.log
+                
+                fct_kwargs = {x:y['value'] for x,y in content_dict.items()}
+
+                if valid:
+                    self.databases[database] = AlphaDatabase(**fct_kwargs)
+                    if not self.databases[database].test():
+                        self.error('Cannot connect to "%s"'%database)
+                    else:
+                        self.info('Database connection to "%s" is valid'%database)
+                else:
+                    self.error('Cannot configure database %s'%database)
+
         for database in self.databases:
             if self.databases[database].log is None:
                 self.databases[database].log = self.log
@@ -295,7 +347,7 @@ class AlphaConfig():
 
     def get_logger(self,name):
         if name not in self.loggers:
-            self.log.error('%s is not configure as a logger'%name)
+            self.error('%s is not configured as a logger'%name)
             return self.log
         return  self.loggers[name] 
 
@@ -332,6 +384,69 @@ class AlphaConfig():
             return self.databases[name]
         return None
 
+    def replace_parameters(self,config):
+        """Replace parameters formatted has {{<parameter>}} by their values in a json dict
+        
+        Arguments:
+            config {dict} -- json dict to analyse and replace parameters formatted has {{<parameter>}}
+        
+        Returns:
+            dict -- the input dict with parameters replace by their values
+        """
+        parameters_values, paths = get_parameters_from_config(config, path=None)
+        
+        """print('\nParameters:')
+        for i in range(len(parameters_values)):
+            print('   ',parameters_values[i],paths[i])"""
+
+        parameters = []
+        for i in range(len(parameters_values)):
+            parameters.extend(parameters_values[i])
+
+        parameters          = list(set(parameters))
+        parameters_value    = {}
+        for parameter in parameters:
+            # ([3306, 3308], [['variables'], []])
+            if '/' in parameter:
+                parameter = parameter.split('/')
+            values_paths          = search_it(config,parameter)
+
+            # take the first value if any
+            if len(values_paths) != 0 and len(values_paths[0]) != 0:
+                values, pths               = values_paths
+                index, path_len = 0, None
+                for i in range(len(pths)):
+                    if path_len is None:
+                        path_len = len(pths[i])
+                        index = i
+                    else:
+                        if len(pths[i]) < path_len:
+                            index = i
+                
+                value                       = values[index]
+                if isinstance(parameter,list):
+                    parameter = '/'.join(parameter)
+                parameters_value[parameter] = convert_value(value)
+
+        set_parameter_value(parameters_value)
+
+        levels = list(set([len(x) for x in paths]))
+
+        for level in levels:
+            for i in range(len(parameters_values)):
+                if len(paths[i]) == level:
+                    set_path(config, paths[i], parameters_values[i], parameters_value)
+
+        # check parameters
+        parameters_values, paths = get_parameters_from_config(config, path=None)
+        if len(parameters_values) != 0:
+            parameters = list(set([x[0] for x in parameters_values]))
+            for i in range(len(parameters)):
+                self.error('Missing parameter "%s" in configuration %s'%(parameters[i],self.filepath))
+            exit()
+
+        return config
+
 def show(config,level=0):
     for key, cf in config.items():
         val = '' if type(cf) == dict else str(cf)
@@ -348,7 +463,7 @@ def set_path(config,path,parameters,parameters_values):
                 parameter_value = convert_value(parameters_values[parameter])
                 if value == PAREMETER_PATTERN%parameter:
                     value = parameter_value
-                else:
+                elif PAREMETER_PATTERN%parameter in str(value):
                     value = value.replace(PAREMETER_PATTERN%parameter,parameter_value)
         config[path[0]]         = value
         return
@@ -386,9 +501,18 @@ def search_it(nested, target,path=None):
         next_path   = copy.copy(path)
         next_path.append(key)
 
-        if key == target:
-            found.append(value)
-            paths.append(path)
+        if isinstance(target,list) and len(target) == 1:
+            target = target[0]
+        
+        if isinstance(target,list):
+            if key == target[0]:
+                f, p = search_it(value, target[1:],next_path)
+                found.extend(f)
+                paths.extend(p)
+        else:
+            if key == target:
+                found.append(value)
+                paths.append(path)
         
         if isinstance(value, dict):
             f, p = search_it(value, target,next_path)
@@ -480,74 +604,43 @@ def get_values_for_parameters(config, parameter_name,path=None):
                 i += 1
     return found, paths
 
-def replace_parameters(config):
-    """Replace parameters formatted has {{<parameter>}} by their values in a json dict
-    
-    Arguments:
-        config {dict} -- json dict to analyse and replace parameters formatted has {{<parameter>}}
-    
-    Returns:
-        dict -- the input dict with parameters replace by their values
-    """
-    parameters_values, paths = get_parameters_from_config(config, path=None)
-
-    """for i in range(len(parameters_values)):
-        print(parameters_values[i],paths[i])"""
-
-    parameters = []
-    for i in range(len(parameters_values)):
-        parameters.extend(parameters_values[i])
-
-    parameters          = list(set(parameters))
-    parameters_value    = {}
-    for parameter in parameters:
-        # ([3306, 3308], [['variables'], []])
-        values_paths          = search_it(config,parameter)
-
-        # take the first value if any
-        if len(values_paths) != 0 and len(values_paths[0]) != 0:
-            values, pths               = values_paths
-            index, path_len = 0, None
-            for i in range(len(pths)):
-                if path_len is None:
-                    path_len = len(pths[i])
-                    index = i
-                else:
-                    if len(pths[i]) < path_len:
-                        index = i
-            
-            value                       = values[index]
-            parameters_value[parameter] = convert_value(value)
-
-    set_parameter_value(parameters_value)
-
-    levels = list(set([len(x) for x in paths]))
-
-    for level in levels:
-        for i in range(len(parameters_values)):
-            if len(paths[i]) == level:
-                set_path(config, paths[i], parameters_values[i], parameters_value)
-
-    #io_lib.print_dict(config)
-
-    """parameters_values, paths = get_parameters_from_config(config, path=None)
-    if len(parameters_values) != 0:
-        print('ERROR: not all parameters have been converted\n\n',parameters_values,paths)
-        exit()""" #TODO: do
-
-    return config
-
 def set_parameter_value(parameters_value):
     replaced    = False
     keys        = list(parameters_value.keys())
     for key, value in parameters_value.items():
         for k in keys:
             if "{{%s}}"%k in str(value) and "{{%s}}"%k != value:
-                value       = value.replace("{{%s}}"%k,parameters_value[k])
+                value       = replace_parameter(k,value,parameters_value[k])
                 replaced    = True
         parameters_value[key] = value
     if replaced:
         set_parameter_value(parameters_value)
+
+def replace_parameter(key,value,replace_value):
+    if isinstance(value,dict):
+        replacements = {}
+        for k, v in value.items():
+            vr = replace_parameter(key,v,replace_value)
+            if v != vr:
+                replacements[k] = vr
+        for k, newv in replacements.items():
+            value[k] = newv
+    elif isinstance(value,list):
+        replacements = {}
+        i = 0
+        for v in value:
+            vr = replace_parameter(key,v,replace_value)
+            if v != vr:
+                replacements[i] = vr
+            i += 1
+        for i, newv in replacements.items():
+            value[i] = newv
+    else:
+        if "{{%s}}"%key == value:
+            value   = replace_value
+        elif "{{%s}}"%key in str(value):
+            value       = value.replace("{{%s}}"%key,replace_value)
+    return value
 
 def convert_value(value):
     systems = ['windows', 'unix']

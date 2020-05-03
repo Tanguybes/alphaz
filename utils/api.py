@@ -10,15 +10,15 @@ class Parameter():
     value = None
     default = None
     cacheable = False
-    mandatory = False
+    required = False
     options = None
 
-    def __init__(self,name,default=None,options=None,cacheable=True,mandatory=False):
+    def __init__(self,name,default=None,options=None,cacheable=True,required=False):
         self.name       = name
         self.default    = default
         self.cacheable  = cacheable
         self.options    = options
-        self.mandatory  = mandatory
+        self.required  = required
 
 api = AlphaFlask(__name__)
 
@@ -59,7 +59,7 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
 
                 if parameter.options is not None and parameter.value not in parameter.options:
                     parameter.value = None
-                if parameter.mandatory and parameter.value is None:
+                if parameter.required and parameter.value is None:
                     missing = True
                     api.error('Missing parameter %s'%parameter.name)
 
@@ -126,10 +126,10 @@ def api_test():
     
 @route('/register', methods = ['POST'],
     parameters = [
-        Parameter('mail',mandatory=True),
-        Parameter('username',mandatory=True),
-        Parameter('password',mandatory=True),
-        Parameter('password_confirmation',mandatory=True),
+        Parameter('mail',required=True),
+        Parameter('username',required=True),
+        Parameter('password',required=True),
+        Parameter('password_confirmation',required=True),
     ])
 def register():
     if api.get_logged_user() is not None:
@@ -147,7 +147,7 @@ def register():
 
 @route('/register/validation',methods = ['GET'],
     parameters  = [
-        Parameter('tmp_token',mandatory=True)
+        Parameter('tmp_token',required=True)
     ],
     parameters_names=[])
 def register_validation():
@@ -160,17 +160,17 @@ def register_validation():
 # LOGIN
 @route('/auth', methods = ['POST'],
     parameters  = [
-        Parameter('username',mandatory=True),
-        Parameter('password',mandatory=True)
+        Parameter('username',required=True),
+        Parameter('password',required=True)
     ])
 def login():
     db     = api.get_database('users')
     api_users.try_login(api, db, api.get('username'), api.get('password'), request.remote_addr)
 
-@route('/password/lost', methods = ['GET', 'POST'],
+@route('/password/lost', methods = ['POST'],
     parameters = [
-        Parameter('username',mandatory=False),
-        Parameter('mail',mandatory=False)
+        Parameter('username',required=False),
+        Parameter('mail',required=False)
     ])
 def password_lost():
     if api.get_logged_user() is not None:
@@ -182,16 +182,16 @@ def password_lost():
     if username is not None or mail is not None:
         db                 = api.get_database('users')
         username_or_mail    = username if mail is None else mail
-
+        print('here',username_or_mail)
         api_users.ask_password_reset(api,username_or_mail,db=db) 
     else:
         api.set_error('inputs')
 
 @route('/password/reset', methods = ['GET', 'POST'],
     parameters  = [
-        Parameter('tmp_token',mandatory=True),
-        Parameter('password',mandatory=True),
-        Parameter('password_confirmation',mandatory=True)
+        Parameter('tmp_token',required=True),
+        Parameter('password',required=True),
+        Parameter('password_confirmation',required=True)
     ])
 def password_reset_validation():
     if api.get_logged_user() is not None:
@@ -210,8 +210,8 @@ def logout():
 
 @route('/profile/password', logged=True, methods = ['POST'],
     parameters  = [
-        Parameter('password',mandatory=True),
-        Parameter('password_confirmation',mandatory=True)
+        Parameter('password',required=True),
+        Parameter('password_confirmation',required=True)
     ])
 def reset_password():
     user_data               = api.get_logged_user()
@@ -231,9 +231,9 @@ def mail_me():
 
 @route('/mails/stayintouch',logged=False,cache=False, 
     parameters = [
-        Parameter('token',mandatory=True),
-        Parameter('mail',mandatory=True),
-        Parameter('name',mandatory=True)
+        Parameter('token',required=True),
+        Parameter('mail',required=True),
+        Parameter('name',required=True)
     ])
 def mails_stay_in_touch():
     token           = api.get('token')
@@ -246,10 +246,10 @@ def mails_stay_in_touch():
 
 @route('/mails/requestview',logged=False,cache=False, 
     parameters = [
-        Parameter('token',mandatory=True),
-        Parameter('mail',mandatory=True),
-        Parameter('name',mandatory=True),
-        Parameter('id',mandatory=True)
+        Parameter('token',required=True),
+        Parameter('mail',required=True),
+        Parameter('name',required=True),
+        Parameter('id',required=True)
     ])
 def mails_request_view():
     token       = api.get('token')
@@ -257,13 +257,14 @@ def mails_request_view():
     mail_type   = api.get('name')
     mail_id     = api.get('id')
 
+    db             = api.get_connection('users')
     api_mails.request_view(api,user_mail,token,mail_type,mail_id,db,close_cnx=True)
 
 @route('/mails/unsubscribe',logged=False,cache=False, 
     parameters = [
-        Parameter('token',mandatory=True),
-        Parameter('mail',mandatory=True),
-        Parameter('type',mandatory=True)
+        Parameter('token',required=True),
+        Parameter('mail',required=True),
+        Parameter('type',required=True)
     ])
 def mails_unsubscribe():
     token       = api.get('token')
@@ -284,9 +285,9 @@ def clear_logs():
 
 @route('/admin/logs', methods = ['POST', 'GET'],admin=True,
     parameters = [
-        Parameter('page',mandatory=True),
-        Parameter('startDate',mandatory=True),
-        Parameter('endDate',mandatory=True)
+        Parameter('page',required=True),
+        Parameter('startDate',required=True),
+        Parameter('endDate',required=True)
     ])
 def admin_logs():
     page = int(api.get('page'))

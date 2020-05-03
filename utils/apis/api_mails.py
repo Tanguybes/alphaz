@@ -1,3 +1,4 @@
+import json
 from ...libs import user_lib, sql_lib, secure_lib, mail_lib
 
 def stay_in_touch(api,user_mail,name,token,db,close_cnx=True):
@@ -11,26 +12,20 @@ def stay_in_touch(api,user_mail,name,token,db,close_cnx=True):
         return api.set_error('invalid_mail')
 
     parameters          = {'mail':user_mail,'name':name}
-    mail_config         = api.get_config(['mails','stay_in_touch'])
 
     api.send_mail(
-        mail_config     = mail_config,
+        mail_config     = 'stay_in_touch',
         parameters_list = [parameters],
         db=db,log=api.log,close_cnx=close_cnx
     )
 
 def mail_me(api,db,close_cnx=True):
     parameters          = {'mail':"durand.aurele@gmail.com",'name':'Aurele'}
-    mail_config         = api.get_config(['mails','mail'])
-    
-    if mail_config is None:
-        api.log.error('Missing "mailme" mail configuration ')
-        return False
 
     api.send_mail(
-        mail_config     = mail_config,
+        mail_config     = 'mail',
         parameters_list = [parameters],
-        db=db,log=api.log,close_cnx=close_cnx
+        db=db,close_cnx=close_cnx
     )
 
 def unstring_value(value):
@@ -44,14 +39,20 @@ def unstring_value(value):
 
 def str_parameters_to_dict(parameters_str):
     parameters = {}
-    parameters_str = parameters_str[1:][::-1][1:][::-1]
-    splt = parameters_str.split(',')
+
+    #parameters_str = parameters_str[1:][::-1][1:][::-1]
+    #print(parameters_str)
+    parameters = json.loads(parameters_str)
+    print(parameters)
+    return parameters
+    """splt = parameters_str.split(',')
     for tupleStr in splt:
         key, value = tupleStr.split(':')
         parameters[unstring_value(key)] = unstring_value(value)
-    return parameters
+    return parameters"""
 
 def request_view(api,user_mail,token,mail_type,mail_id,db,close_cnx=True):
+    mail_type   = mail_lib.get_mail_type(mail_type)
     parameters  = None
     mail_token  = mail_lib.get_mail_token(user_mail)
     valid       = mail_token == token
@@ -71,6 +72,7 @@ def request_view(api,user_mail,token,mail_type,mail_id,db,close_cnx=True):
     api.set_data(parameters)
 
 def request_unsubscribe(api,user_mail, token, mail_type,db,close_cnx=True):
+    mail_type   = mail_lib.get_mail_type(mail_type)
     mail_token  = mail_lib.get_mail_token(user_mail)
     valid       = mail_token == token
 

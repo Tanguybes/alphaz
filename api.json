@@ -24,6 +24,6 @@
             "type": "mysql",
             "name": "alpha"
         },
-        "users": "{{test}}"
+        "users": "{{databases/test}}"
     }
 }

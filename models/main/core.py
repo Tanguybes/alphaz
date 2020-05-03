@@ -18,8 +18,6 @@ class AlphaCore:
         logs_directory      = self.config.get("log_directory")
         loggers_config      = self.config.get("loggers")
 
-        print('   INITIATE',logs_directory,loggers_config)
-
         self.loggers        = self.config.loggers
 
     def get_relative_path(self, file: str, level = 0, add_to_path=True):
