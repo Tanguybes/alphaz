@@ -84,7 +84,7 @@ class AlphaFlask(Flask):
         root_log    = self.get_config('log_directory')
         self.log    = AlphaLogger('api','api',root=root_log)
 
-        mail_config = self.get_config('mail_server')
+        mail_config = self.get_config('mails/mail_server')
 
         if mail_config is not None:
             self.config.update(
@@ -97,7 +97,7 @@ class AlphaFlask(Flask):
             )
             self.mail = Mail(self)
         else:
-            self.log.error('Mail configuration is not defined')        
+            self.log.error('Mail configuration is not defined ("mail_server" parameter)')        
 
     def start(self):
         pid                 = os.getpid()     

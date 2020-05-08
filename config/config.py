@@ -351,17 +351,20 @@ class AlphaConfig():
         return  self.loggers[name] 
 
     def get(self,path=[]):
-        if path == '':
-            return self.data
-        if type(path) == str:
+
+        """if type(path) == str:
             values, paths = search_it(self.data, path, path=None)
             if len(values) != 0:
                 nbs     = [len(x) for x in paths]
                 index   = np.argmin(nbs)
-                return values[index]
+                return values[index]"""
         return self.get_parameter_path(path)
 
     def get_parameter_path(self,parameters,data=None,level=1):
+        if '/' in parameters:
+            parameters = parameters.split('/')
+        if parameters == '':
+            return self.data
         if type(parameters) == str:
             parameters = [parameters]
 

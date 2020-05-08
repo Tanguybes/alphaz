@@ -4,7 +4,7 @@ mysql.connector
 cx_Oracle
 pysocks
 numpy
-bcrypt
+py-bcrypt
 jwt
 requests
 lxml

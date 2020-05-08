@@ -456,7 +456,7 @@ class SelectionMenu():
             if '{{%s}}'%key == str(value):
                 return val
             if '{{%s}}'%key in str(value):
-                value = value.replace('{{%s}}'%key,val)
+                value = value.replace('{{%s}}'%key,str(val))
         return value
 
     def quit(self):
