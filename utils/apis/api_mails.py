@@ -38,18 +38,8 @@ def unstring_value(value):
     return value
 
 def str_parameters_to_dict(parameters_str):
-    parameters = {}
-
-    #parameters_str = parameters_str[1:][::-1][1:][::-1]
-    #print(parameters_str)
     parameters = json.loads(parameters_str)
-    print(parameters)
     return parameters
-    """splt = parameters_str.split(',')
-    for tupleStr in splt:
-        key, value = tupleStr.split(':')
-        parameters[unstring_value(key)] = unstring_value(value)
-    return parameters"""
 
 def request_view(api,user_mail,token,mail_type,mail_id,db,close_cnx=True):
     mail_type   = mail_lib.get_mail_type(mail_type)
@@ -68,8 +58,16 @@ def request_view(api,user_mail,token,mail_type,mail_id,db,close_cnx=True):
         return api.set_error('no_mail')
         
     parameters = str_parameters_to_dict(results[0]['parameters_full'])
-    parameters = [{'key':x,'value':y} for x,y in parameters.items()]
-    api.set_data(parameters)
+    parameters['mail'] = user_mail
+    #parameters = [{'key':x,'value':y} for x,y in parameters.items()]
+
+    mail_path = api.get_config('mails/path')
+    mail_contents_list = mail_lib.get_mail_content_for_parameters(mail_path,mail_type,[parameters],api.log)
+
+    if len(mail_contents_list) == 0:
+        api.set_error('mail_error')
+    else:
+        api.set_data(mail_contents_list[0]['content'])
 
 def request_unsubscribe(api,user_mail, token, mail_type,db,close_cnx=True):
     mail_type   = mail_lib.get_mail_type(mail_type)

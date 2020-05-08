@@ -65,8 +65,6 @@ def ask_password_reset(api,username_or_mail,db,close_cnx=True):
     query   = "UPDATE users SET password_reset_token = %s, password_reset_token_expire = UTC_TIMESTAMP() + INTERVAL 20 MINUTE WHERE id = %s;"
     values  = (token, user_data['id'],)
 
-    print('values,',values)
-
     if not db.execute_query(query,values,close_cnx=False,log=None):
         return api.set_error('sql_error')    
 
@@ -112,7 +110,7 @@ def try_login(api,db,login, password, ip):
             valid   = db.execute_query(query,values,close_cnx=True,log=api.log)
             if valid:
                 data = {
-                    'user':user_data,
+                    'user':{x:y for x,y in user_data.items()},
                     'token': encoded_jwt,
                     'valid_until': datetime.datetime.now() + datetime.timedelta(days=7)
                 }
@@ -140,6 +138,8 @@ def try_reset_password(api,user_data, password, password_confirmation,db,log=Non
         return "password_format"'''
     # Set New password and revoke token
     password_hashed = secure_lib.secure_password(password)
+
+    print('RESET ',password,password_hashed)
    
     # Reset password
     query   = "UPDATE users SET password = %s, password_reset_token = 'consumed' WHERE id = %s;"

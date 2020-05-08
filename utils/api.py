@@ -200,7 +200,7 @@ def password_reset_validation():
     db     = api.get_connection('users')
     api_users.confirm_user_password_reset(api,token=api.get('tmp_token'), password=api.get('password'), password_confirmation=api.get('password_confirmation'),db=db)
 
-@route('/logout',cache=False,logged=True,methods = ['GET', 'POST'],
+@route('/logout',cache=False,logged=False,methods = ['GET', 'POST'],
     parameters  = [],  parameters_names=[])
 def logout():
     token   = api.get_token()

@@ -4,12 +4,18 @@ def get_user_data_by_usernamePassword(db,username, password_attempt,log=None,clo
     query    = "SELECT id, password FROM users WHERE username = %s;"
     values   = (username,)
 
+    
+
     results  = db.get_query_results(query,values,unique=False,close_cnx=False)
+
+    print('hhhhey',results)
 
     for user in results:
         user_id         = user['id']
         hash_saved      = user['password']
         valid           = secure_lib.compare_passwords(password_attempt,hash_saved)
+
+        print('   >>>',user_id,hash_saved,password_attempt,valid )
         if valid:
             return get_user_data_by_id(db, user_id,close_cnx=close_cnx)
     return None

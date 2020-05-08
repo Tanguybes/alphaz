@@ -1,4 +1,4 @@
-from bcrypt import hashpw, gensalt
+from bcrypt import hashpw, gensalt, checkpw
 import secrets
 
 def secure_password(password):
@@ -6,9 +6,8 @@ def secure_password(password):
     return password_hashed
 
 def compare_passwords(password,hash_saved):
-    # password_hashed = secure_lib.secure_password(password)
-    hash_compare    = hashpw(password.encode(), hash_saved.encode())
-    return hash_compare == hash_saved
+    valid = checkpw(password.encode(),hash_saved.encode())
+    return valid
 
 def get_token():
     return secrets.token_urlsafe(45)

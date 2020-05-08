@@ -134,17 +134,10 @@ def set_parameters(content,parameters):
             content = content.replace(MAIL_PARAMETERS_PATTERN%parameter,str(value))
     return content
 
-def send_mail(title,host_web,mail_path,mail_type,parameters_list,sender,db,log,key_signature="<alpha mail>",close_cnx=True):
-    print('Getting mail at %s/%s'%(mail_path,mail_type))
-    content                 = get_mail_content(mail_path,mail_type,log)
-    
-    if content is None:
-        return False
-    parameters_to_specify   = get_mails_parameters(content)
+REQUIRED_PARAMETERS = ['mail']
+KEY_SIGNATURE       = '<alpha mail>'
 
-    valid_signature         = key_signature in str(content) 
-    #title               = get_title(content,default=default_tile)
-
+def add_mail_classic_parameter(parameters):
     now     = datetime.datetime.now()
     year    = now.year
     month   = now.month
@@ -152,77 +145,109 @@ def send_mail(title,host_web,mail_path,mail_type,parameters_list,sender,db,log,k
     minute  = now.minute
     second  = now.second
 
-    for parameters in parameters_list:
-        for key, value in parameters.items():
-            if MAIL_PARAMETERS_PATTERN%key in title:
-                title = title.replace(MAIL_PARAMETERS_PATTERN%key,value)
+    classic_parameters = {
+        'year':year,
+        'month':month,
+        'hour':hour,
+        'minute':minute,
+        'second':second,
+        'uuid': str(uuid.uuid4()),
+        'mail_token': get_mail_token(parameters['mail'])
+    }
 
-        uuidValue = str(uuid.uuid4())
+    for key, value in classic_parameters.items():
+        if not key in parameters:
+            parameters[key] = value
+    return parameters
 
-        if not 'mail' in parameters.keys():
-            log.error('Missing parameter <mail> for sending mail !')
+def update_mail_content(content,mail_url,parameters,parameters_to_specify,log):
+    parameters_to_keep          = {}
+    for required_parameter in REQUIRED_PARAMETERS:
+        if not required_parameter in parameters.keys():
+            log.error('Missing parameter <%s> for sending mail !'%required_parameter)
+            return content, False, parameters_to_keep
+
+    parameters                  = add_mail_classic_parameter(parameters)
+    parameters['configuration'] = get_mail_type(mail_url)
+
+    raw_parameters = copy.copy(parameters)
+    for key, value in raw_parameters.items():
+        for k, v in parameters.items():
+            if MAIL_PARAMETERS_PATTERN%key in str(v):
+                parameters[k] = v.replace(MAIL_PARAMETERS_PATTERN%key,value)
+
+    for key, value in parameters.items():
+        if MAIL_PARAMETERS_PATTERN%key in parameters_to_specify:
+            parameters_to_keep[key] = value
+
+    print('Mail parameters:')
+    for key, value in parameters_to_keep.items():
+        print('   {:20} {}'.format(key,value))
+
+    content                     = set_parameters(content,parameters_to_keep)
+
+    parameters_not_specified    = list(set(get_mails_parameters(content)))
+
+    if len(parameters_not_specified) != 0:
+        log.error('Missing parameters %s for mail "%s"'%(','.join(parameters_not_specified),mail_url))
+        return content, False, parameters_to_keep
+
+    """if not valid_signature:
+        log.error('Invalid mail signature !')
+        return False"""
+
+    return content, True, parameters_to_keep
+
+def get_mail_content_for_parameters(mail_path,mail_url,parameters_list,log):
+    if not 'template' in mail_url:
+        mail_url = 'template.html?mail-content=' + mail_url
+    print('Getting mail at %s/%s'%(mail_path,mail_url))
+    content                 = get_mail_content(mail_path,mail_url,log)
+    if content is None:
+        return []
+    parameters_to_specify   = get_mails_parameters(content)
+
+    #valid_signature         = KEY_SIGNATURE in str(content) 
+
+    mail_contents_list = []
+    for parameters in parameters_list:        
+        mail_contents_dict                      = {'content':None,'parameters':None,'valid':False}
+        out_content, valid, pars                    = update_mail_content(content,mail_url,parameters,parameters_to_specify,log)
+            
+        """for key, value in parameters.items():
+            print('    @ ',key,value)"""
+        
+        mail_contents_dict['content']           = out_content
+        mail_contents_dict['parameters']        = pars
+        mail_contents_dict['raw_parameters']    = parameters
+        mail_contents_dict['valid']             = valid
+        mail_contents_list.append(mail_contents_dict)
+    return mail_contents_list
+
+def send_mail(mail_path,mail_type,parameters_list,sender,db,log,close_cnx=True):
+    mail_contents_list = get_mail_content_for_parameters(mail_path,mail_type,parameters_list,log)
+
+    for config in mail_contents_list:        
+        if is_mail_already_send(db,mail_type,config['parameters'],close_cnx=False,log=log):
+            log.error('Mail already sent %s'%config)
             return False
 
-        user_mail           = parameters['mail']
-        token               = get_mail_token(user_mail)
-
-        parameters['year']                  = year
-        parameters['mail']                  = user_mail
-        parameters['uuid']                  = uuidValue
-        parameters['configuration']         = get_mail_type(mail_type)
-        parameters['mail_token']            = token
-
-        raw_parameters = copy.copy(parameters)
-        for key, value in raw_parameters.items():
-            for k, v in parameters.items():
-                if MAIL_PARAMETERS_PATTERN%key in str(v):
-                    parameters[k] = v.replace(MAIL_PARAMETERS_PATTERN%key,value)
-
-        """parameters['page_view_in_browser'] = "%s/mails" \
-             "?action=view&type=%s&id=%s&mail=%s&token=%s"%(host_web,mail_type,uuidValue,user_mail,token)
-        parameters['page_unsuscribe'] = "%s/mails" \
-              "?action=unsuscribe&type=%s&token=%s"%(host_web,mail_type,token)
-        parameters['page_terms_of_use'] = '%s/terms-of-use'%(host_web)
-        parameters['page_cgu']          = '%s/cgu'%(host_web)"""
-
-        parameters_to_keep          = {}
-        for key, value in parameters.items():
-            if MAIL_PARAMETERS_PATTERN%key in parameters_to_specify:
-                parameters_to_keep[key] = value
-
-        print('Mail parameters:')
-        for key, value in parameters_to_keep.items():
-            print('   {:20} {}'.format(key,value))
-
-        content                     = set_parameters(content,parameters_to_keep)
-
-        parameters_not_specified    = list(set(get_mails_parameters(content)))
-
-        if len(parameters_not_specified) != 0:
-            log.error('Missing parameters %s for mail "%s"'%(','.join(parameters_not_specified),mail_type))
-            return False
-
-        """if not valid_signature:
-            log.error('Invalid mail signature !')
-            return False"""
-
-        if is_mail_already_send(db,mail_type,parameters_to_keep,close_cnx=False,log=log):
-            return False
-
-        if is_blacklisted(db,user_mail,mail_type,close_cnx=False):
+        if is_blacklisted(db,config['raw_parameters']['mail'],mail_type,close_cnx=False):
+            log.error('Mail adress <%s> blacklisted %s'%config['raw_parameters']['mail'])
             return False
 
         # Send mail
-        msg     = Message(title,
+        msg     = Message(config['raw_parameters']['title'],
                     sender=sender,
-                    recipients=[user_mail])
-        msg.html = content
+                    recipients=[config['raw_parameters']['mail']])
+        msg.html = config['content']
         current_app.extensions["mail"].send(msg)
         #api.mail.send(msg)
 
         # insert in history
         mail_type   = get_mail_type(mail_type)
-        set_mail_history(db,mail_type,uuidValue,parameters_to_keep,close_cnx=False,log=log)
+        set_mail_history(db,mail_type,config['raw_parameters']['uuid'],config['parameters'],close_cnx=False,log=log)
+        log.info('Sending mail to %s'%config['raw_parameters']['mail'])
     if close_cnx:
         db.close()
     return True

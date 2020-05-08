@@ -347,7 +347,7 @@ class AlphaFlask(Flask):
             if 'parameters' in config:
                 parameters_config           = copy.deepcopy(config['parameters'])
 
-            full_parameters = {}
+            full_parameters = {'title':config['title']}
 
             fill_config(parameters_config,source_configuration=parameters)
             fill_config(root_config,source_configuration=parameters)
@@ -365,16 +365,14 @@ class AlphaFlask(Flask):
                 print('     {:20} {}'.format(key,value))
             exit()"""
         
+        mail_lib.KEY_SIGNATURE = self.get_config('mails/key_signature'),
         valid = mail_lib.send_mail(
-            title           = config['title'],
-            host_web        = self.get_config('host_web'),
             mail_path       = self.get_config('mails/path'),
             mail_type       = config['mail_type'],
             parameters_list = full_parameters_list,
             sender          = sender,
             db              = db,
             log             = self.log,
-            key_signature   = self.get_config('mails/key_signature'),
             close_cnx       = close_cnx
         )
         if not valid:

@@ -185,7 +185,6 @@ class AlphaConfig():
 
         if "ips" in self.data_origin:
             ips = self.data_origin["ips"]
-            
             if current_ip in ips:
                 self.info('Ip "%s" detected in configuration'%current_ip)
                 self.data_user = self.data_origin["ips"][current_ip]
@@ -393,11 +392,24 @@ class AlphaConfig():
         Returns:
             dict -- the input dict with parameters replace by their values
         """
+
         parameters_values, paths = get_parameters_from_config(config, path=None)
-        
+        """
+            tests / save_directory                   save_root
+            menus / save_directory                   save_root
+            files / google-taxonomy / file_path      sources & file_name
+            ips / 62.210.244.105 / web / root        root
+            ips / 62.210.244.105 / web / api_root    root
+            save_root                                root & project_name
+            logs_directory                           root & project_name
+            sqllite_path                             root
+            web / root                               root
+            web / api_root                           root
+        """
+
         """print('\nParameters:')
         for i in range(len(parameters_values)):
-            print('   ',parameters_values[i],paths[i])"""
+            print('     {:40} {}'.format(' / '.join(paths[i]),' & '.join(parameters_values[i])))"""
 
         parameters = []
         for i in range(len(parameters_values)):
@@ -414,21 +426,34 @@ class AlphaConfig():
             # take the first value if any
             if len(values_paths) != 0 and len(values_paths[0]) != 0:
                 values, pths               = values_paths
+
                 index, path_len = 0, None
-                for i in range(len(pths)):
-                    if path_len is None:
-                        path_len = len(pths[i])
-                        index = i
-                    else:
-                        if len(pths[i]) < path_len:
-                            index = i
+
+                lenghts = [len(x) for x in pths]
+                indexs = np.where(lenghts == np.amin(lenghts))[0]
+                if len(indexs) == 0:
+                    self.error('No value is specified for %s'%parameter)
+                    exit()
+                elif len(indexs) == 1:
+                    index = indexs[0]
+                else:
+                    self.error('Too many possible value at the same level are specified for parameter <%s>'%parameter)
+                    exit()
                 
                 value                       = values[index]
                 if isinstance(parameter,list):
                     parameter = '/'.join(parameter)
                 parameters_value[parameter] = convert_value(value)
+            else:
+                self.error('No value is specified for %s'%parameter)
+                exit()
 
-        set_parameter_value(parameters_value)
+        """l = 0
+        for key, value in parameters_value.items():
+            print(key,value)"""
+
+        l = 0
+        set_parameter_value(parameters_value,l)
 
         levels = list(set([len(x) for x in paths]))
 
@@ -604,23 +629,36 @@ def get_values_for_parameters(config, parameter_name,path=None):
                 i += 1
     return found, paths
 
-def set_parameter_value(parameters_value):
+LIMIT = 100
+def set_parameter_value(parameters_value,l):
+    if l > 10: 
+        print('ERROR: replacement limit exceed for parameter %s'%parameters_value)
+        exit()
+    l += 1
+
     replaced    = False
     keys        = list(parameters_value.keys())
     for key, value in parameters_value.items():
         for k in keys:
             if "{{%s}}"%k in str(value) and "{{%s}}"%k != value:
-                value       = replace_parameter(k,value,parameters_value[k])
+                i = 0
+                value       = replace_parameter(k,value,parameters_value[k],i)
                 replaced    = True
         parameters_value[key] = value
-    if replaced:
-        set_parameter_value(parameters_value)
 
-def replace_parameter(key,value,replace_value):
+    if replaced:
+        set_parameter_value(parameters_value,l)
+
+def replace_parameter(key,value,replace_value,i):
+    if i > LIMIT: 
+        print('ERROR: replacement limit exceed for parameter %s'%key)
+        exit()
+    i += 1
+
     if isinstance(value,dict):
         replacements = {}
         for k, v in value.items():
-            vr = replace_parameter(key,v,replace_value)
+            vr = replace_parameter(key,v,replace_value,i)
             if v != vr:
                 replacements[k] = vr
         for k, newv in replacements.items():
@@ -629,7 +667,7 @@ def replace_parameter(key,value,replace_value):
         replacements = {}
         i = 0
         for v in value:
-            vr = replace_parameter(key,v,replace_value)
+            vr = replace_parameter(key,v,replace_value,i)
             if v != vr:
                 replacements[i] = vr
             i += 1
