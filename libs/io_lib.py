@@ -1,4 +1,4 @@
-import requests, json, os, pickle, pathlib
+import requests, json, re, os, pickle, pathlib
 from lxml.html import fromstring
 
 def ensure_dir(file_path):
@@ -22,6 +22,44 @@ def save_as_json(filename,data,verbose=False):
     with open(filename, 'w') as f:
         f.write(json_content)
         #json.dump(data, f)
+
+
+
+def read_json(file_path):
+    original = {}
+
+    with open(file_path,'r') as f:
+        original = f.read()
+    # save state
+    states = []
+    text = original
+    
+    # save position for double-quoted texts
+    for i, pos in enumerate(re.finditer('"', text)):
+        # pos.start() is a double-quote
+        p = pos.start() + 1
+        if i % 2 == 0:
+            nxt = text.find('"', p)
+            states.append((p, text[p:nxt]))
+
+    # replace all weired characters in text
+    while text.find(',,') > -1:
+        text = text.replace(',,', ',null,')
+    while text.find('[,') > -1:
+        text = text.replace('[,', '[null,')
+
+    # recover state
+    for i, pos in enumerate(re.finditer('"', text)):
+        p = pos.start() + 1
+        if i % 2 == 0:
+            j = int(i / 2)
+            nxt = text.find('"', p)
+            # replacing a portion of a string
+            # use slicing to extract those parts of the original string to be kept
+            text = text[:p] + states[j][1] + text[nxt:]
+   
+    converted = json.loads(text) # error stems from here
+    return converted
 
 def get_proxies(nb=None):
     url         = 'https://free-proxy-list.net/'

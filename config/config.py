@@ -6,6 +6,9 @@ from ..utils.logger import AlphaLogger, get_alpha_logs_root
 from .utils import merge_configuration, get_parameters
 from ..models.database import AlphaDatabase
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
 
 import platform, getpass
 
@@ -290,19 +293,32 @@ class AlphaConfig():
             self.log        = self.loggers[main_logger_name]"""
 
         # Databases
-        structure = {'name':None,'required':True,'value':None}
+        structure = {'name':None,'required':False,'value':None}
+
         if 'databases' in config:
-            for database, cf_db in config["databases"].items():
+            for db_name, cf_db in config["databases"].items():
+                if not "type" in cf_db:
+                    self.error("Missing <type> parameter in <%s> database configuration"%db_name)
+                db_type = cf_db['type']
+
                 content_dict = {
                     "user": {},
                     "password": {},
                     "host": {},
-                    "name": {'required':False},
+                    "name": {},
                     "port": {},
-                    "sid": {'required':False},
+                    "sid": {},
+                    "path": {},
                     "database_type": {'name':'type'},
-                    "log": {'default':self.log,'required':False}
+                    "log": {'default':self.log}
                 }
+                if db_type == 'sqlite':
+                    content_dict["path"]['required'] = True
+                else:
+                    content_dict["user"]['required'] = True
+                    content_dict["password"]['required'] = True
+                    content_dict["host"]['required'] = True
+                    content_dict["port"]['required'] = True
 
                 valid = True
                 for name, content in content_dict.items():
@@ -324,23 +340,39 @@ class AlphaConfig():
                         if type(content_dict[name]['value']) == str and content_dict[name]['value'] in self.loggers:
                             content_dict[name]['value'] = self.loggers[content_dict[name]['value']]
                         else:
-                            print('Wrong logger configuration for database %s'%database)
+                            print('Wrong logger configuration for database %s'%db_name)
                             content_dict[name]['value'] = self.log
                 
                 fct_kwargs = {x:y['value'] for x,y in content_dict.items()}
 
-                if valid:
-                    self.databases[database] = AlphaDatabase(**fct_kwargs)
-                    if not self.databases[database].test():
-                        self.error('Cannot connect to "%s"'%database)
-                    else:
-                        self.info('Database connection to "%s" is valid'%database)
-                else:
-                    self.error('Cannot configure database %s'%database)
+                new = "new" in cf_db and cf_db['new']
 
-        for database in self.databases:
-            if self.databases[database].log is None:
-                self.databases[database].log = self.log
+                if valid and not new:
+                    self.databases[db_name] = AlphaDatabase(**fct_kwargs)
+                    if not self.databases[db_name].test():
+                        self.error('Cannot connect to "%s":\n\n%s'%(db_name,"\n".join(["%s:%s"%(x,y) for x,y in content_dict.items()]) ) )
+                    else:
+                        self.info('Database connection to "%s" is valid'%db_name)
+                elif valid and new:
+                    user,password,host,port,name = cf_db['user'], cf_db['password'], cf_db['host'], cf_db['port'], cf_db['name']
+                    if db_type == 'mysql':
+                        cnx_str        = 'mysql://%s:%s@%s:%s/%s'%(user,password,host,port,name)
+                    elif db_type == "sqlite":
+                        cnx_str        = 'sqlite:///' + cf_db['path']
+
+                    if cnx_str is not None:
+                        engine      = create_engine(cnx_str)
+                        db_session  = scoped_session(sessionmaker(autocommit=False,
+                                                    autoflush=False,
+                                                    bind=engine))
+                        Base        = declarative_base()
+                        Base.query  = db_session.query_property()
+                else:
+                    self.error('Cannot configure database %s'%db_name)
+
+        for db_name in self.databases:
+            if self.databases[db_name].log is None:
+                self.databases[db_name].log = self.log
 
         #self.show()
 
@@ -492,7 +524,7 @@ def set_path(config,path,parameters,parameters_values):
                 if value == PAREMETER_PATTERN%parameter:
                     value = parameter_value
                 elif PAREMETER_PATTERN%parameter in str(value):
-                    value = value.replace(PAREMETER_PATTERN%parameter,parameter_value)
+                    value = value.replace(PAREMETER_PATTERN%parameter,str(parameter_value))
         config[path[0]]         = value
         return
 

@@ -67,6 +67,11 @@ class AlphaFlask(Flask):
     def init(self,config_path,configuration=None,root=None,encode_rules={}):
         self.set_config(config_path,configuration,root=root)
 
+        if self.conf.is_path("config"):
+            print(self.conf.get('config'))
+            print('yoloooo')
+            exit()
+
         for database, fct in self.conf.databases.items():
             self.connections[database] = fct
         
@@ -74,9 +79,6 @@ class AlphaFlask(Flask):
             print('Missing "users" database in configuration file "%s.json"'%config_path)
             exit()
             
-        self.config['SECRET_KEY']                    = self.get_config('flask_key')
-        self.config['JWT_SECRET_KEY']                = self.get_config('jwt_key')
-        self.config['JSONIFY_PRETTYPRINT_REGULAR']   = False
         self.json_encoder                            = AlphaJSONEncoder
         for key_rule, fct in encode_rules.items():
             AlphaJSONEncoder.rules[key_rule] = fct

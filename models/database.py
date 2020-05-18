@@ -4,6 +4,10 @@ from ..libs.sql_lib import NumpyMySQLConverter
 
 from collections.abc import MutableMapping
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
+
 class Row(MutableMapping):
     """A dictionary that applies an arbitrary key-altering
        function before accessing the keys"""
@@ -39,8 +43,10 @@ class AlphaDatabase():
     cnx             = None
     database_type   = None
     cursor          = None
+    path            = None
+    cnx_str         = None
 
-    def __init__(self,user,password,host,name=None,port=None,sid=None,database_type='mysql',log=None):
+    def __init__(self,user,password,host,name=None,port=None,sid=None,database_type='mysql',log=None,path=None):
         self.log            = log
         self.database_type  = database_type
         self.user           = user
@@ -49,6 +55,15 @@ class AlphaDatabase():
         self.name           = name
         self.port           = port
         self.sid            = sid
+        self.path           = path
+
+    def test(self):
+        query   = "SHOW TABLES;"
+        cnx     = self.get_cnx()
+        if cnx is None:
+            return False
+        results = self.get_query_results(query,None)
+        return len(results) != 0
 
     def get_cnx(self):
         cnx = None
@@ -70,14 +85,6 @@ class AlphaDatabase():
                 self.log.error('Database type not recognized')
         self.cnx = cnx
         return self.cnx
-
-    def test(self):
-        query   = "SHOW TABLES;"
-        cnx     = self.get_cnx()
-        if cnx is None:
-            return False
-        results = self.get_query_results(query,None)
-        return len(results) != 0
 
     def get(self,query,values,unique=False,close_cnx=True):
         return self.get_query_results(query,values,unique=unique,close_cnx=close_cnx)

@@ -34,17 +34,19 @@ def try_register_user(api,db,mail, username, password, password_confirmation,clo
         "mail": mail
     }
 
-    api.send_mail(
+    sent = api.send_mail(
         mail_config     = 'registration',
         parameters_list = [parameters],
         db              = db,
         close_cnx       = close_cnx
     )
 
-    query   = "INSERT INTO users (username, mail, password, role, date_registred, last_activity, registration_token) VALUES (%s, %s, %s, -1, UTC_TIMESTAMP(), UTC_TIMESTAMP(), %s)"
-    values  = (username, mail, password_hashed, token,)
-    db.execute_query(query,values,close_cnx=close_cnx)
-
+    if sent:
+        query   = "INSERT INTO users (username, mail, password, role, date_registred, last_activity, registration_token) VALUES (%s, %s, %s, -1, UTC_TIMESTAMP(), UTC_TIMESTAMP(), %s)"
+        values  = (username, mail, password_hashed, token,)
+        db.execute_query(query,values,close_cnx=close_cnx)
+    else:
+        api.set_error('sending')
     #sender      = CoreW.CONSTANTS['email-registration']
 
 def ask_password_reset(api,username_or_mail,db,close_cnx=True):
