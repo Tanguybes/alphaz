@@ -2,14 +2,18 @@ import argparse, os, sys
 
 # redifine path
 sys.path.append('../')
-paths       = [x for x in sys.path if not 'alphaz' in x]
-sys.path    = paths
+#paths       = [x for x in sys.path if not 'alphaz' in x]
+#sys.path    = paths
+sys.path.append(os.path.dirname(__file__))
+sys.path.append(os.getcwd())
 
 from alphaz.libs import test_lib, py_lib, files_lib, nav_lib
 from alphaz.utils.selectionMenu import SelectionMenu
 from alphaz.libs import test_lib, py_lib, files_lib, nav_lib
 from alphaz.config.config import AlphaConfig
-from alphaz.core import core
+
+from core import core
+api = core.api
 
 GOLLIATH_MENU_PARAMETERS = {
     "selections": [
@@ -41,14 +45,15 @@ if __name__ == "__main__":
     #exit()
 
     parser          = argparse.ArgumentParser(description='Alpha')
-
+    parser.add_argument('--configuration', '-c', help='Set configuration')
     parser.add_argument('--prod','-p',action='store_true')
 
     args            = parser.parse_args()
 
-    current_folder  = os.getcwd()
-    os.chdir(os.path.basename(os.path.dirname(os.path.realpath(__file__))))
+    #os.chdir(os.path.dirname(__file__))
     
+    #api.init(config_path='api',configuration=args.configuration)
+
     test_lib.operate_all_tests_auto(
         directory   = core.config.get(['tests','auto_directory']), 
         import_path = core.config.get(['tests','auto_import']),
