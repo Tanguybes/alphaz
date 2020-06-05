@@ -6,7 +6,6 @@ from flask_mail import Mail
 
 from ...libs import mail_lib
 from ...utils.logger import AlphaLogger
-from ...utils.apis import api_users
 from ...config.config import AlphaConfig
 
 from .utils import AlphaJSONEncoder
@@ -36,6 +35,7 @@ def merge_configuration(configuration,source_configuration,replace=False):
     return new_configuration"""
 
 class AlphaFlask(Flask):
+    user            = None
     mode            = 'data'
     message         = 'No message'
     data            = {}
@@ -52,32 +52,36 @@ class AlphaFlask(Flask):
     routes          = {}
     routes_values   = {}
 
-    log = None
+    dataPost        = {}
+    dataGet         = {}
 
-    connections     = {}
+    log = None
+    db = None
+
+    #connections     = {}
 
     file_to_send           = (None, None)
 
-    def set_connection(self,name, cnx_fct):
+    """def set_connection(self,name, cnx_fct):
         self.connections[name] = cnx_fct
 
     def get_connection(self,name):
-        return self.connections[name]
+        return self.connections[name]"""
 
     def init(self,config_path,configuration=None,root=None,encode_rules={}):
         self.set_config(config_path,configuration,root=root)
 
-        if self.conf.is_path("config"):
-            print(self.conf.get('config'))
-            print('yoloooo')
-            exit()
+        confs = self.conf.get('conf')
+        for key, value in confs.items():
+            print('   > set %s to %s'%(key,value))
+            self.config[key] = value
 
-        for database, fct in self.conf.databases.items():
-            self.connections[database] = fct
+        """for database, fct in self.conf.databases.items():
+            self.connections[database] = fct"""
         
-        if not 'users' in self.connections:
+        """if not 'users' in self.connections:
             print('Missing "users" database in configuration file "%s.json"'%config_path)
-            exit()
+            exit()"""
             
         self.json_encoder                            = AlphaJSONEncoder
         for key_rule, fct in encode_rules.items():
@@ -270,8 +274,8 @@ class AlphaFlask(Flask):
         user_data   = None
         token       = self.get_token()
         if token is not None:
-            db         = self.get_database('users')
-            user_data   = api_users.get_user_dataFromToken(self,db,token)
+            from ...utils.apis import api_users #todo: modify
+            user_data   = api_users.get_user_dataFromToken(self,self.db,token)
         return user_data
 
     def get_token(self):
@@ -321,8 +325,6 @@ class AlphaFlask(Flask):
         if config is None or type(config) != dict:
             self.log.error('Missing "%s" mail configuration in "%s"'%(config,self.config_path))
             return False
-        else:
-            print('\n\n %s: \n\n%s\n\n'%(mail_config,config))
 
         # Parameters
         root_config = copy.copy(main_mail_config['parameters'])

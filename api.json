@@ -23,7 +23,9 @@
             "port": "3306",
             "type": "mysql",
             "name": "alpha"
-        },
-        "users": "{{databases/test}}"
-    }
+        }
+    },
+    "root": "/home/aurele/alphaz",
+    "project_name": "alphaz",
+    "logs_directory": "{{root}}/logs/{{project_name}}"
 }

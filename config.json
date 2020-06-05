@@ -12,18 +12,44 @@
     "loggers": {
         "main": {
             "level": "debug"
+        },
+        "database": {
+            "level": "debug"
         }
     },
     "root": "/home/aurele/alphaz",
-    "databases": {
-        "test": {
-            "host": "127.0.0.1",
-            "password": "testalpha7",
-            "user": "alpha",
-            "port": "3306",
-            "type": "mysql",
-            "name": "alpha"
+    "configuration": "local",
+    "configurations": {
+        "local": {
+            "databases": {
+                "main": {
+                    "new": true,
+                    "path": "{{root}}/src/{{project_name}}.sqlite",
+                    "type": "sqlite",
+                    "init_database_dir": "{{root}}/src/database",
+                    "init": {
+                        "test": "{{init_database_dir}}/test.json"
+                    }
+                }
+            }
         },
-        "users": "{{test}}"
+        "dev": {
+            "databases": {
+                "main": {
+                    "host": "127.0.0.1",
+                    "password": "testalpha7",
+                    "user": "alpha",
+                    "port": "3306",
+                    "type": "mysql",
+                    "name": "alpha"
+                }
+            }
+        }
+    },
+    "save_root": "{{root}}/tmp/{{project_name}}",
+    "logs_directory": "{{root}}/logs/{{project_name}}",
+    "api": {
+        "generate":true,
+        "name": "{{project_name}}"
     }
 }

@@ -84,7 +84,6 @@ class Parser():
         found = re.findall(regex_str, str(txt))
 
         if len(found) != 0:
-            print(txt)
             divs        = re.findall("<%s"%element,str(txt))
             blocks_nb   = len(divs)
             parts       = txt.split('</%s>'%element)

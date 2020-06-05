@@ -8,11 +8,13 @@ def ensure_dir(file_path):
 
 def ensure_file(filename):
     ensure_dir(filename)
-    # create file is not exist
-    with open(filename,"w") as f:
-        f.write("")
 
-def save_as_json(filename,data,verbose=False): 
+    if not os.path.exists(filename):
+        # create file is not exist
+        with open(filename,"w") as f:
+            f.write("")
+
+def save_as_json(filename,data,verbose=False):
     ensure_file(filename)
     if verbose:
         print('Write json file to %s'%filename)
@@ -22,8 +24,6 @@ def save_as_json(filename,data,verbose=False):
     with open(filename, 'w') as f:
         f.write(json_content)
         #json.dump(data, f)
-
-
 
 def read_json(file_path):
     original = {}

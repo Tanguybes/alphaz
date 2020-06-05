@@ -46,3 +46,4 @@ class AlphaJSONEncoder(JSONEncoder):
         else:
             return list(iterable)
         return JSONEncoder.default(self, o=o)
+

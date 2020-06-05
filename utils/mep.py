@@ -50,7 +50,6 @@ def upload(target, source, folder_list, root_ftp=''):
         key = '/home/truegolliath/.ssh/ssh-gprivate-key'
     )
 
-    #exit()
     #root_ftp_folder = CoreP.WEB_API_PATH + os.sep + root_ftp + path.replace(root_source,'')
     #ftp.makedirs(root_ftp_folder)
     #print('      init: ',root_ftp_folder)

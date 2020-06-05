@@ -1,27 +1,23 @@
 from . import sql_lib, secure_lib
 
 def get_user_data_by_usernamePassword(db,username, password_attempt,log=None,close_cnx=True):
-    query    = "SELECT id, password FROM users WHERE username = %s;"
+    db 
+    query    = "SELECT id, password FROM user WHERE username = %s;"
     values   = (username,)
 
-    
-
     results  = db.get_query_results(query,values,unique=False,close_cnx=False)
-
-    print('hhhhey',results)
 
     for user in results:
         user_id         = user['id']
         hash_saved      = user['password']
         valid           = secure_lib.compare_passwords(password_attempt,hash_saved)
 
-        print('   >>>',user_id,hash_saved,password_attempt,valid )
         if valid:
             return get_user_data_by_id(db, user_id,close_cnx=close_cnx)
     return None
 
 def get_user_data_by_mailPassword(db,mail, password_attempt,log=None,close_cnx=True):
-    query    = "SELECT id, password FROM users WHERE mail = %s;"
+    query    = "SELECT id, password FROM user WHERE mail = %s;"
     values   = (mail,)
     results  = db.get_query_results(query,values,unique=False,close_cnx=False)
 
@@ -45,13 +41,12 @@ def get_user_data_FromLogin(db,login, password,log=None,close_cnx=True):
 
 def get_user_data(db, value, column, close_cnx=True,log=None):
     ''' Get the user role associated with given column'''
-    query    = "SELECT * FROM users WHERE -lookup- = %s;"
+    query    = "SELECT * FROM user WHERE -lookup- = %s;"
     query    = query.replace("-lookup-", column)
  
     values   = (value,)
 
     results  = db.get_query_results(query,values,unique=False,close_cnx=close_cnx)
-
     if len(results) != 0:
         return results[0]
     return {}
@@ -82,19 +77,19 @@ def update_users(db,close_cnx=True):
     # Connect to db
     
     # Set expired states if needed
-    query = "UPDATE users SET role = 0 WHERE expire <= UTC_TIMESTAMP();"
+    query = "UPDATE user SET role = 0 WHERE expire <= UTC_TIMESTAMP();"
     db.execute_query(query,None,close_cnx=False)
     
     # Set expired states if needed
-    query = "UPDATE users SET password_reset_token = 'consumed' WHERE password_reset_token_expire <= UTC_TIMESTAMP();"
+    query = "UPDATE user SET password_reset_token = 'consumed' WHERE password_reset_token_expire <= UTC_TIMESTAMP();"
     db.execute_query(query,None,close_cnx=False)
     
     # Remove non activated in time accounts
-    query = "DELETE FROM users WHERE role = -1 AND date_registred + INTERVAL 15 MINUTE > UTC_TIMESTAMP();"
+    query = "DELETE FROM user WHERE role = -1 AND date_registred + INTERVAL 15 MINUTE > UTC_TIMESTAMP();"
     db.execute_query(query,None,close_cnx=False)
     
     # Remove expired sessions
-    query = "DELETE FROM users_sessions WHERE expire <= UTC_TIMESTAMP();"
+    query = "DELETE FROM user_session WHERE expire <= UTC_TIMESTAMP();"
     db.execute_query(query,None,close_cnx=close_cnx)
                  
 def is_valid_mail(db,email,close_cnx=True): #TODO: update
