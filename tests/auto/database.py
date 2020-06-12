@@ -35,11 +35,11 @@ class Dataframe(AlphaTest):
 
     @test(save=False)
     def insert(self):
-        return self.db.insert(Test,self.parameters)
+        return self.db.add(Test,self.parameters)
 
     @test(save=False)
     def insert2(self):
-        return self.db.insert(Test,{
+        return self.db.add(Test,{
             Test.name:      self.parameters['name'],
             Test.number:    self.parameters['number'],
             Test.text:      self.parameters['text'],
@@ -48,7 +48,7 @@ class Dataframe(AlphaTest):
 
     @test(save=False)
     def insert3(self):
-        return self.db.insert(Test(
+        return self.db.add(Test(
             name=      self.parameters['name'],
             number=    self.parameters['number'],
             text=      self.parameters['text'],
@@ -90,4 +90,4 @@ class Dataframe(AlphaTest):
 
     @test(save=False)
     def insert_or_update(self):
-        return self.db.insert(Test,parameters=self.parameters,update=True)"""
+        return self.db.add(Test,parameters=self.parameters,update=True)"""

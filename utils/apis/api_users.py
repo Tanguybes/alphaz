@@ -181,6 +181,9 @@ def try_reset_password(api,user_data, password, password_confirmation,db,log=Non
         api.set_error('clean_error')
 
 def logout(api,token,db,log=None,close_cnx=True):
+    valid = db.delete(defs.UserSession,filters={'token': token})
+
+    """
     user_session = db.select(defs.UserSession,filters={
         'token': token
     },first=True,json=False)
@@ -188,9 +191,7 @@ def logout(api,token,db,log=None,close_cnx=True):
     if user_session is not None:
         db.delete(user_session)
     valid = True #todo: upgrade
-    #query = "DELETE FROM user_session WHERE token = %s;"
-    #values = (token,)
-    #valid   = db.execute_query(query,values,close_cnx=close_cnx)
+    """
     if not valid:
         api.set_error('fail')
 

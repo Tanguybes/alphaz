@@ -20,7 +20,7 @@ def save_as_json(filename,data,verbose=False):
         print('Write json file to %s'%filename)
 
     # Writing JSON data
-    json_content = json.dumps(data, default=lambda x: None)
+    json_content = json.dumps(data, default=lambda x: None).replace("NaN" , '"null"')
     with open(filename, 'w') as f:
         f.write(json_content)
         #json.dump(data, f)

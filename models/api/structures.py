@@ -225,7 +225,10 @@ class AlphaFlask(Flask):
         if self.current_route is None:
             return None
         parameter = self.current_route.get(name)
-        return None if parameter is None else parameter.value
+        value = None if parameter is None else parameter.value
+        if str(value) == 'false': return False
+        if str(value) == 'true': return True
+        return value
 
     def configure_route(self,api_route,parameters,cache=False):
         self.routes[api_route]   = Route(api_route,parameters,cache=cache)

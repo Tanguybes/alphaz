@@ -109,8 +109,9 @@ class AlphaDatabaseNew(SQLAlchemy):
             #index       = parentframe.index
         return rows
 
-    def insert(self,obj,parameters=None,commit=True):
-        return self.add(obj,parameters=parameters,commit=commit)
+    def insert(self,model,values={},commit=True):
+        values_update = self.get_values(model,values,{})
+        return self.add(model,parameters=values_update,commit=commit)
 
     def add(self,obj,parameters=None,commit=True):
         if parameters is not None:
@@ -123,13 +124,23 @@ class AlphaDatabaseNew(SQLAlchemy):
 
         if commit: 
             self.commit()
+        return obj
 
     def commit(self):
         self.session.commit()
 
-    def delete(self,obj,commit=True):
+    def delete_obj(self):
         self.session.delete(obj)
         if commit: self.commit()
+
+    def delete(self,model,filters={},commit=True):
+        obj = self.select(model,filters=filters,first=True,json=False)
+
+        if obj is not None:
+            self.session.delete(obj)
+            if commit: self.commit()
+            return True
+        return False
 
     def get_filtered_query(self,model,filters=None):
         query     = model.query
@@ -183,19 +194,26 @@ class AlphaDatabaseNew(SQLAlchemy):
         return results_json
 
     def update(self,model,values={},filters={}):
-        query     = self.get_filtered_query(model,filters=filters)
+        query           = self.get_filtered_query(model,filters=filters)
 
+        values_update   = self.get_values(model,values,filters)
+
+        print('\n%s'%model)
+        for k, v in values_update.items():
+            print(' u {:20} > {}'.format(str(k),v))
+        query.update(values_update)
+
+        self.commit()
+
+    def get_values(self,model,values,filters={}):
         values_update = {}
         for key, value in values.items():
-            if hasattr(model,key):
+            if hasattr(model,key) and not key in filters:
                 if type(key) == str:
                     values_update[model.__dict__[key]] = value
                 else:
                     values_update[key] = value
-
-        query.update(values_update)
-
-        self.commit()
+        return values_update
 
 class AlphaDatabase():
     cnx             = None

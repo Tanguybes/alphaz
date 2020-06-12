@@ -47,7 +47,7 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
 
         @api.route(path, methods = methods, endpoint=func.__name__)
         def api_wrapper(*args,**kwargs):
-            api.dataGet = request.args
+            api.dataGet = {} if request.args is None else {x:y for x,y in request.args.items()}
 
             if logged:
                 api.user = api.get_logged_user()
@@ -57,7 +57,7 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
             missing = False
 
             dataPost                = request.get_json()
-            api.dataPost            = dataPost
+            api.dataPost            = {} if dataPost is None else {x:y for x,y in dataPost.items()}
 
             """if api.debug:
                 print('POST:',dataPost)
@@ -142,7 +142,7 @@ def api_test():
     
 @route('/test/insert')
 def test_insert():
-    db.insert(defs.Test(
+    db.add(defs.Test(
             name=      'a',
             number=    12,
             text=      'text',
