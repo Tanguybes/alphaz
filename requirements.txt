@@ -9,3 +9,6 @@ jwt
 requests
 lxml
 pandas
+configparser
+pymysql
+marshmallow-sqlalchemy

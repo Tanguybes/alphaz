@@ -77,7 +77,7 @@ def request_unsubscribe(api,user_mail, token, mail_type,db,close_cnx=True):
     if not valid:
         return api.set_error('invalid_token')
 
-    query   = "INSERT INTO mails_blacklist (mail,mail_type) VALUES (%s,%s)"
+    query   = "INSERT INTO mail_blacklist (mail,mail_type) VALUES (%s,%s)"
     values  = (user_mail,mail_type)
     valid   = db.execute_query(query,values,close_cnx=close_cnx)
 

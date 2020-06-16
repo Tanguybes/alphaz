@@ -1,9 +1,17 @@
-import hmac
+import hmac, datetime
 from hashlib import sha256
 from flask import request, send_file, send_from_directory, safe_join, abort
 
+from flask_marshmallow import Marshmallow
+from ..models.database.structure import AlphaDatabaseNew
 from ..models.api.structures import AlphaFlask
 from .apis import *
+
+from ..models.database import definitions as defs
+
+from core import core
+api = core.api
+db  = core.db
 
 class Parameter():
     name = None
@@ -20,7 +28,7 @@ class Parameter():
         self.options    = options
         self.required  = required
 
-api = AlphaFlask(__name__)
+#api = AlphaFlask(__name__)
 
 # Specify the debug panels you want
 #api.config['DEBUG_TB_PANELS'] = [ 'flask_debugtoolbar.panels.versions.VersionDebugPanel', 'flask_debugtoolbar.panels.timer.TimerDebugPanel', 'flask_debugtoolbar.panels.headers.HeaderDebugPanel', 'flask_debugtoolbar.panels.request_vars.RequestVarsDebugPanel', 'flask_debugtoolbar.panels.template.TemplateDebugPanel', 'flask_debugtoolbar.panels.sqlalchemy.SQLAlchemyDebugPanel', 'flask_debugtoolbar.panels.logger.LoggingPanel', 'flask_debugtoolbar.panels.profiler.ProfilerDebugPanel', 'flask_debugtoolbar_lineprofilerpanel.panels.LineProfilerPanel' ]
@@ -39,11 +47,17 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
 
         @api.route(path, methods = methods, endpoint=func.__name__)
         def api_wrapper(*args,**kwargs):
+            api.dataGet = {} if request.args is None else {x:y for x,y in request.args.items()}
+
+            if logged:
+                api.user = api.get_logged_user()
+
             api.info('{:4} {}'.format(request.method,request.path))
 
             missing = False
 
             dataPost                = request.get_json()
+            api.dataPost            = {} if dataPost is None else {x:y for x,y in dataPost.items()}
 
             """if api.debug:
                 print('POST:',dataPost)
@@ -65,13 +79,16 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
 
             token           = api.get_token()
             if logged and token is None:
+                print('   Empty token')
                 api.access_denied()   
                 return api.get_return(return_status=401)
-            elif logged and not api.get_logged_user():
+            elif logged and (api.user is None or len(api.user) == 0):
+                print('   Wrong user',api.user)
                 api.access_denied() 
                 return api.get_return(return_status=401)
 
             if admin and not api.check_is_admin():
+                print('   Not admin')
                 api.access_denied() 
                 return api.get_return(return_status=401)
 
@@ -117,13 +134,23 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Credentials', 'true')
     return response
 
-
 @route('/test',
 parameters=[Parameter('name')])
 def api_test():
     name = api.get('name')
     api.print("Hello to you %s !"%name)
     
+@route('/test/insert')
+def test_insert():
+    db.add(defs.Test(
+            name=      'a',
+            number=    12,
+            text=      'text',
+            date=      datetime.datetime.now()
+    ))
+    tests = db.select(defs.Test)
+    api.set_data(tests)
+
 @route('/register', methods = ['POST'],
     parameters = [
         Parameter('mail',required=True),
@@ -134,8 +161,6 @@ def api_test():
 def register():
     if api.get_logged_user() is not None:
         return api.set_error('logged')
-
-    db    = api.get_database('users')
 
     api_users.try_register_user(
         api,
@@ -154,7 +179,6 @@ def register_validation():
     if api.get_logged_user() is not None:
         return api.set_error('logged')
 
-    db             = api.get_database('users')
     api_users.confirm_user_registration(api,token   = api.get('tmp_token'),db=db)
 
 # LOGIN
@@ -164,7 +188,6 @@ def register_validation():
         Parameter('password',required=True)
     ])
 def login():
-    db     = api.get_database('users')
     api_users.try_login(api, db, api.get('username'), api.get('password'), request.remote_addr)
 
 @route('/password/lost', methods = ['POST'],
@@ -180,9 +203,7 @@ def password_lost():
     mail        = api.get('mail')
 
     if username is not None or mail is not None:
-        db                 = api.get_database('users')
         username_or_mail    = username if mail is None else mail
-        print('here',username_or_mail)
         api_users.ask_password_reset(api,username_or_mail,db=db) 
     else:
         api.set_error('inputs')
@@ -197,14 +218,12 @@ def password_reset_validation():
     if api.get_logged_user() is not None:
         return api.set_error('logged')
 
-    db     = api.get_connection('users')
     api_users.confirm_user_password_reset(api,token=api.get('tmp_token'), password=api.get('password'), password_confirmation=api.get('password_confirmation'),db=db)
 
 @route('/logout',cache=False,logged=False,methods = ['GET', 'POST'],
     parameters  = [],  parameters_names=[])
 def logout():
     token   = api.get_token()
-    db     = api.get_connection('users')
 
     api_users.logout(api,token,db=db)
 
@@ -216,17 +235,10 @@ def logout():
 def reset_password():
     user_data               = api.get_logged_user()
 
-    db     = api.get_connection('users')
     api_users.try_reset_password(api,user_data, api.get('password'), api.get('password_confirmation'),db=db,log=api.log)
     
-##################################################################################################################
-# MAILS
-##################################################################################################################
-
 @route('/mails/mailme',logged=False,cache=False)
 def mail_me():
-    db         = api.get_connection('users')
-    print('mailme')
     api_mails.mail_me(api,db,close_cnx=True)
 
 @route('/mails/stayintouch',logged=False,cache=False, 
@@ -240,8 +252,6 @@ def mails_stay_in_touch():
     user_mail       = api.get('mail')
     name            = api.get('name')
 
-    #db             = db.get_survey_connection()
-    db             = api.get_connection('users')
     api_mails.stay_in_touch(api,user_mail,name, token,db)
 
 @route('/mails/requestview',logged=False,cache=False, 
@@ -257,7 +267,6 @@ def mails_request_view():
     mail_type   = api.get('name')
     mail_id     = api.get('id')
 
-    db             = api.get_connection('users')
     api_mails.request_view(api,user_mail,token,mail_type,mail_id,db,close_cnx=True)
 
 @route('/mails/unsubscribe',logged=False,cache=False, 
@@ -271,7 +280,6 @@ def mails_unsubscribe():
     user_mail   = api.get('mail')
     mail_type   = api.get('type')
 
-    db             = api.get_connection('users')
     api_mails.request_unsubscribe(api,user_mail,token,mail_type,db,close_cnx=True)
 
 @route('/admin/logs/clear', methods = ['GET'], admin=True,

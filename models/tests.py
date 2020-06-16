@@ -12,7 +12,6 @@ class test(object):
 
     def __call__(self, func):
         def test_call(*args, **kwargs):
-            print('oooooh',self.args,self.kwargs)
             #the 'self' for a method function is passed as args[0]
             slf = args[0]
 

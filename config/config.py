@@ -4,11 +4,14 @@ import numpy as np
 from ..libs import converter_lib, sql_lib, io_lib
 from ..utils.logger import AlphaLogger, get_alpha_logs_root
 from .utils import merge_configuration, get_parameters
-from ..models.database import AlphaDatabase
+from ..models.database.structure import AlphaDatabase
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
+
+
+
 
 import platform, getpass
 
@@ -50,8 +53,14 @@ class AlphaConfig():
     loggers     = {}
 
     infos       = []
+    warnings    = []
+
+    db_cnx      = {}
 
     reserved    =  ['user']
+
+    cnx_str     = None
+    api         = None
 
     def __init__(self,name='config',filepath=None,root=None,filename=None,log=None,configuration=None,logger_root=None,data=None):
         self.name = name
@@ -81,18 +90,21 @@ class AlphaConfig():
         self.log = log
         
         if data is None:
-            self.info('Setting config file from %s'%self.config_file)
-            
-            if os.path.isfile(self.config_file):
-                self.exist = True
-                self.load(configuration)
-                self.check_required()
-            else:
-                print('Config file %s does not exist !'%self.config_file)
-                exit()
+            self.set_configuration(configuration)
         else:
             self.data_origin  = data
             self.data         = data
+
+    def set_configuration(self,configuration):
+        self.info('Setting <%s> configuration for file %s'%(configuration,self.config_file))
+        
+        if os.path.isfile(self.config_file):
+            self.exist = True
+            self.load(configuration)
+            self.check_required()
+        else:
+            print('Config file %s does not exist !'%self.config_file)
+            exit()
 
     def info(self,message):
         if self.log is not None:
@@ -104,14 +116,24 @@ class AlphaConfig():
         else:
             self.infos.append(message)
 
-    def error(self,message):
+    def warning(self,message):
+        if self.log is not None:
+            if len(self.warnings) != 0:
+                for msg in self.warnings:
+                    self.log.warning(msg)
+                self.warnings = []
+            self.log.warning(message)
+        else:
+            self.warnings.append(message)
+
+    def error(self,message,out=True):
         for info in self.infos:
             print('   INFO: %s'%info)
         if self.log is not None:
             self.log.error(message)
         else:
             print('   ERROR: %s'%message)
-        exit()
+        if out: exit()
 
     def get_config(self,path=[]):
         config_data = self.get(path)
@@ -292,89 +314,91 @@ class AlphaConfig():
         """else:
             self.log        = self.loggers[main_logger_name]"""
 
-        # Databases
-        structure = {'name':None,'required':False,'value':None}
-
         if 'databases' in config:
-            for db_name, cf_db in config["databases"].items():
-                if not "type" in cf_db:
-                    self.error("Missing <type> parameter in <%s> database configuration"%db_name)
-                db_type = cf_db['type']
+            self.configure_databases(config["databases"])
 
-                content_dict = {
-                    "user": {},
-                    "password": {},
-                    "host": {},
-                    "name": {},
-                    "port": {},
-                    "sid": {},
-                    "path": {},
-                    "database_type": {'name':'type'},
-                    "log": {'default':self.log}
-                }
-                if db_type == 'sqlite':
-                    content_dict["path"]['required'] = True
-                else:
-                    content_dict["user"]['required'] = True
-                    content_dict["password"]['required'] = True
-                    content_dict["host"]['required'] = True
-                    content_dict["port"]['required'] = True
+        #self.show()
 
-                valid = True
-                for name, content in content_dict.items():
-                    for key, el in structure.items():
-                        if not key in content:
-                            if key == 'name':
-                                el = name
-                            content_dict[name][key] = el
+    def configure_databases(self,config):
+        # Databases
+        structure   = {'name':None,'required':False,'value':None}
 
-                    if content_dict[name]['name'] in cf_db:
-                        content_dict[name]['value'] = cf_db[content_dict[name]['name']]
-                    elif content_dict[name]['required']:
-                        print('Missing %s parameter'%name)
-                        valid = False
-                    
-                    if 'default' in content_dict[name] and not valid:
-                        content_dict[name]['value'] = content_dict[name]['default']
-                    elif name == 'log':
-                        if type(content_dict[name]['value']) == str and content_dict[name]['value'] in self.loggers:
-                            content_dict[name]['value'] = self.loggers[content_dict[name]['value']]
-                        else:
-                            print('Wrong logger configuration for database %s'%db_name)
-                            content_dict[name]['value'] = self.log
+        db_cnx      = {}
+        for db_name, cf_db in config.items():
+            self.info('Configurating database %s'%db_name)
+
+            # TYPE
+            if not "type" in cf_db:
+                self.show()
+                self.error("Missing <type> parameter in <%s> database configuration"%db_name)
+            db_type = cf_db['type']
+
+            content_dict = {
+                "user": {},
+                "password": {},
+                "host": {},
+                "name": {},
+                "port": {},
+                "sid": {},
+                "path": {},
+                "database_type": {'name':'type'},
+                "log": {'default':self.log}
+            }
+            if db_type == 'sqlite':
+                content_dict["path"]['required'] = True
+            else:
+                content_dict["user"]['required'] = True
+                content_dict["password"]['required'] = True
+                content_dict["host"]['required'] = True
+                content_dict["port"]['required'] = True
+
+            for name, content in content_dict.items():
+                for key, el in structure.items():
+                    if not key in content:
+                        if key == 'name':
+                            el = name
+                        content_dict[name][key] = el
+
+                if content_dict[name]['name'] in cf_db:
+                    content_dict[name]['value'] = cf_db[content_dict[name]['name']]
+                elif content_dict[name]['required']:
+                    self.error('Missing %s parameter'%name)
                 
-                fct_kwargs = {x:y['value'] for x,y in content_dict.items()}
-
-                new = "new" in cf_db and cf_db['new']
-
-                if valid and not new:
-                    self.databases[db_name] = AlphaDatabase(**fct_kwargs)
-                    if not self.databases[db_name].test():
-                        self.error('Cannot connect to "%s":\n\n%s'%(db_name,"\n".join(["%s:%s"%(x,y) for x,y in content_dict.items()]) ) )
+                if 'default' in content_dict[name]:
+                    content_dict[name]['value'] = content_dict[name]['default']
+                elif name == 'log':
+                    if type(content_dict[name]['value']) == str and content_dict[name]['value'] in self.loggers:
+                        content_dict[name]['value'] = self.loggers[content_dict[name]['value']]
                     else:
-                        self.info('Database connection to "%s" is valid'%db_name)
-                elif valid and new:
-                    user,password,host,port,name = cf_db['user'], cf_db['password'], cf_db['host'], cf_db['port'], cf_db['name']
-                    if db_type == 'mysql':
-                        cnx_str        = 'mysql://%s:%s@%s:%s/%s'%(user,password,host,port,name)
-                    elif db_type == "sqlite":
-                        cnx_str        = 'sqlite:///' + cf_db['path']
+                        self.warning('Wrong logger configuration for database %s'%db_name)
+                        content_dict[name]['value'] = self.log
+            
+            fct_kwargs  = {x:y['value'] for x,y in content_dict.items()}
 
-                    if cnx_str is not None:
-                        engine      = create_engine(cnx_str)
-                        db_session  = scoped_session(sessionmaker(autocommit=False,
-                                                    autoflush=False,
-                                                    bind=engine))
-                        Base        = declarative_base()
-                        Base.query  = db_session.query_property()
+            new         = "new" in cf_db and cf_db['new']
+
+            if not new:
+                self.databases[db_name] = AlphaDatabase(**fct_kwargs)
+                if not self.databases[db_name].test():
+                    self.error('Cannot connect to "%s":\n\n%s'%(db_name,"\n".join(["%s:%s"%(x,y) for x,y in content_dict.items()]) ) )
                 else:
-                    self.error('Cannot configure database %s'%db_name)
+                    self.info('Database connection to "%s" is valid'%db_name)
+            else:
+                if db_type == 'mysql':
+                    user,password,host,port,name = cf_db['user'], cf_db['password'], cf_db['host'], cf_db['port'], cf_db['name']
+                    cnx_str        = 'mysql+pymysql://%s:%s@%s:%s/%s'%(user,password,host,port,name)
+                elif db_type == "sqlite":
+                    cnx_str        = 'sqlite:///' + cf_db['path']
+
+                if cnx_str is not None:
+                    cf_db['cnx']    = cnx_str
+                    db_cnx[db_name] = cf_db
+
+        self.db_cnx = db_cnx
 
         for db_name in self.databases:
             if self.databases[db_name].log is None:
                 self.databases[db_name].log = self.log
-
-        #self.show()
 
     def get_logger(self,name):
         if name not in self.loggers:

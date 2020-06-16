@@ -248,14 +248,15 @@ def send_mail(mail_path,mail_type,parameters_list,sender,db,log,close_cnx=True):
         mail_type   = get_mail_type(mail_type)
         set_mail_history(db,mail_type,config['raw_parameters']['uuid'],config['parameters'],close_cnx=False,log=log)
         log.info('Sending mail to %s'%config['raw_parameters']['mail'])
-    if close_cnx:
-        db.close()
+    try:
+        if close_cnx:db.close() #TODO: delete
+    except:   pass
     return True
 
 def set_mail_history(db, mail_type,uuidValue,parameters,close_cnx=True,log=None):
     mail_type           = get_mail_type(mail_type)
     unique_parameters   = get_unique_parameters(parameters)
-    query   = "INSERT INTO mails_history (uuid, mail_type, parameters, parameters_full) VALUES (%s,%s,%s,%s)"
+    query   = "INSERT INTO mail_history (uuid, mail_type, parameters, parameters_full) VALUES (%s,%s,%s,%s)"
     values  = (uuidValue,mail_type,json.dumps(unique_parameters),json.dumps(parameters))
     return db.execute_query(query,values,close_cnx=close_cnx)
 
@@ -269,14 +270,14 @@ def get_unique_parameters(parameter):
 def is_mail_already_send(db,mail_type,parameters, close_cnx=True,log=None):
     mail_type   = get_mail_type(mail_type)
     unique_parameters = get_unique_parameters(parameters)
-    query   = "SELECT * from mails_history where mail_type = %s and parameters = %s"
+    query   = "SELECT * from mail_history where mail_type = %s and parameters = %s"
     values  = (mail_type,json.dumps(unique_parameters))
     results = db.get_query_results(query,values,unique=False,close_cnx=close_cnx)
     return len(results) != 0
 
 def is_blacklisted(db,user_mail,mail_type,close_cnx=True,log=None):
     mail_type   = get_mail_type(mail_type)
-    query   = "SELECT * from mails_blacklist where mail_type = %s and mail = %s "
+    query   = "SELECT * from mail_blacklist where mail_type = %s and mail = %s "
     values  = (mail_type,user_mail)
     results = db.get_query_results(query,values,unique=False,close_cnx=close_cnx)
     return len(results) != 0
