@@ -1,6 +1,10 @@
 import os, datetime, inspect
 import logging
 from logging.handlers import TimedRotatingFileHandler
+from concurrent_log_handler import ConcurrentRotatingFileHandler
+
+import platform 
+plt = platform.system()
 
 def get_alpha_logs_root():
     current_folder  = os.path.dirname(os.path.realpath(__file__))
@@ -78,6 +82,9 @@ class AlphaLogger():
         # File handler
         print('Setting a logger at %s'%log_path)
         handler         = TimedRotatingFileHandler(log_path, when="midnight", interval=1,backupCount=7)
+
+        if plt.lower() == "windows":
+            handler         = ConcurrentRotatingFileHandler(log_path,"a", 512*1024, 5)
         #handler.suffix  = "%Y%m%d"
 
         self.logger.addHandler(handler)
