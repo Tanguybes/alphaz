@@ -4,7 +4,7 @@ from flask_admin.contrib.sqla import ModelView
 from flask import Markup
 
 from core import core
-db = core.db
+db = core.get_database()
 
 from . import definitions as defs
 

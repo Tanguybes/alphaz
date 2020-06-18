@@ -10,7 +10,7 @@ import datetime, inspect
 
 from core import core
 
-db = core.db
+db = core.get_database()
 ma = core.ma
 
 class Test(db.Model,AlphaModelId):

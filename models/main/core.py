@@ -23,6 +23,8 @@ class AlphaCore:
     admin_db    = None
     ma          = None
 
+    databases = {}
+
     def __init__(self,file:str):   
         root                = self.get_relative_path(file, level=0)
 
@@ -40,7 +42,6 @@ class AlphaCore:
         #self.config.api     = self.api
         db_cnx              = self.config.db_cnx
 
-        db_type             = 'mysql'
         if 'main' in db_cnx:
             uri = db_cnx['main']['cnx']
             if ':///' in uri:
@@ -56,20 +57,37 @@ class AlphaCore:
         for key, cf_db in db_cnx.items():
             self.api.config['SQLALCHEMY_BINDS'] = {x:y['cnx'] for x,y in db_cnx.items() if x != 'main'}
 
-        db_logger           = self.config .get_logger('database')
+        self.api.config['MYSQL_DATABASE_CHARSET']           = 'utf8mb4'
+        self.api.config['QLALCHEMY_TRACK_MODIFICATIONS']    = True
+
+        db_logger           = self.config.get_logger('database')
         if db_logger is None:
-            db_logger       = self.config .get_logger('main')
+            db_logger       = self.config.get_logger('main')
 
+        self.db             = AlphaDatabaseNew(self.api,name="main",log=db_logger,config=db_cnx['main'])
 
-        self.db             = AlphaDatabaseNew(self.api,log=db_logger,db_type=db_type)
-
+        print('prepare api',self.db)
         self.ma             = Marshmallow(self.api)
-
-        self.api.db         = self.db
+        #self.api.db         = self.db
 
         #Base.prepare(self.db.engine, reflect=True)
 
         #set_alpha_tables(self.db)
+
+        for name, cf in db_cnx.items():
+            self.databases[name] = AlphaDatabaseNew(self.api,name=name,log=db_logger,config=cf)
+
+    def get_database(self,name=None) -> AlphaDatabaseNew:
+        if self.api is None:
+            self.prepare_api()
+
+        if name is None:
+            return self.db
+
+        if name in self.databases:
+            return self.databases[name]
+
+        return self.config.get_database(name)
                 
     def get_relative_path(self, file: str, level = 0, add_to_path=True):
         if level == 0:
@@ -83,9 +101,6 @@ class AlphaCore:
 
     def get_logger(self,*args, **kwargs):
         return self.config.get_logger(*args,**kwargs)
-
-    def get_database(self,*args, **kwargs):
-        return self.config.get_database(*args,**kwargs)
 
     def init_admin_view(self,views):
         api_name            = self.config.get('api/name')

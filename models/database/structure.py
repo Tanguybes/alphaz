@@ -41,17 +41,28 @@ class Row(MutableMapping):
         return list(super().keys())
 
 class AlphaDatabaseNew(SQLAlchemy):
-    log = None
+    log     = None
     db_type = None
+    config  = None
 
-    def __init__(self,*args,log=None,db_type=None,**kwargs):
+    def __init__(self,*args,name=None,log=None,config=None,**kwargs):
         super().__init__(*args,**kwargs)
-        self.db_type = db_type
-        self.log = log
+
+        self.name       = name
+
+        self.config     = config
+        self.db_type    = config['type']
+        self.log        = log
+
+        """if 'cnx' in config:
+            self.engine = create_engine(config['cnx'])"""
 
     def test(self):
+        query = "SELECT 1"
+        if self.db_type == "oracle":
+            query = "SELECT 1 FROM DUAL"
         try:
-            self.engine.execute("SELECT 1")
+            self.engine.execute(query)
             return True
         except Exception as ex:
             print('ex:',ex)
@@ -64,7 +75,7 @@ class AlphaDatabaseNew(SQLAlchemy):
         # redirect to get if select
         select = query.strip().upper()[:6] == 'SELECT'
         if select:
-            return self.get(query,values,unique=False)
+            return self.get_query_results(query,values,unique=False)
 
         try:
             self.engine.execute(query, values)
@@ -74,6 +85,8 @@ class AlphaDatabaseNew(SQLAlchemy):
             return False
 
     def get_query_results(self,query,values,unique=False,close_cnx=True,log=None):
+        session = self.get_engine(self.app, self.name)
+
         if self.db_type == 'sqlite':
             query       = query.replace('%s','?')
 
@@ -83,7 +96,10 @@ class AlphaDatabaseNew(SQLAlchemy):
         try:
             #values          = [x for x in values]
             #print('  >>>',query,values)
-            resultproxy     = self.engine.execute(query, values)   
+            if values is not None:
+                resultproxy     = session.execute(query, values)   
+            else:
+                resultproxy     = session.execute(query)   
             results         = [] 
             for rowproxy in resultproxy:
                 if hasattr(rowproxy,'items'):
@@ -214,6 +230,10 @@ class AlphaDatabaseNew(SQLAlchemy):
                 else:
                     values_update[key] = value
         return values_update
+
+"""class AlphaDatabaseFlask(SQLAlchemy,AlphaDatabaseNew):
+    def __init__(self,*args,log=None,config=None,**kwargs):
+        super().__init__(*args,**kwargs)"""
 
 class AlphaDatabase():
     cnx             = None

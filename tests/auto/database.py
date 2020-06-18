@@ -19,7 +19,7 @@ class Dataframe(AlphaTest):
     def __init__(self):
         super().__init__()
 
-        self.db         = core.db
+        self.db         = core.get_database()
         self.connected  = self.db.test()
 
         if not self.connected:

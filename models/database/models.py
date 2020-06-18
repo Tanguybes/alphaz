@@ -1,7 +1,7 @@
 from sqlalchemy import Table, Column, ForeignKey, Integer, String, Text, DateTime, UniqueConstraint
 from core import core
 
-db = core.db
+db = core.get_database()
 ma = core.ma
 
 def repr(instance):

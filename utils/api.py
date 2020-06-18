@@ -11,7 +11,7 @@ from ..models.database import definitions as defs
 
 from core import core
 api = core.api
-db  = core.db
+db  = core.get_database()
 
 class Parameter():
     name = None
