@@ -37,6 +37,13 @@ class Row(MutableMapping):
     def __keytransform__(self, key):
         return key
 
+    def __repr__(self):
+        return self.store.__repr__()
+
+    def show(self):
+        for k, v in self.store.items():
+            print('   {:20} {}'.format(k,v))
+
     def keys(self):
         return list(super().keys())
 
@@ -44,6 +51,7 @@ class AlphaDatabaseNew(SQLAlchemy):
     log     = None
     db_type = None
     config  = None
+    query_str = None
 
     def __init__(self,*args,name=None,log=None,config=None,**kwargs):
         super().__init__(*args,**kwargs)
@@ -79,6 +87,7 @@ class AlphaDatabaseNew(SQLAlchemy):
 
         try:
             self.engine.execute(query, values)
+            self.query_str = query.statement
             return True
         except Exception as err:
             self.log.error(err)
@@ -123,6 +132,8 @@ class AlphaDatabaseNew(SQLAlchemy):
             #print(parentframe.frame)
             #function    = parentframe.function
             #index       = parentframe.index
+
+        self.query_str = query.statement
         return rows
 
     def insert(self,model,values={},commit=True):
@@ -168,6 +179,7 @@ class AlphaDatabaseNew(SQLAlchemy):
                 if type(key) == str:
                     key = getattr(model,key)
                 
+                if type(value) == set: value = list(value)
                 if type(value) != list:
                     filter_unique[key] = value
                 else:
@@ -181,7 +193,7 @@ class AlphaDatabaseNew(SQLAlchemy):
                     query     = query.filter(key.in_(value))
         return query 
 
-    def select(self,model,filters=None,first=False,json=True,distinct=None,unique=None,count=False):
+    def select(self,model,filters=None,first=False,json=False,distinct=None,unique=None,count=False):
         #model_name = inspect.getmro(model)[0].__name__
 
         query     = self.get_filtered_query(model,filters=filters)
@@ -190,7 +202,9 @@ class AlphaDatabaseNew(SQLAlchemy):
             query = query.distinct(distinct)
 
         if count:
-            return query.count()
+            results = query.count()
+            self.query_str = query.statement
+            return results
 
         if not unique:
             results = query.all() if not first else query.first()
@@ -198,6 +212,7 @@ class AlphaDatabaseNew(SQLAlchemy):
             results = query.all(unique)  if not first else query.first(unique)
 
         if not json:
+            self.query_str = query.statement
             return results
 
         results_json = {}
@@ -207,6 +222,7 @@ class AlphaDatabaseNew(SQLAlchemy):
             results_json    = structures.dump(results)
         else:
             self.log.error('Missing schema for model <%s>'%str(model.__name__))
+        self.query_str = query.statement
         return results_json
 
     def update(self,model,values={},filters={}):
