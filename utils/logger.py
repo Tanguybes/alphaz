@@ -1,10 +1,12 @@
 import os, datetime, inspect
 import logging
 from logging.handlers import TimedRotatingFileHandler
-from concurrent_log_handler import ConcurrentRotatingFileHandler
 
 import platform 
 plt = platform.system()
+
+if plt.lower() == "windows":
+    from concurrent_log_handler import ConcurrentRotatingFileHandler
 
 def get_alpha_logs_root():
     current_folder  = os.path.dirname(os.path.realpath(__file__))
