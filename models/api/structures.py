@@ -62,6 +62,11 @@ class AlphaFlask(Flask):
 
     file_to_send           = (None, None)
 
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+
+        self.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True #TODO: enhance
+
     """def set_connection(self,name, cnx_fct):
         self.connections[name] = cnx_fct
 

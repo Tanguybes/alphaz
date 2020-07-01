@@ -93,7 +93,7 @@ class AlphaDatabaseNew(SQLAlchemy):
             self.log.error(err)
             return False
 
-    def get_query_results(self,query,values,unique=False,close_cnx=True,log=None):
+    def get_query_results(self,query,values=None,unique=False,close_cnx=True,log=None):
         session = self.get_engine(self.app, self.name)
 
         if self.db_type == 'sqlite':
@@ -133,7 +133,7 @@ class AlphaDatabaseNew(SQLAlchemy):
             #function    = parentframe.function
             #index       = parentframe.index
 
-        self.query_str = query.statement
+        #self.query_str = query.statement
         return rows
 
     def insert(self,model,values={},commit=True):
@@ -169,28 +169,35 @@ class AlphaDatabaseNew(SQLAlchemy):
             return True
         return False
 
-    def get_filtered_query(self,model,filters=None):
+    def get_filtered_query(self,model,filters=None,likes=None,sup=None):
         query     = model.query
 
         if filters is not None:
-            filter_unique, filter_in = {}, {}
+            equals, ins, likes, sups, infs, sups_st, infs_st = {}, {}, {}, {}, {}, {}, {}
 
             for key, value in filters.items():
                 if type(key) == str:
                     key = getattr(model,key)
                 
                 if type(value) == set: value = list(value)
-                if type(value) != list:
-                    filter_unique[key] = value
-                else:
-                    filter_in[key] = value
+                if type(value) == dict:
+                    for k, v in value.items():
+                        if k == '%':                            query = query.filter(key.like(v))
+                        if k == '>':                            query = query.filter(key > v)
+                        if k == '<':                            query = query.filter(key < v)
+                        if k == '>=':                           query = query.filter(key >= v)
+                        if k == '<=':                           query = query.filter(key <= v)
 
-            if len(filter_unique) != 0:
-                for key, value in filter_unique.items():
-                    query     = query.filter(key==value)
-            if len(filter_in) != 0:
-                for key, value in filter_in.items():
-                    query     = query.filter(key.in_(value))
+                elif type(value) != list:
+                    equals[key] = value
+                else:
+                    ins[key] = value
+
+            for key, value in equals.items():
+                query     = query.filter(key==value)
+    
+            for key, value in ins.items():
+                query     = query.filter(key.in_(value))
         return query 
 
     def select(self,model,filters=None,first=False,json=False,distinct=None,unique=None,count=False):
@@ -274,7 +281,7 @@ class AlphaDatabase():
         cnx     = self.get_cnx()
         if cnx is None:
             return False
-        results = self.get_query_results(query,None)
+        results = self.get_query_results(query)
         return len(results) != 0
 
     def get_cnx(self):
@@ -301,7 +308,7 @@ class AlphaDatabase():
     def get(self,query,values,unique=False,close_cnx=True):
         return self.get_query_results(query,values,unique=unique,close_cnx=close_cnx)
 
-    def get_query_results(self,query,values,unique=False,close_cnx=True,log=None):
+    def get_query_results(self,query,values=None,unique=False,close_cnx=True,log=None):
         if log is None: log = self.log
 
         self.get_cnx()

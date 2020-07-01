@@ -1,4 +1,4 @@
-import re
+import re, string
 
 def is_number(txt):
     try:
@@ -6,6 +6,9 @@ def is_number(txt):
         return True
     except: 
         return False
+
+def is_upper(word):
+    return all(c in string.ascii_uppercase for c in list(word))
 
 def sort_words(words_dict):
     return {x[0]:x[1] for x in sorted(words_dict.items(), key=lambda item: item[1],reverse=True)}
