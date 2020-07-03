@@ -253,6 +253,9 @@ class AlphaConfig():
 
         merge_configuration(config,config_env,replace=True)
 
+        if not 'root' in config:
+            config['root'] = self.root
+
         if 'users' in config:
             del config['users']
 

@@ -17,16 +17,15 @@
             "level": "debug"
         }
     },
-    "root": "/home/aurele/alphaz",
     "configuration": "local",
     "configurations": {
         "local": {
             "databases": {
                 "main": {
                     "new": true,
-                    "path": "{{root}}/src/{{project_name}}.sqlite",
+                    "path": "{{root_alphaz}}/src/{{project_name}}.sqlite",
                     "type": "sqlite",
-                    "init_database_dir": "{{root}}/src/database",
+                    "init_database_dir": "{{root_alphaz}}/src/database",
                     "init": {
                         "test": "{{init_database_dir}}/test.json"
                     }
