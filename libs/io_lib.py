@@ -1,4 +1,4 @@
-import requests, json, re, os, pickle, pathlib
+import requests, json, re, os, pickle, pathlib, datetime
 from lxml.html import fromstring
 
 def ensure_dir(file_path):
@@ -14,13 +14,17 @@ def ensure_file(filename):
         with open(filename,"w") as f:
             f.write("")
 
+def myconverter(o):
+    if isinstance(o, datetime.datetime):
+        return o.__str__()
+
 def save_as_json(filename,data,verbose=False):
     ensure_file(filename)
     if verbose:
         print('Write json file to %s'%filename)
 
     # Writing JSON data
-    json_content = json.dumps(data, default=lambda x: None).replace("NaN" , '"null"')
+    json_content = json.dumps(data, default=myconverter).replace("NaN" , '"null"')
     with open(filename, 'w') as f:
         f.write(json_content)
         #json.dump(data, f)
