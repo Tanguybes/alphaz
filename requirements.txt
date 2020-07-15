@@ -12,3 +12,4 @@ pandas
 configparser
 pymysql
 marshmallow-sqlalchemy
+flask_marshmallow
