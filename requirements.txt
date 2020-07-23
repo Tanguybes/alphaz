@@ -13,3 +13,5 @@ configparser
 pymysql
 marshmallow-sqlalchemy
 flask_marshmallow
+flas_sqlalchemy
+flask_admin

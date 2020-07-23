@@ -1,4 +1,4 @@
-import os, psutil
+import os, psutil, datetime, time
 
 from core import core
 
@@ -28,6 +28,7 @@ def set_process_informations(name, log, infos: dict = {}):
     
     processes_infos[name] = infos
     processes_infos[name]['pid'] = pid
+    processes_infos[name]['started'] = datetime.datetime.now()
 
     io_lib.archive_object(processes_infos,output_filepath)
 
@@ -48,7 +49,7 @@ def get_process_informations(pid):
     return None
 
 def is_process_running(name,log):
-    processes_infos     = get_process_memory_informations(name,log)
+    processes_infos         = get_process_memory_informations(name,log)
 
     if processes_infos is not None and 'pid' in processes_infos:
         memory_pid          = processes_infos['pid']
@@ -56,4 +57,24 @@ def is_process_running(name,log):
 
         if current_pid_infos is not None and current_pid_infos['pid'] == memory_pid:
             return True
+    return False
+
+def kill_process(name,log,timeout=15):
+    processes_infos         = get_process_memory_informations(name,log)
+
+    if processes_infos is not None and 'pid' in processes_infos:
+        memory_pid          = processes_infos['pid']
+
+        killed = False
+        for proc in psutil.process_iter():
+            pInfoDict = proc.as_dict(attrs=['pid', 'memory_percent', 'name', 'cpu_times', 'create_time', 'memory_info'])
+
+            if pInfoDict['pid'] == memory_pid:
+                proc.kill()
+                killed = True
+
+        if killed:
+            if not is_process_running(name,log):
+                time.sleep(timeout)
+            return is_process_running(name,log)
     return False

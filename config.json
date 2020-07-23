@@ -47,7 +47,9 @@
         }
     },
     "save_root": "{{root}}/tmp/{{project_name}}",
-    "logs_directory": "{{root}}/logs/{{project_name}}",
+    "directories": {
+        "logs":"{{root}}/logs/{{project_name}}"
+    },
     "api": {
         "generate":true,
         "name": "{{project_name}}"

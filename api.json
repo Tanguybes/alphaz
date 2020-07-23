@@ -27,5 +27,7 @@
     },
     "root": "/home/aurele/alphaz",
     "project_name": "alphaz",
-    "logs_directory": "{{root}}/logs/{{project_name}}"
+    "directories": {
+        "logs":"{{root}}/logs/{{project_name}}"
+    }
 }

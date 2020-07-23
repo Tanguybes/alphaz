@@ -4,8 +4,9 @@ from ...libs.sql_lib import NumpyMySQLConverter
 
 from collections.abc import MutableMapping
 
-from sqlalchemy import create_engine, update
+from sqlalchemy import update
 from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.ext.declarative import declarative_base
 from flask_sqlalchemy import SQLAlchemy
 
@@ -136,22 +137,30 @@ class AlphaDatabaseNew(SQLAlchemy):
         #self.query_str = query.statement
         return rows
 
-    def insert(self,model,values={},commit=True):
+    def insert(self,model,values={},commit=True,test=False):
         values_update = self.get_values(model,values,{})
-        return self.add(model,parameters=values_update,commit=commit)
+        return self.add(model,parameters=values_update,commit=commit,test=test)
 
-    def add(self,obj,parameters=None,commit=True):
+    def add(self,obj,parameters=None,commit=True,test=False):
+        if test:
+            self.log.info('Insert %s with values %s'%(obj,parameters))
+            return None
+
         if parameters is not None:
             parameters  = {x if not '.' in str(x) else str(x).split('.')[-1]:y for x,y in parameters.items()}
             obj         = obj(**parameters)
+
         if type(obj) == list:
             self.session.add_all(obj)
         else:
-            tr = self.session.add(obj)
+            self.session.add(obj)
 
         if commit: 
-            self.commit()
-        return obj
+            try:
+                self.commit()
+            except Exception as ex:
+                return str(ex)
+        return None
 
     def commit(self):
         self.session.commit()
@@ -213,10 +222,14 @@ class AlphaDatabaseNew(SQLAlchemy):
             self.query_str = query.statement
             return results
 
-        if not unique:
-            results = query.all() if not first else query.first()
-        else:
-            results = query.all(unique)  if not first else query.first(unique)
+        try:
+            if not unique:
+                results = query.all() if not first else query.first()
+            else:
+                results = query.all(unique)  if not first else query.first(unique)
+        except Exception as ex:
+            self.log.error('non valid query \n'+str(ex))
+            results = [] 
 
         if not json:
             self.query_str = query.statement
@@ -247,11 +260,11 @@ class AlphaDatabaseNew(SQLAlchemy):
     def get_values(self,model,values,filters={}):
         values_update = {}
         for key, value in values.items():
-            if hasattr(model,key) and not key in filters:
-                if type(key) == str:
-                    values_update[model.__dict__[key]] = value
-                else:
-                    values_update[key] = value
+            if type(key) == InstrumentedAttribute and not key in filters:
+                values_update[key] = value
+            elif type(key) == str and hasattr(model,key) and not key in filters:
+                values_update[model.__dict__[key]] = value
+                    
         return values_update
 
 """class AlphaDatabaseFlask(SQLAlchemy,AlphaDatabaseNew):

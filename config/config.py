@@ -1,17 +1,13 @@
 
-import  os, json, inspect, copy, sys, socket
+import  os, json, inspect, copy, sys, socket, re
 import numpy as np
 from ..libs import converter_lib, sql_lib, io_lib
 from ..utils.logger import AlphaLogger, get_alpha_logs_root
 from .utils import merge_configuration, get_parameters
 from ..models.database.structure import AlphaDatabase
 
-from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-
-
-
 
 import platform, getpass
 
@@ -33,11 +29,6 @@ def ensure_path(dict_object,paths=[],value=None):
     ensure_path(dict_object[paths[0]],paths[1:],value=value)
 
 class AlphaConfig():
-    name        = None
-    root        = None
-    log         = None
-    filename    = None
-    filepath: str = None
     exist       = False
     valid       = True
     configuration = None
@@ -83,6 +74,7 @@ class AlphaConfig():
         # config file
         if filename is None:
             filename        = name.lower()
+
         self.filename       = filename
         self.filepath       = root + os.sep + filename + '.json'
         self.config_file    = self.filepath if root.strip() != '' else self.filename + '.json'
@@ -216,7 +208,8 @@ class AlphaConfig():
 
         self.init_data()
 
-        self.info('Configuration initiated')
+        if not self.sub_configuration: 
+            self.info('Configuration %s initiated'%self.filepath)
 
     def show(self):
         show(self.data)
@@ -250,7 +243,6 @@ class AlphaConfig():
         config_user = copy.deepcopy(self.data_user)
 
         merge_configuration(config,config_user,replace=True)
-
         merge_configuration(config,config_env,replace=True)
 
         if 'users' in config:
@@ -276,10 +268,13 @@ class AlphaConfig():
             for path in config["paths"]:
                 sys.path.append(path)
 
+        self.sub_configuration = self.get('sub_configuration')
+        if self.sub_configuration: return
+
         # loggers
-        self.logger_root = config.get("logs_directory")
+        self.logger_root = self.get("directories/logs")
         if self.logger_root is None:
-          self.error('Missing "logs_directory" entry in configuration file %s'%self.config_file)
+          self.error('Missing "directories/logs" entry in configuration file %s'%self.config_file)
           exit()
         #if self.logger_root is None:
         #    self.logger_root    = self.root + os.sep + 'logs' if "log_directory" not in config else config.get("log_directory")
@@ -292,16 +287,16 @@ class AlphaConfig():
         if self.is_path("loggers"):
             for logger_name in self.get("loggers").keys():
                 logger_config   = self.get_config(["loggers",logger_name])
-
                 root            = logger_config.get("root")
 
-                self.loggers[logger_name] = AlphaLogger(
-                    logger_name,
-                    filename    = logger_config.get("filename"),
-                    root        = root if root is not None else self.logger_root,
-                    cmd_output  = logger_config.get("cmd_output"),
-                    level       = logger_config.get("level")
-                )
+                if not logger_name in self.loggers:
+                    self.loggers[logger_name] = AlphaLogger(
+                        logger_name,
+                        filename    = logger_config.get("filename"),
+                        root        = root if root is not None else self.logger_root,
+                        cmd_output  = logger_config.get("cmd_output"),
+                        level       = logger_config.get("level")
+                    )
             
         main_logger_name = "main"
         if not main_logger_name in self.loggers:
@@ -311,9 +306,7 @@ class AlphaConfig():
                 cmd_output  = True
             )
             self.loggers[main_logger_name] = self.log
-        """else:
-            self.log        = self.loggers[main_logger_name]"""
-
+       
         if 'databases' in config:
             self.configure_databases(config["databases"])
 
@@ -325,8 +318,6 @@ class AlphaConfig():
 
         db_cnx      = {}
         for db_name, cf_db in config.items():
-            self.info('Configurating database %s'%db_name)
-
             if type(cf_db) == str:
                 cf_db = config[cf_db]
 
@@ -406,9 +397,15 @@ class AlphaConfig():
             if self.databases[db_name].log is None:
                 self.databases[db_name].log = self.log
 
-    def get_logger(self,name):
+    def get_logger(self,name,default_level='INFO'):
         if name not in self.loggers:
-            self.error('%s is not configured as a logger'%name)
+            self.warning('%s is not configured as a logger'%name)
+            log = AlphaLogger(
+                name,
+                filename    = name,
+                root        = self.logger_root,
+                level       = default_level
+            )
             return self.log
         return  self.loggers[name] 
 
@@ -430,15 +427,12 @@ class AlphaConfig():
         if type(parameters) == str:
             parameters = [parameters]
 
-        #print('%s%s'%('   '*level,' > '.join(parameters)))
-
         if data is None:
             data = self.data
 
         if parameters[0] not in data:
             return None
         if len(parameters) == 1:
-            #print('%s%s: %s'%('   '*level,' > '.join(parameters),data[parameters[0]]))
             return data[parameters[0]]
 
         return self.get_parameter_path(parameters[1:],data[parameters[0]],level = level + 1)
@@ -513,27 +507,32 @@ class AlphaConfig():
                 self.error('No value is specified for %s'%parameter)
                 exit()
 
-        """l = 0
-        for key, value in parameters_value.items():
-            print(key,value)"""
-
         l = 0
         set_parameter_value(parameters_value,l)
 
-        levels = list(set([len(x) for x in paths]))
+        # Replace parameters values
+        set_paths(config,paths,parameters_values,parameters_value,types='parameters')
 
-        for level in levels:
-            for i in range(len(parameters_values)):
-                if len(paths[i]) == level:
-                    set_path(config, paths[i], parameters_values[i], parameters_value)
+        # get sub configurations
+        sub_configurations = {}
+        configs_values, paths = get_configs_from_config(config, path=None)
+        for i, values in enumerate(configs_values):
+            config_path = values[0]
+            if not config_path in sub_configurations:
+                name                            = config_path.split(os.sep)[-1]
+                sub_configurations[config_path] = AlphaConfig(name=name,filepath=config_path,log=self.log,configuration=self.configuration,logger_root=self.logger_root)
+
+        # replace sub configurations
+        set_paths(config,paths,configs_values,sub_configurations,types='configs')
 
         # check parameters
         parameters_values, paths = get_parameters_from_config(config, path=None)
         if len(parameters_values) != 0:
-            parameters = list(set([x[0] for x in parameters_values]))
+            parameters = list(set([x[0] for x in parameters_values if len(x) != 0]))
             for i in range(len(parameters)):
                 self.error('Missing parameter "%s" in configuration %s'%(parameters[i],self.filepath))
-            exit()
+            if len(parameters) != 0:
+                exit()
 
         return config
 
@@ -544,24 +543,39 @@ def show(config,level=0):
         if type(cf) == dict:
             show(cf,level + 1)
 
-def set_path(config,path,parameters,parameters_values):
+def set_paths(config,paths,parameters_values,parameters_value,types=None):
+    levels = list(set([len(x) for x in paths]))
+
+    for level in levels:
+        for i in range(len(parameters_values)):
+            if len(paths[i]) == level:
+                set_path(config, paths[i], parameters_values[i], parameters_value,types)
+
+def set_path(config,path,parameters,parameters_values,types=None):
     if len(path) == 1:
-        value   = convert_value(config[path[0]])
-        for parameter in parameters:
-            #print(parameter,parameters_values)
-            if parameter in parameters_values:
-                parameter_value = convert_value(parameters_values[parameter])
-                if value == PAREMETER_PATTERN%parameter:
-                    value = parameter_value
-                elif PAREMETER_PATTERN%parameter in str(value):
-                    value = value.replace(PAREMETER_PATTERN%parameter,str(parameter_value))
-        config[path[0]]         = value
+        if types == 'parameters':
+            value   = convert_value(config[path[0]])
+            for parameter in parameters:
+                if parameter in parameters_values:
+                    parameter_value     = convert_value(parameters_values[parameter])
+                    if value == PAREMETER_PATTERN%parameter:
+                        value           = parameter_value
+                    elif PAREMETER_PATTERN%parameter in str(value):
+                        value           = value.replace(PAREMETER_PATTERN%parameter,str(parameter_value))
+                
+            config[path[0]]         = value
+
+        elif types == 'configs':
+            matchs = get_configs_matchs(config[path[0]])
+            if len(matchs) != 0 and matchs[0] in parameters_values:
+                config[path[0]]         = parameters_values[matchs[0]].data['databases']
+            
         return
 
     sub_config  = config[path[0]]
     path        = path[1:]
 
-    set_path(sub_config,path,parameters,parameters_values)
+    set_path(sub_config,path,parameters,parameters_values,types)
 
 def fill_config(configuration,source_configuration):
     for key, value in configuration.items():
@@ -623,7 +637,10 @@ def search_it(nested, target,path=None):
                 i += 1
     return found, paths
 
-def get_parameters_from_config(nested, path=None):
+def get_configs_matchs(string):
+    return re.findall(r"\$config\(([^\$]+)\)",string)
+
+def get_object_from_config(nested,path=None,object_type='parameters'):
     found, paths = [], []
     if path is None:
         path = []
@@ -634,12 +651,19 @@ def get_parameters_from_config(nested, path=None):
         next_path.append(key)
 
         if isinstance(value, str):
-            parameters = get_parameters(value)
-            if len(parameters) != 0:
-                found.append([ x.replace('{{','').replace('}}','') for x in parameters])
+            parameters  = get_parameters(value)
+
+            if object_type == 'parameters':
+                results     = [ x.replace('{{','').replace('}}','') for x in parameters]
+            else:
+                results     = get_configs_matchs(value)
+
+            if len(results) != 0:
+                found.append( results)
                 paths.append(next_path)
+
         elif isinstance(value, dict):
-            f, p = get_parameters_from_config(value, next_path)
+            f, p = get_object_from_config(value, next_path,object_type)
             found.extend(f)
             paths.extend(p)
         elif isinstance(value, list):
@@ -647,11 +671,17 @@ def get_parameters_from_config(nested, path=None):
             for item in value:
                 if isinstance(item, dict):
                     path.append(i)
-                    f, p = get_parameters_from_config(item, next_path)
+                    f, p = get_object_from_config(item, next_path,object_type)
                     found.extend(f)
                     paths.extend(p)
                 i += 1
     return found, paths
+
+def get_parameters_from_config(nested, path=None):
+    return get_object_from_config(nested,path=path,object_type='parameters')
+
+def get_configs_from_config(nested, path=None):
+    return get_object_from_config(nested,path=path,object_type='configs')
 
 def get_values_for_parameters(config, parameter_name,path=None):
     """Get the values associated to the parameter in the configuration

@@ -17,7 +17,7 @@ def to_num(s):
         try:
             return float(s)
         except ValueError:
-            return s
+            return None
         
 def is_num(s):
     if s is None:

@@ -23,14 +23,20 @@ class AlphaCore:
     admin_db    = None
     ma          = None
 
-    databases = {}
+    databases   = {}
 
-    def __init__(self,file:str):   
+    def __init__(self,file:str): 
         root                = self.get_relative_path(file, level=0)
 
         self.config         = AlphaConfig('config',root=root)
 
-        logs_directory      = self.config.get("log_directory")
+        # SET ENVIRONMENT VARIABLES
+        environs            = self.config.get('environment')
+
+        if environs:
+            for key, value in environs.items():
+                os.environ[key] = value
+
         loggers_config      = self.config.get("loggers")
 
         self.loggers        = self.config.loggers
@@ -47,7 +53,6 @@ class AlphaCore:
             if ':///' in uri:
                 io_lib.ensure_file(uri.split(':///')[1])
             db_type = db_cnx['main']['type']
-            print('Using %s database'%uri)
 
             self.api.config['SQLALCHEMY_DATABASE_URI'] = uri
         else:
@@ -66,7 +71,6 @@ class AlphaCore:
 
         self.db             = AlphaDatabaseNew(self.api,name="main",log=db_logger,config=db_cnx['main'])
 
-        print('prepare api',self.db)
         self.ma             = Marshmallow(self.api)
         #self.api.db         = self.db
 
@@ -118,6 +122,9 @@ class AlphaCore:
         
         init_database_config = self.config.get('databases/%s/init'%name)
         
+        if init_database_config is None:
+            return 
+
         for table, cf in init_database_config.items():
             class_name      = ''.join([x.capitalize() for x in table.split('_')])
             class_instance  = getattr(models_module,class_name)

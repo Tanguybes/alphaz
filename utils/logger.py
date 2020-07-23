@@ -1,6 +1,7 @@
 import os, datetime, inspect
 import logging
 from logging.handlers import TimedRotatingFileHandler
+from alphaz.models.main.singleton import singleton
 
 import platform 
 plt = platform.system()
@@ -26,25 +27,6 @@ def check_root(root):
         os.makedirs(root)
     return root
 
-"""
-import subprocess, os, psutil, logging
-from logging.handlers import TimedRotatingFileHandler
-
-log_file    = '/home/truegolliath/logs/ensure_golliath.log'
-logger      = logging.getLogger('EnsureGolliath')
-logger.setLevel(logging.DEBUG)
-
-formatter = logging.Formatter(
-    "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-
-log_handler = TimedRotatingFileHandler(
-    log_file, when='midnight', backupCount=30
-)
-log_handler.setFormatter(formatter)
-logger.addHandler(log_handler)
-"""
-
 def get_level(level):
     lvl = logging.INFO 
     if level.upper() == 'ERROR':
@@ -55,35 +37,36 @@ def get_level(level):
         lvl = logging.WARNING 
     return lvl
 
-class AlphaLogger():
-    cmd_output  = False
-    pid         = None
-    level       = 'info'
-    date_format = "%Y-%m-%d %H:%M:%S"
-    date_str    = ""
-    format_log  = "$(date) - $(level) - $(pid) - $(name): $(message)"
+class AlphaLogger():   
+    date_format             = "%Y-%m-%d %H:%M:%S"
+    format_log              = "$(date) - $(level) - $(pid) - $(file) - $(line) - $(name): $(message)" # %(processName)s %(filename)s:%(lineno)s
+
+    monitoring_logger = None
 
     def __init__(self,name,filename=None,root=None,cmd_output=True,level='INFO'):
-        if filename is None:
-            filename = name
-        if root is None:
-            """stack       = inspect.stack()
-            parentframe = stack[1]
-            module      = inspect.getmodule(parentframe[0])
-            root        = os.path.abspath(module.__file__).replace(module.__file__,'')"""
-            root        = get_alpha_logs_root()
+        self.level          = 'info'
+        self.date_str       = ""
+        self.cmd_output     = False
 
-        root            = check_root(root)
-        log_path         = root + os.sep + filename + '.log'
+        if filename is None:
+            filename        = name
+        if root is None:
+            """
+            parentframe     = inspect.stack()[1]
+            module          = inspect.getmodule(parentframe[0])
+            root            = os.path.abspath(module.__file__).replace(module.__file__,'')"""
+            root            = get_alpha_logs_root()
+
+        self.root           = check_root(root)
+        log_path            = self.root + os.sep + filename + '.log'
 
         # Create logger
-        self.logger     = logging.getLogger(name)
+        self.logger             = logging.getLogger(name)
 
         self.set_level(level)
 
         # File handler
-        print('Setting a logger at %s'%log_path)
-        handler         = TimedRotatingFileHandler(log_path, when="midnight", interval=1,backupCount=7)
+        handler             = TimedRotatingFileHandler(log_path, when="midnight", interval=1,backupCount=7)
 
         if plt.lower() == "windows":
             handler         = ConcurrentRotatingFileHandler(log_path,"a", 512*1024, 5)
@@ -91,33 +74,33 @@ class AlphaLogger():
 
         self.logger.addHandler(handler)
 
-        self.pid        = os.getpid()
-        self.name       = name
-        self.cmd_output = cmd_output if cmd_output is not None else True
+        self.pid            = os.getpid()
+        self.name           = name
+        self.cmd_output     = cmd_output if cmd_output is not None else True
     
     def set_level(self,level):
         self.level_show = get_level(level)
         self.logger.setLevel(self.level_show)
 
-    def _log(self,message,level='info'):
-        self.set_current_date()
-        self.level      = level.upper()
-        
-        message         = self.get_formatted_message(message)
+    def _log(self,message:str,caller,level:str='info',monitor:str=None):
+        if monitor is not None and self.monitoring_logger is None:
+            self.monitoring_logger  = AlphaMonitorLogger('monitoring',root=self.root,cmd_output=False)
 
-        if self.level == 'INFO':
-            self.logger.info(message)
-        elif self.level == 'WARNING':
-            self.logger.warning(message)
-        elif self.level == 'ERROR':
-            self.logger.error(message)
-        elif self.level == 'DEBUG':
-            self.logger.debug(message)
+        self.set_current_date()
+        self.level                  = level.upper()
+        
+        full_message                = self.get_formatted_message(message,caller)
+
+        fct = getattr(self.logger,self.level.lower())
+        fct(full_message)
+        if monitor is not None:
+            fct_monitor = getattr(self.monitoring_logger,self.level.lower())
+            fct_monitor(full_message.replace(self.name,monitor))
 
         if self.cmd_output and get_level(self.level) >= self.level_show:
-            print('   ',message)
+            print('   ',full_message)
 
-    def get_formatted_message(self,message):
+    def get_formatted_message(self,message,caller):
         msg = self.format_log
         
         structure = '$(%s)'
@@ -125,7 +108,10 @@ class AlphaLogger():
             'date':     self.date_str,
             'pid':      self.pid,
             'level':    self.level,
-            'name':     self.name
+            'name':     self.name,
+            'path':     caller.filename,
+            'file':     caller.filename.split(os.sep)[-1].replace('.py',''),
+            'line':     caller.lineno
         }
         
         for key, value in keys.items():
@@ -135,18 +121,43 @@ class AlphaLogger():
         msg = msg.replace(structure%'message',str(message))
         return msg
 
-    def info(self,message):
-        self._log(message,'info')
+    def info(self,message,monitor=None):
+        self._log(message,inspect.getframeinfo(inspect.stack()[1][0]),'info',monitor=monitor)
 
-    def warning(self,message):
-        self._log(message,'warning')
+    def warning(self,message,monitor=None):
+        self._log(message,inspect.getframeinfo(inspect.stack()[1][0]),'warning',monitor=monitor)
 
-    def error(self,message):
-        self._log(message,'error')
+    def error(self,message,monitor=None):
+        self._log(message,inspect.getframeinfo(inspect.stack()[1][0]),'error',monitor=monitor)
 
-    def debug(self,message):
-        self._log(message,'debug')
+    def debug(self,message,monitor=None):
+        self._log(message,inspect.getframeinfo(inspect.stack()[1][0]),'debug',monitor=monitor)
+
+    def critical(self,message, monitor=None):
+        self._log(message,inspect.getframeinfo(inspect.stack()[1][0]),'critical',monitor=monitor)
 
     def set_current_date(self):
         current_date        = datetime.datetime.now()
         self.date_str       = current_date.strftime(self.date_format)
+
+@singleton
+class AlphaMonitorLogger(AlphaLogger):
+    format_log              = "$(message)"
+
+"""
+@singleton
+class AlphaLogManager:
+    loggers: {AlphaLogger}  = {}
+
+    def is_logger(self,name):
+        return name in self.loggers
+    
+    def get_logger(self,name):
+        if self.is_logger(name):
+            return self.loggers[name]
+        return None
+
+    def set_logger(self,name,logger):
+        self.loggers[name] = logger
+
+log_manager = AlphaLogManager()"""

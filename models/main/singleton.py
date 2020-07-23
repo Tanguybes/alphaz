@@ -1,5 +1,4 @@
 def singleton(cls):
-    print('\nCLASS %s\n'%str(cls))
     instance = None
     def ctor(*args, **kwargs):
         nonlocal instance

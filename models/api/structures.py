@@ -67,26 +67,14 @@ class AlphaFlask(Flask):
 
         self.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True #TODO: enhance
 
-    """def set_connection(self,name, cnx_fct):
-        self.connections[name] = cnx_fct
-
-    def get_connection(self,name):
-        return self.connections[name]"""
-
     def init(self,config_path,configuration=None,root=None,encode_rules={}):
         self.set_config(config_path,configuration,root=root)
 
+        # Flask configuration
         confs = self.conf.get('conf')
-        for key, value in confs.items():
-            print('   > set %s to %s'%(key,value))
-            self.config[key] = value
-
-        """for database, fct in self.conf.databases.items():
-            self.connections[database] = fct"""
-        
-        """if not 'users' in self.connections:
-            print('Missing "users" database in configuration file "%s.json"'%config_path)
-            exit()"""
+        if confs is not None:
+            for key, value in confs.items():
+                self.config[key] = value
             
         self.json_encoder                            = AlphaJSONEncoder
         for key_rule, fct in encode_rules.items():
