@@ -26,9 +26,10 @@ class AlphaCore:
     databases   = {}
 
     def __init__(self,file:str): 
-        root                = self.get_relative_path(file, level=0)
+        self.root                = self.get_relative_path(file, level=0)
 
-        self.config         = AlphaConfig('config',root=root)
+    def set_configuration(self,configuration_name):
+        self.config         = AlphaConfig('config',root=self.root,configuration=configuration_name)
 
         # SET ENVIRONMENT VARIABLES
         environs            = self.config.get('environment')
@@ -111,9 +112,6 @@ class AlphaCore:
         self.admin_db       = Admin(self.api, name=api_name, template_mode='bootstrap3')
         for view in views:  
             self.admin_db.add_view(view)
-
-    def set_configuration(self,configuration_name):
-        self.config.set_configuration(configuration_name)
 
     def init_database(self,models_module,name='main',drop=True):
         if drop:

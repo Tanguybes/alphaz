@@ -272,7 +272,8 @@ class AlphaConfig():
                 sys.path.append(path)
 
         self.sub_configuration = self.get('sub_configuration')
-        if self.sub_configuration: return
+        if self.sub_configuration: 
+            return
 
         # loggers
         self.logger_root = self.get("directories/logs")
@@ -309,11 +310,9 @@ class AlphaConfig():
                 cmd_output  = True
             )
             self.loggers[main_logger_name] = self.log
-       
+        
         if 'databases' in config:
             self.configure_databases(config["databases"])
-
-        #self.show()
 
     def configure_databases(self,config):
         # Databases
@@ -321,13 +320,16 @@ class AlphaConfig():
 
         db_cnx      = {}
         for db_name, cf_db in config.items():
-            if type(cf_db) == str:
+            if type(cf_db) == str and cf_db in config:
                 cf_db = config[cf_db]
+            elif type(cf_db) != dict:
+                continue
 
             # TYPE
             if not "type" in cf_db:
                 self.show()
                 self.error("Missing <type> parameter in <%s> database configuration"%db_name)
+                
             db_type = cf_db['type']
 
             content_dict = {
@@ -571,7 +573,7 @@ def set_path(config,path,parameters,parameters_values,types=None):
         elif types == 'configs':
             matchs = get_configs_matchs(config[path[0]])
             if len(matchs) != 0 and matchs[0] in parameters_values:
-                config[path[0]]         = parameters_values[matchs[0]].data['databases']
+                config[path[0]]         = parameters_values[matchs[0]].data
             
         return
 
