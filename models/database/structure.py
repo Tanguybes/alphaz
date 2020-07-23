@@ -182,31 +182,11 @@ class AlphaDatabaseNew(SQLAlchemy):
         query     = model.query
 
         if filters is not None:
-            equals, ins, likes, sups, infs, sups_st, infs_st = {}, {}, {}, {}, {}, {}, {}
-
-            for key, value in filters.items():
-                if type(key) == str:
-                    key = getattr(model,key)
-                
-                if type(value) == set: value = list(value)
-                if type(value) == dict:
-                    for k, v in value.items():
-                        if k == '%':                            query = query.filter(key.like(v))
-                        if k == '>':                            query = query.filter(key > v)
-                        if k == '<':                            query = query.filter(key < v)
-                        if k == '>=':                           query = query.filter(key >= v)
-                        if k == '<=':                           query = query.filter(key <= v)
-
-                elif type(value) != list:
-                    equals[key] = value
-                else:
-                    ins[key] = value
-
-            for key, value in equals.items():
-                query     = query.filter(key==value)
-    
-            for key, value in ins.items():
-                query     = query.filter(key.in_(value))
+            if type(filters) == list:
+                for filter in filters:
+                    query = get_filter(query,filter)
+            else:
+                query = get_filter(query,filters)
         return query 
 
     def select(self,model,filters=None,first=False,json=False,distinct=None,unique=None,count=False):
@@ -270,6 +250,40 @@ class AlphaDatabaseNew(SQLAlchemy):
 """class AlphaDatabaseFlask(SQLAlchemy,AlphaDatabaseNew):
     def __init__(self,*args,log=None,config=None,**kwargs):
         super().__init__(*args,**kwargs)"""
+
+def get_filter(query,filters):
+    equals, ins, likes, sups, infs, sups_st, infs_st = {}, {}, {}, {}, {}, {}, {}
+
+    for key, value in filters.items():
+        if type(key) == str:
+            key = getattr(model,key)
+        
+        if type(value) == set: 
+            value = list(value)
+            
+        if type(value) == dict:
+            for k, v in value.items():
+                if k == '%':                            query = query.filter(key.like(v))
+                if k == '!%':                            query = query.filter(~key.like(v))
+                if k == '>':                            query = query.filter(key > v)
+                if k == '<':                            query = query.filter(key < v)
+                if k == '>=':                           query = query.filter(key >= v)
+                if k == '<=':                           query = query.filter(key <= v)
+                if k == '!':                            query = query.filter(key != v)
+                if k == 'notin':                        query = query.filter(key.notin_(v))
+                if k == 'in':                           query = query.filter(key.in_(v))
+                
+        elif type(value) != list:
+            equals[key] = value
+        else:
+            ins[key] = value
+
+    for key, value in equals.items():
+        query     = query.filter(key==value)
+
+    for key, value in ins.items():
+        query     = query.filter(key.in_(value))
+    return query
 
 class AlphaDatabase():
     cnx             = None
