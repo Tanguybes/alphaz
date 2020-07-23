@@ -254,6 +254,16 @@ def mails_stay_in_touch():
 
     api_mails.stay_in_touch(api,user_mail,name, token,db)
 
+@route('/mails/newsletter',
+    parameters = [
+        Parameter('mail',required=True),
+        Parameter('name',required=True)
+    ]
+)
+def mail_newsletter():
+    db.insert(defs.NewsLetter,values=api.dataGet)
+    api.set_data('saved') 
+
 @route('/mails/requestview',logged=False,cache=False, 
     parameters = [
         Parameter('token',required=True),

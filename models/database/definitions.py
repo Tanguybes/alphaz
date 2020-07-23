@@ -13,6 +13,13 @@ from core import core
 db = core.get_database()
 ma = core.ma
 
+class NewsLetter(db.Model,AlphaModelId):
+    name  = AlphaColumn(String(100))
+    mail  = AlphaColumn(String(50))
+
+    update          = AlphaColumn(DateTime,default=datetime.datetime.utcnow(),
+        onupdate=datetime.datetime.utcnow())
+
 class Test(db.Model,AlphaModelId):
     __tablename__ = 'test'
 

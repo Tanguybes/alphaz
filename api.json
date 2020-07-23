@@ -25,7 +25,6 @@
             "name": "alpha"
         }
     },
-    "root": "/home/aurele/alphaz",
     "project_name": "alphaz",
     "directories": {
         "logs":"{{root}}/logs/{{project_name}}"
