@@ -114,8 +114,8 @@ class AlphaCore:
             self.admin_db.add_view(view)
 
     def init_database(self,models_module,name='main',drop=True):
-        if drop:
-            self.db.drop_all()
+        #if drop:
+        #    self.db.drop_all()
         self.db.create_all()
         
         init_database_config = self.config.get('databases/%s/init'%name)

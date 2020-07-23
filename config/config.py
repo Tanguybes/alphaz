@@ -54,6 +54,8 @@ class AlphaConfig():
     api         = None
 
     def __init__(self,name='config',filepath=None,root=None,filename=None,log=None,configuration=None,logger_root=None,data=None):
+        self.tmp = {}
+
         self.name = name
         if filepath is not None:
             if not filepath[-5:] == '.json':
@@ -89,9 +91,10 @@ class AlphaConfig():
 
     def set_configuration(self,configuration):
         self.info('Setting <%s> configuration for file %s'%(configuration,self.config_file))
-        
+                
         if os.path.isfile(self.config_file):
             self.exist = True
+            self.add_tmp('configuration',configuration)
             self.load(configuration)
             self.check_required()
         else:
@@ -155,23 +158,15 @@ class AlphaConfig():
                 self.error('"%s" entry in configuration %s is reserved'%(reserved_name,self.filepath))
                 exit()
 
+    def add_tmp(self,name,value):
+        self.tmp[name]          = value
+        self.data_origin[name]  = value
+
     def load(self,configuration):
         with open(self.config_file) as json_data_file:
             self.data_origin = json.load(json_data_file)
         
         self.__check_reserved()
-
-        """if "imports" in self.data_origin:
-            imports = self.data_origin['imports']
-            for filepath in imports:
-                if not os.path.isfile(filepath + '.json'):
-                    self.error('Cannot import file %s'%(filepath + '.json'))
-                    exit()
-            data = {}
-            with open(filepath + '.json') as json_data_file:
-                data[filepath] = json.load(json_data_file)
-
-            exit()"""
 
         if "configurations" in self.data_origin:
             configurations = self.data_origin["configurations"]
@@ -188,7 +183,7 @@ class AlphaConfig():
         self.configuration = configuration
 
         user = getpass.getuser()
-        self.data_origin['user'] = user
+        self.add_tmp('user',user)
 
         if "users" in self.data_origin:
             users = self.data_origin["users"]
@@ -196,7 +191,6 @@ class AlphaConfig():
             if user in users:
                 self.info('User "%s" detected in configuration'%user)
                 self.data_user = self.data_origin["users"][user]
-            #del self.data_origin["users"]
 
         current_ip = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
 
@@ -216,7 +210,11 @@ class AlphaConfig():
 
     def save(self):
         self.info('Save configuration file at %s'%self.config_file)
-        del self.data_origin['user']
+
+        for name in self.tmp:
+            if name in self.data_origin:
+                del self.data_origin['user']
+
         with open(self.config_file,'w') as json_data_file:
             json.dump(self.data_origin,json_data_file, sort_keys=True, indent=4)
             
@@ -252,18 +250,6 @@ class AlphaConfig():
             del config['users']
 
         debug = False
-        if debug:
-            print('\n    USER\n')
-            for p,v in config_user.items():
-                print('   {:20} {}'.format(p,str(v)))
-
-            print('\n    ENV\n')
-            for p,v in config_env.items():
-                print('   {:20} {}'.format(p,str(v)))
-
-            print('\n    FULL\n')
-            for p,v in config.items():
-                print('   {:20} {}'.format(p,str(v)))
 
         self.data = self.replace_parameters(config)
 
@@ -280,8 +266,6 @@ class AlphaConfig():
         if self.logger_root is None:
           self.error('Missing "directories/logs" entry in configuration file %s'%self.config_file)
           exit()
-        #if self.logger_root is None:
-        #    self.logger_root    = self.root + os.sep + 'logs' if "log_directory" not in config else config.get("log_directory")
         
         # log
         if self.log is None:
@@ -329,7 +313,7 @@ class AlphaConfig():
             if not "type" in cf_db:
                 self.show()
                 self.error("Missing <type> parameter in <%s> database configuration"%db_name)
-                
+
             db_type = cf_db['type']
 
             content_dict = {
