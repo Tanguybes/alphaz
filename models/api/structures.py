@@ -100,8 +100,8 @@ class AlphaFlask(Flask):
 
     def start(self):
         pid                 = os.getpid()     
-        self.conf.set_data(paths=['tmp','process'],value=pid)
-        self.conf.save()
+        #self.conf.set_data(paths=['tmp','process'],value=pid)
+        #self.conf.save()
 
         ssl_context = None
         if self.conf.get('ssl'):

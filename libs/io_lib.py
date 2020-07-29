@@ -104,4 +104,13 @@ def print_dict(dictio,level=1):
         else:
             print("{} {:20} {}".format(level*'  ',key,value))
 
-    
+def proceed():
+    answer = None
+    while answer is None:
+        answer = input('Continue ? (Y/N)')
+        if answer.upper() == 'N':
+            return False
+        elif answer.upper() =='Y':
+            return True
+        else:
+            answer = None

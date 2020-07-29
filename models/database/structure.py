@@ -189,10 +189,16 @@ class AlphaDatabaseNew(SQLAlchemy):
                 query = get_filter(query,filters)
         return query 
 
-    def select(self,model,filters=None,first=False,json=False,distinct=None,unique=None,count=False):
+    def select(self,model,filters=None,first=False,json=False,distinct=None,unique=None,count=False,order_by=None,limit=None):
         #model_name = inspect.getmro(model)[0].__name__
 
         query     = self.get_filtered_query(model,filters=filters)
+
+        if order_by is not None:
+            query = query.order_by(order_by)
+
+        if limit is not None:
+            query = query.limit(limit)
 
         if distinct is not None:
             query = query.distinct(distinct)

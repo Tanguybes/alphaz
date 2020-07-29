@@ -11,8 +11,6 @@ from sqlalchemy.ext.declarative import declarative_base
 
 import platform, getpass
 
-system_platform    = platform.system()
-
 PAREMETER_PATTERN = '{{%s}}'
 
 def ensure_path(dict_object,paths=[],value=None):
@@ -39,6 +37,8 @@ class AlphaConfig():
     data        = {}
     data_env    = {}
     data_user   = {}
+    data_platform = {}
+    data_ip     = {}
 
     databases   = {}
     loggers     = {}
@@ -183,27 +183,36 @@ class AlphaConfig():
         self.configuration = configuration
 
         user = getpass.getuser()
+        user_configured = False
         self.add_tmp('user',user)
 
         if "users" in self.data_origin:
             users = self.data_origin["users"]
             
             if user in users:
-                self.info('User "%s" detected in configuration'%user)
                 self.data_user = self.data_origin["users"][user]
 
         current_ip = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
-
+        ip_configured = False
+        self.add_tmp('ip',current_ip)
         if "ips" in self.data_origin:
             ips = self.data_origin["ips"]
             if current_ip in ips:
-                self.info('Ip "%s" detected in configuration'%current_ip)
-                self.data_user = self.data_origin["ips"][current_ip]
+                self.data_ip = self.data_origin["ips"][current_ip]
+
+        system_platform    = platform.system()
+        platform_configured = False
+        self.add_tmp('platform',system_platform)
+        if "platforms" in self.data_origin:
+            platforms = self.data_origin["platforms"]
+
+            if system_platform.lower() in platforms:
+                self.data_platform = self.data_origin["platforms"][system_platform.lower()]
 
         self.init_data()
 
         if not self.sub_configuration: 
-            self.info('Configuration %s initiated'%self.filepath)
+            self.info('Configuration %s initiated for user %s%s, ip %s%s and platform %s%s'%(self.filepath,user,' ' if not user_configured else "*",current_ip,' ' if not ip_configured else "*",system_platform,' ' if not platform_configured else "*" ))
 
     def show(self):
         show(self.data)
@@ -236,10 +245,14 @@ class AlphaConfig():
         return self.is_parameter_path(parameters,data=data)
 
     def init_data(self):
-        config      = copy.deepcopy(self.data_origin)
-        config_env  = copy.deepcopy(self.data_env)
-        config_user = copy.deepcopy(self.data_user)
-
+        config          = copy.deepcopy(self.data_origin)
+        config_env      = copy.deepcopy(self.data_env)
+        config_user     = copy.deepcopy(self.data_user)
+        config_ip       = copy.deepcopy(self.data_ip)
+        config_platform = copy.deepcopy(self.data_platform)
+        
+        merge_configuration(config,config_ip,replace=True)
+        merge_configuration(config,config_platform,replace=True)
         merge_configuration(config,config_user,replace=True)
         merge_configuration(config,config_env,replace=True)
 
@@ -491,7 +504,7 @@ class AlphaConfig():
                 value                       = values[index]
                 if isinstance(parameter,list):
                     parameter = '/'.join(parameter)
-                parameters_value[parameter] = convert_value(value)
+                parameters_value[parameter] = value
             else:
                 self.error('No value is specified for %s'%parameter)
                 exit()
@@ -543,10 +556,10 @@ def set_paths(config,paths,parameters_values,parameters_value,types=None):
 def set_path(config,path,parameters,parameters_values,types=None):
     if len(path) == 1:
         if types == 'parameters':
-            value   = convert_value(config[path[0]])
+            value   = config[path[0]]
             for parameter in parameters:
                 if parameter in parameters_values:
-                    parameter_value     = convert_value(parameters_values[parameter])
+                    parameter_value     = parameters_values[parameter]
                     if value == PAREMETER_PATTERN%parameter:
                         value           = parameter_value
                     elif PAREMETER_PATTERN%parameter in str(value):
@@ -590,7 +603,6 @@ def search_it(nested, target,path=None):
         path = []
 
     for key, value in nested.items():
-        value       = convert_value(value)
         next_path   = copy.copy(path)
         next_path.append(key)
 
@@ -635,7 +647,6 @@ def get_object_from_config(nested,path=None,object_type='parameters'):
         path = []
 
     for key, value in nested.items():
-        value       = convert_value(value)
         next_path   = copy.copy(path)
         next_path.append(key)
 
@@ -690,7 +701,6 @@ def get_values_for_parameters(config, parameter_name,path=None):
         path = []
 
     for key, value in config.items():
-        value       = convert_value(value)
         next_path   = copy.copy(path)
         next_path.append(key)
 
@@ -762,11 +772,4 @@ def replace_parameter(key,value,replace_value,i):
             value   = replace_value
         elif "{{%s}}"%key in str(value):
             value       = value.replace("{{%s}}"%key,replace_value)
-    return value
-
-def convert_value(value):
-    systems = ['windows', 'unix']
-    if type(value) == dict and system_platform.lower() in systems:
-        if system_platform.lower() in value:
-            value = value[system_platform.lower()]
     return value

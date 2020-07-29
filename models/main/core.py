@@ -27,6 +27,7 @@ class AlphaCore:
 
     def __init__(self,file:str): 
         self.root                = self.get_relative_path(file, level=0)
+        self.config = None
 
     def set_configuration(self,configuration_name):
         self.config         = AlphaConfig('config',root=self.root,configuration=configuration_name)
@@ -105,6 +106,9 @@ class AlphaCore:
         return root
 
     def get_logger(self,*args, **kwargs):
+        if self.config is None:
+            print('Configuration need to be initialized')
+            exit()
         return self.config.get_logger(*args,**kwargs)
 
     def init_admin_view(self,views):
