@@ -269,8 +269,10 @@ def get_filter(query,filters):
             
         if type(value) == dict:
             for k, v in value.items():
+                if k == '==' or k == '=':               query = query.filter(key == v)
+                if k == '!=' or k == '!':               query = query.filter(key != v)
                 if k == '%':                            query = query.filter(key.like(v))
-                if k == '!%':                            query = query.filter(~key.like(v))
+                if k == '!%':                           query = query.filter(~key.like(v))
                 if k == '>':                            query = query.filter(key > v)
                 if k == '<':                            query = query.filter(key < v)
                 if k == '>=':                           query = query.filter(key >= v)
