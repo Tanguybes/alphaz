@@ -22,8 +22,6 @@ class Stitch(object):
     def process(self, file_name):
         path = Core.WEBSITES_PATH + os.sep + self.path + os.sep + file_name + '.json'
         
-        print(os.getcwd())
-        print('    ',path)
         if os.path.isfile(path):
             with open(path,'r') as f:
                 content = f.read()
@@ -64,4 +62,4 @@ class Stitch(object):
         Core.DRIVER.get(args[0])
 
 if __name__ == "__main__":
-    print('yeah')
+    print('Stitch')

@@ -57,8 +57,6 @@ class Dataframe(AlphaTest):
 
     @test(save=False)
     def select_dict(self):
-        print('rrrr',Test.query.all())
-
         rows    = self.db.select(Test) # ,columns=self.columns
         valid   = len(rows) == 1
         if not valid:

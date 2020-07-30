@@ -47,7 +47,6 @@ def copy_file(root_source, root_dest, folders, file_name,verbose=False,action=Fa
             source_modification = os.path.getmtime(source)
             dest_modification   = os.path.getmtime(dest)
             up_to_date          = source_modification <= dest_modification
-            #print('     %s <= %s'%(source_modification,dest_modification))
 
         if  (new or not up_to_date):
             action_str  =   None

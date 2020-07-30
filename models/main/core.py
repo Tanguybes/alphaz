@@ -147,5 +147,5 @@ class AlphaCore:
                     self.db.session.add(row)
                     self.db.session.commit()
                 except Exception as e:
-                    print('error',e)
+                    print('ERROR:',e)
                     exit()

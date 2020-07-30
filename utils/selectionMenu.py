@@ -446,9 +446,6 @@ class SelectionMenu():
         return value
 
     def convert_parameters(self,value):
-        """if 'configuration' in str(value):
-            print('      HHHH ',value)"""
-
         if type(value) != str:
             return value
 

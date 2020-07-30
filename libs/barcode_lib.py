@@ -9,12 +9,6 @@ from cloudmersive_barcode_api_client.rest import ApiException
 def decode(im) : 
     # Find barcodes and QR codes
     decodedObjects = pyzbar.decode(im)
-    """
-    # Print results
-    for obj in decodedObjects:
-        print('Type : ', obj.type)
-        print('Data : ', obj.data,'\n')"""
-
     return decodedObjects
 
 def get_barcode(filepath):

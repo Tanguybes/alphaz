@@ -19,10 +19,8 @@ def singleton(cls):
     def __init__(self, arg):
         if not AlphaSingleton.instance:
             AlphaSingleton.instance = AlphaSingleton.__OnlyOne(arg)
-            print('   hey')
         else:
             AlphaSingleton.instance.val = arg
-            print('   ooh   ')
 
     def __getattr__(self, name):
         return getattr(self.instance, name)"""

@@ -104,8 +104,6 @@ class AlphaDatabaseNew(SQLAlchemy):
 
         rows        = []
         try:
-            #values          = [x for x in values]
-            #print('  >>>',query,values)
             if values is not None:
                 resultproxy     = session.execute(query, values)   
             else:
@@ -233,12 +231,7 @@ class AlphaDatabaseNew(SQLAlchemy):
 
     def update(self,model,values={},filters={}):
         query           = self.get_filtered_query(model,filters=filters)
-
         values_update   = self.get_values(model,values,filters)
-
-        print('\n%s'%model)
-        for k, v in values_update.items():
-            print(' u {:20} > {}'.format(str(k),v))
         query.update(values_update)
 
         self.commit()

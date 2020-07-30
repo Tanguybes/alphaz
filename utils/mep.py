@@ -32,7 +32,6 @@ def send_files(ftp,target, source, folder_list,root_ftp=''):
             ext         = file.split('.')[1] if len(file.split('.')) > 1 else ''
             #print('         ext',ext)
             if not ext in EXTS_EXLCUDES:
-                print('   %s'%(filepath))
                 to_upload.append({'sourcepath':file,'remotepath':filepath})
         else:
             if not filename in DIR_EXCLUDES:

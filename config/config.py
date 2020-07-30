@@ -56,7 +56,8 @@ class AlphaConfig():
     def __init__(self,name='config',filepath=None,root=None,filename=None,log=None,configuration=None,logger_root=None,data=None):
         self.tmp = {}
 
-        self.name = name
+        self.name = name.split('/')[-1]
+
         if filepath is not None:
             if not filepath[-5:] == '.json':
                 filepath    = filepath + '.json'
@@ -81,8 +82,8 @@ class AlphaConfig():
         self.filepath       = root + os.sep + filename + '.json'
         self.config_file    = self.filepath if root.strip() != '' else self.filename + '.json'
 
-        self.log = log
-        
+        self.log            = log
+                
         if data is None:
             self.set_configuration(configuration)
         else:
@@ -412,14 +413,10 @@ class AlphaConfig():
         return  self.loggers[name] 
 
     def get(self,path=[]):
-
-        """if type(path) == str:
-            values, paths = search_it(self.data, path, path=None)
-            if len(values) != 0:
-                nbs     = [len(x) for x in paths]
-                index   = np.argmin(nbs)
-                return values[index]"""
-        return self.get_parameter_path(path)
+        value       = self.get_parameter_path(path)
+        if value is None:
+            value   = self.get_value_from_main_config(path)
+        return value
 
     def get_parameter_path(self,parameters,data=None,level=1):
         if '/' in parameters:
@@ -444,6 +441,19 @@ class AlphaConfig():
             return self.databases[name]
         return None
 
+    def get_value_from_main_config(self,parameter,force_exit=False):
+        value = None
+        if self.name != 'config':
+            from core import core
+            if core.config is not None:
+                value = core.config.get(parameter)
+                if value is not None:
+                    return value   
+        if force_exit:
+            self.error('No value is specified for %s'%parameter)
+            exit()
+        return value            
+
     def replace_parameters(self,config):
         """Replace parameters formatted has {{<parameter>}} by their values in a json dict
         
@@ -456,22 +466,14 @@ class AlphaConfig():
 
         parameters_values, paths = get_parameters_from_config(config, path=None)
         """
+            paths                                    parameters_values
             tests / save_directory                   save_root
-            menus / save_directory                   save_root
             files / google-taxonomy / file_path      sources & file_name
             ips / 62.210.244.105 / web / root        root
-            ips / 62.210.244.105 / web / api_root    root
             save_root                                root & project_name
-            logs_directory                           root & project_name
             sqllite_path                             root
-            web / root                               root
             web / api_root                           root
         """
-
-        """print('\nParameters:')
-        for i in range(len(parameters_values)):
-            print('     {:40} {}'.format(' / '.join(paths[i]),' & '.join(parameters_values[i])))"""
-
         parameters = []
         for i in range(len(parameters_values)):
             parameters.extend(parameters_values[i])
@@ -491,23 +493,22 @@ class AlphaConfig():
                 index, path_len = 0, None
 
                 lenghts = [len(x) for x in pths]
-                indexs = np.where(lenghts == np.amin(lenghts))[0]
+                indexs  = np.where(lenghts == np.amin(lenghts))[0]
                 if len(indexs) == 0:
-                    self.error('No value is specified for %s'%parameter)
-                    exit()
+                    value                       = self.get_value_from_main_config(parameter)
                 elif len(indexs) == 1:
-                    index = indexs[0]
+                    value                       = values[indexs[0]]
                 else:
                     self.error('Too many possible value at the same level are specified for parameter <%s>'%parameter)
                     exit()
                 
-                value                       = values[index]
                 if isinstance(parameter,list):
                     parameter = '/'.join(parameter)
                 parameters_value[parameter] = value
             else:
-                self.error('No value is specified for %s'%parameter)
-                exit()
+                if isinstance(parameter,list):
+                    parameter = '/'.join(parameter)
+                parameters_value[parameter]                       = self.get_value_from_main_config(parameter)
 
         l = 0
         set_parameter_value(parameters_value,l)

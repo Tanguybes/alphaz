@@ -124,7 +124,7 @@ def try_login(api,db,login, password, ip):
                 'id': user_data['id'], 
                 'time': str(datetime.datetime.now())}, api.config['JWT_SECRET_kEY'], algorithm='HS256').decode('ascii')
             #todo: make sure JWT_SECRET_kEY exist
-            print('   token',encoded_jwt)
+
             # Add new token session related to user
             db.add(defs.UserSession(
                 user_id=user_data['id'],

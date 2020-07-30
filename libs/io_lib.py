@@ -79,14 +79,33 @@ def get_proxies(nb=None):
             proxies.add(proxy)
     return proxies
 
-def archive_object(object_to_save,filename, ext='dmp'):
+def archive_object(object_to_save,filename:str, ext:str='dmp',verbose=False) -> None:
+    """Archive a Python object as a dump file
+
+    Args:
+        object_to_save ([type]): [Python object to save]
+        filename (str): [output filename]
+        ext (str, optional): [file extension]. Defaults to 'dmp'.
+        verbose (bool, optional): [ouput in cmd]. Default to 'False'.
+    """
     ensure_dir(filename)
     if ext is not None and pathlib.Path(filename).suffix == '':
         filename = filename + '.' + ext
     with open(filename, 'wb') as f:
         pickle.dump(object_to_save, f,protocol=pickle.HIGHEST_PROTOCOL)
+    if verbose:
+        print('Saved file %s'%filename)
         
-def unarchive_object(filename, ext='dmp'):
+def unarchive_object(filename:str, ext:str='dmp'):
+    """[Unarchive a Python object from a dump file]
+
+    Args:
+        filename (str): [filename]
+        ext (str, optional): [file extension]. Defaults to 'dmp'.
+
+    Returns:
+        [type]: [Unarchived python object]
+    """
     if ext is not None and pathlib.Path(filename).suffix == '':
         filename = filename + '.' + ext
     object_to_get = None

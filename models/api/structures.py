@@ -28,12 +28,6 @@ def merge_configuration(configuration,source_configuration,replace=False):
         if (not key2 in configuration or replace) and type(value2) != dict:
             configuration[key2] = value2
 
-    """for key, value in configuration.items():
-        print('key',key)
-        if not key in new_configuration:
-            new_configuration[key] = value
-    return new_configuration"""
-
 class AlphaFlask(Flask):
     user            = None
     mode            = 'data'
@@ -169,7 +163,7 @@ class AlphaFlask(Flask):
 
     def get_return(self,forceData=False, return_status=None):
         self.returned['data'] = {}
-        if len(self.data) > 0 or forceData:
+        if self.data is not None and (len(self.data) > 0 or forceData):
             self.returned['data'] = self.data
         
         response = jsonify(self.returned)
@@ -396,6 +390,5 @@ class Route:
         return None
 
     def debugParameters(self):
-        print('    > ',self.route)
         for name, parameter in self.parameters.items():
             print('    {:10} {:10} {:10}'.format(name,str(parameter.default),str(parameter.value)))

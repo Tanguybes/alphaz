@@ -25,10 +25,7 @@ class Search():
 
         i = 0
         for div in list_to_process:
-            #print('process %s / %s'%(i,len(list_to_process)))
-
             div_content = re.sub('<[^>]*>', '', str(div))
-            #print(div_content)
 
             prices = re.findall("(\d+.\d+,\d+ €|\d+,\d+ €|\d+.\d+ €)", div_content)
             if len(prices) != 0:
@@ -39,7 +36,6 @@ class Search():
                         self.prices.append(a)
                     except Exception as ex:
                         print(ex)
-                    #print('   ',div_content)
                     div_content = div_content.replace(price,'')
 
             words = string_lib.get_words(div_content)
@@ -148,10 +144,6 @@ class GoogleSearch():
 
         if 'organic_results' in dictionary_results:
             for element in dictionary_results['organic_results']:
-                """for key,value in element.items():
-                    print(key)
-                    print('   ',value)"""
-
                 self.process_sequence(element['title'])
                 self.process_sequence(element['snippet'])
 
@@ -203,8 +195,6 @@ class GoogleSearch():
             if title_nb == 0:
                 titledivs = soup.findAll("div", {"class": "MUxGbd v0nnCb aLF0Z"}) 
                 title_nb        = len(titledivs)
-                """if title_nb == 0:
-                    print('\n\n',mydiv)"""
 
             if title_nb != 0:
                 title   = remove_balise(str(titledivs[0]))
