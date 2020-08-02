@@ -27,7 +27,7 @@ class AlphaCore:
 
     def __init__(self,file:str): 
         self.root                = self.get_relative_path(file, level=0)
-        self.config = None
+        self.config              = None
 
     def set_configuration(self,configuration_name):
         self.config         = AlphaConfig('config',root=self.root,configuration=configuration_name)
@@ -49,6 +49,8 @@ class AlphaCore:
 
         #self.config.api     = self.api
         db_cnx              = self.config.db_cnx
+        if db_cnx is None:
+            self.error('Databases not configurated in config file')
 
         if 'main' in db_cnx:
             uri = db_cnx['main']['cnx']
@@ -106,10 +108,15 @@ class AlphaCore:
         return root
 
     def get_logger(self,*args, **kwargs):
-        if self.config is None:
-            print('Configuration need to be initialized')
-            exit()
+        self.check_configuration()
         return self.config.get_logger(*args,**kwargs)
+
+    def check_configuration(self):
+        if self.config is None:
+            self.set_configuration(None)
+            if self.config is None:
+                print('Configuration need to be initialized')
+                exit()
 
     def init_admin_view(self,views):
         api_name            = self.config.get('api/name')

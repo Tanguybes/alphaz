@@ -27,34 +27,34 @@ def ensure_path(dict_object,paths=[],value=None):
     ensure_path(dict_object[paths[0]],paths[1:],value=value)
 
 class AlphaConfig():
-    exist       = False
-    valid       = True
-    configuration = None
-
-    logger_root = None
-
-    data_origin = {}
-    data        = {}
-    data_env    = {}
-    data_user   = {}
-    data_platform = {}
-    data_ip     = {}
-
-    databases   = {}
-    loggers     = {}
-
-    infos       = []
-    warnings    = []
-
-    db_cnx      = {}
-
     reserved    =  ['user']
-
-    cnx_str     = None
-    api         = None
 
     def __init__(self,name='config',filepath=None,root=None,filename=None,log=None,configuration=None,logger_root=None,data=None):
         self.tmp = {}
+        self.data_origin = {}
+
+        self.data        = {}
+        self.data_env    = {}
+        self.data_user   = {}
+        self.data_platform = {}
+        self.data_ip     = {}
+
+        self.exist       = False
+        self.valid       = True
+        self.configuration = None
+
+        self.logger_root = None
+
+        self.databases   = {}
+        self.loggers     = {}
+
+        self.infos       = []
+        self.warnings    = []
+
+        self.db_cnx      = None
+
+        self.api = None
+        self.cnx_str = None
 
         self.name = name.split('/')[-1]
 
@@ -91,6 +91,13 @@ class AlphaConfig():
             self.data         = data
 
     def set_configuration(self,configuration):
+        if configuration is None:
+            self.load_raw()
+            if 'configuration' in self.data_origin:
+                configuration = self.data_origin['configuration']
+            else:
+                self.error('Configuration need to be explicitely specified in configuration call or config file')
+
         self.info('Setting <%s> configuration for file %s'%(configuration,self.config_file))
                 
         if os.path.isfile(self.config_file):
@@ -163,9 +170,13 @@ class AlphaConfig():
         self.tmp[name]          = value
         self.data_origin[name]  = value
 
+    def load_raw(self):
+        if len(self.data_origin) == 0:
+            with open(self.config_file) as json_data_file:
+                self.data_origin = json.load(json_data_file)
+
     def load(self,configuration):
-        with open(self.config_file) as json_data_file:
-            self.data_origin = json.load(json_data_file)
+        self.load_raw()
         
         self.__check_reserved()
 
