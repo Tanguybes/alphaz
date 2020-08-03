@@ -41,6 +41,7 @@ class AlphaConfig():
 
         self.exist       = False
         self.valid       = True
+        self.loaded         = False
         self.configuration = None
 
         self.logger_root = None
@@ -83,7 +84,7 @@ class AlphaConfig():
         self.config_file    = self.filepath if root.strip() != '' else self.filename + '.json'
 
         self.log            = log
-                
+                        
         if data is None:
             self.set_configuration(configuration)
         else:
@@ -171,9 +172,10 @@ class AlphaConfig():
         self.data_origin[name]  = value
 
     def load_raw(self):
-        if len(self.data_origin) == 0:
+        if not self.loaded:
             with open(self.config_file) as json_data_file:
                 self.data_origin = json.load(json_data_file)
+                self.loaded = True
 
     def load(self,configuration):
         self.load_raw()
