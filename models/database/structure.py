@@ -8,6 +8,7 @@ from sqlalchemy import update
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.sql.expression import or_, and_, all_
 from flask_sqlalchemy import SQLAlchemy
 
 class Row(MutableMapping):
@@ -181,8 +182,9 @@ class AlphaDatabaseNew(SQLAlchemy):
 
         if filters is not None:
             if type(filters) == list:
-                for filter in filters:
-                    query = get_filter(query,filter)
+                 #for filter in filters:
+                 #   query = get_filter(query,filter)
+                 query = get_filter_conditions(query,filters)
             else:
                 query = get_filter(query,filters)
         return query 
@@ -205,15 +207,15 @@ class AlphaDatabaseNew(SQLAlchemy):
             results = query.count()
             self.query_str = query.statement
             return results
-
+            
         try:
             if not unique:
                 results = query.all() if not first else query.first()
             else:
                 results = query.all(unique)  if not first else query.first(unique)
         except Exception as ex:
-            self.log.error('non valid query: %s \n%s'%(self.query_str,str(ex)))
-            results = [] 
+            self.log.error('non valid query "%s" \n%s'%(query.statement,str(ex)))
+            results = []
 
         if not json:
             self.query_str = query.statement
@@ -250,7 +252,49 @@ class AlphaDatabaseNew(SQLAlchemy):
     def __init__(self,*args,log=None,config=None,**kwargs):
         super().__init__(*args,**kwargs)"""
 
-def get_filter(query,filters):
+def get_filter_conditions(query,filters,verbose=True):
+    equals, ins, likes, sups, infs, sups_st, infs_st = {}, {}, {}, {}, {}, {}, {}
+    
+    conditions = []
+
+    for filters_conditions in filters:
+        for key, value in filters_conditions.items():
+            if type(key) == str:
+                key = getattr(model,key)
+            
+            if type(value) == set: 
+                value = list(value)
+                
+            if type(value) == dict:
+                for k, v in value.items():
+                    if k == '==' or k == '=':               conditions.append(key == v)
+                    if k == '!=' or k == '!':               conditions.append(key != v)
+                    if k == '%':                            conditions.append(key.like(v))
+                    if k == '!%':                           conditions.append(~key.like(v))
+                    if k == '>':                            conditions.append(key > v)
+                    if k == '<':                            conditions.append(key < v)
+                    if k == '>=':                           conditions.append(key >= v)
+                    if k == '<=':                           conditions.append(key <= v)
+                    if k == '!':                            conditions.append(key != v)
+                    if k == 'notin':                        conditions.append(key.notin_(v))
+                    if k == 'in':                           conditions.append(key.in_(v))
+                                        
+            elif type(value) != list:
+                equals[key] = value
+            else:
+                ins[key] = value
+
+    for key, value in equals.items():
+        conditions.append(key==value)
+
+    for key, value in ins.items():
+        conditions.append(key.in_(value))
+    
+    filter_cond = and_(*conditions)
+    query       = query.filter(filter_cond)
+    return query
+
+def get_filter(query,filters,verbose=True):
     equals, ins, likes, sups, infs, sups_st, infs_st = {}, {}, {}, {}, {}, {}, {}
 
     for key, value in filters.items():
@@ -273,7 +317,7 @@ def get_filter(query,filters):
                 if k == '!':                            query = query.filter(key != v)
                 if k == 'notin':                        query = query.filter(key.notin_(v))
                 if k == 'in':                           query = query.filter(key.in_(v))
-                
+                                
         elif type(value) != list:
             equals[key] = value
         else:
