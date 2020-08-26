@@ -8,8 +8,6 @@ from flask_marshmallow import Marshmallow
 from ..api.structures import AlphaFlask
 from flask_admin import Admin
 
-#from ..database.definitions import Base
-
 class AlphaCore: 
     instance                = None
 
@@ -127,9 +125,10 @@ class AlphaCore:
         for view in views:  
             self.admin_db.add_view(view)
 
-    def init_database(self,models_modules:list,name='main',drop=True):
+    def init_database(self,models_modules:list,name='main',drop=False):
         #if drop:
         #    self.db.drop_all()
+        
         self.db.create_all()
         
         init_database_config = self.config.get('databases/%s/init'%name)

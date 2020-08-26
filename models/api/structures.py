@@ -90,7 +90,7 @@ class AlphaFlask(Flask):
             )
             self.mail = Mail(self)
         else:
-            self.log.error('Mail configuration is not defined ("mail_server" parameter)')        
+            self.log.error('Mail configuration is not defined ("mails/mail_server" parameter)')        
 
     def start(self):
         pid                 = os.getpid()     
@@ -374,15 +374,11 @@ class AlphaFlask(Flask):
         return valid
 
 class Route:
-    cache           = False
-    route           = ""
-    parameters      = {}
-    lasttime        = datetime.datetime.now()
-
     def __init__(self, route, parameters, cache=False):
         self.route = route
         self.cache = cache
         self.parameters = {y.name:y for y in parameters}
+        self.lasttime        = datetime.datetime.now()
 
     def get(self,name):
         if name in self.parameters:
