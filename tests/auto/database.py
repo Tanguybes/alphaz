@@ -2,8 +2,8 @@ from alphaz.models.tests import AlphaTest, test
 from core import core
 
 from alphaz.libs import date_lib
-import alphaz.models.database.definitions as defs
-from alphaz.models.database.definitions import Test
+import alphaz.models.database.main_definitions as defs
+from alphaz.models.database.main_definitions import Test
 
 class Dataframe(AlphaTest):
     connected      = False

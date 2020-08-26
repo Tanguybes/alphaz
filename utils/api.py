@@ -7,7 +7,7 @@ from ..models.database.structure import AlphaDatabaseNew
 from ..models.api.structures import AlphaFlask
 from .apis import *
 
-from ..models.database import definitions as defs
+from ..models.database import main_definitions as defs
 
 from core import core
 api = core.api

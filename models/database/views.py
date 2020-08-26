@@ -6,7 +6,7 @@ from flask import Markup
 from core import core
 db = core.get_database()
 
-from . import definitions as defs
+from . import main_definitions as defs
 
 db_classes_names = [m[0] for m in inspect.getmembers(defs, inspect.isclass) if m[1].__module__ == defs.__name__]
 

@@ -11,11 +11,6 @@ from flask_admin import Admin
 #from ..database.definitions import Base
 
 class AlphaCore: 
-    root: str               = None
-    initiated: bool         = False
-    loggers: {AlphaLogger}  = {}
-    log: AlphaLogger        = None
-
     instance                = None
 
     api         = None
@@ -26,11 +21,17 @@ class AlphaCore:
     databases   = {}
 
     def __init__(self,file:str): 
-        self.root                = self.get_relative_path(file, level=0)
-        self.config              = None
+        self.root:str               = self.get_relative_path(file, level=0)
+        self.config                 = None
+        self.log: AlphaLogger       = None
+        self.loggers: {AlphaLogger} = {}
+        self.initiated: bool        = False
+        self.databases: dict        = {}
+        self.configuration: str     = None
 
     def set_configuration(self,configuration_name):
         self.config         = AlphaConfig('config',root=self.root,configuration=configuration_name)
+        self.configuration  = self.config.configuration
 
         # SET ENVIRONMENT VARIABLES
         environs            = self.config.get('environment')
@@ -42,6 +43,8 @@ class AlphaCore:
         loggers_config      = self.config.get("loggers")
 
         self.loggers        = self.config.loggers
+
+        self.log            = self.config.get_logger('main')
 
     def prepare_api(self):
         self.config.info('Configuring API for configuration %s ...'%self.config.config_file)
@@ -124,7 +127,7 @@ class AlphaCore:
         for view in views:  
             self.admin_db.add_view(view)
 
-    def init_database(self,models_module,name='main',drop=True):
+    def init_database(self,models_modules:list,name='main',drop=True):
         #if drop:
         #    self.db.drop_all()
         self.db.create_all()
@@ -136,7 +139,19 @@ class AlphaCore:
 
         for table, cf in init_database_config.items():
             class_name      = ''.join([x.capitalize() for x in table.split('_')])
-            class_instance  = getattr(models_module,class_name)
+
+            self.log.info('Initiating table %s from %s'%(class_name,name))
+
+            class_instance = None
+            for models_module in models_modules:
+                if hasattr(models_module,class_name):
+                    class_instance  = getattr(models_module,class_name)
+                else:
+                    continue
+            if class_instance is None:
+                self.log.error('Missing model module')
+                continue
+
             is_file         = os.path.isfile(cf)
             data            = io_lib.read_json(cf)
 

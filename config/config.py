@@ -42,7 +42,7 @@ class AlphaConfig():
         self.exist       = False
         self.valid       = True
         self.loaded         = False
-        self.configuration = None
+        self.configuration:str = None
 
         self.logger_root = None
 
@@ -94,11 +94,13 @@ class AlphaConfig():
     def set_configuration(self,configuration):
         if configuration is None:
             self.load_raw()
+
             if 'configuration' in self.data_origin:
                 configuration = self.data_origin['configuration']
             else:
-                self.error('Configuration need to be explicitely specified in configuration call or config file')
+                self.error('Configuration need to be explicitely specified in configuration call or config file for %s file'%self.filepath)
 
+        self.configuration = configuration
         self.info('Setting <%s> configuration for file %s'%(configuration,self.config_file))
                 
         if os.path.isfile(self.config_file):
