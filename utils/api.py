@@ -1,11 +1,10 @@
-import hmac, datetime
-from hashlib import sha256
 from flask import request, send_file, send_from_directory, safe_join, abort, url_for
 
 from flask_marshmallow import Marshmallow
+
 from ..models.database.structure import AlphaDatabaseNew
 from ..models.api.structures import AlphaFlask
-from .apis import *
+from .apis import api_core, api_logs, api_mails,api_tests,api_users
 
 from ..models.database import main_definitions as defs
 
@@ -118,8 +117,8 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
                     api.set_error('missing_file')
             return api.get_return()
         api_wrapper.__name__ = func.__name__
-        api_wrapper._args    = [path]
-        api_wrapper._kargs   = {
+        api_wrapper._kwargs   = {
+            "path":path,
             "parameters":parameters,
             "parameters_names":parameters_names,
             "methods":methods,
@@ -146,63 +145,15 @@ def after_request(response):
 
 @route("/api-map")
 def api_map():
-    #print(api.routes)
-    import sys, os, inspect
+    api.set_data(api_core.get_routes_infos())
 
-    modules = {}
-    for key, module in sys.modules.items():
-        if 'alphaz' in key or os.getcwd().split(os.sep)[-1] in str(module):
-            functions_list  = [o for o in inspect.getmembers(module) if inspect.isfunction(o[1])]
-
-            for function_tuple in functions_list:
-                function_name, fct = function_tuple
-
-                fct_n = getattr(module,function_name)
-
-                wraps = inspect.unwrap(fct)
-
-                if 'route.' in str(wraps) and 'test' in function_name:
-                    #print(function_name,wraps,wraps.__name__,inspect.signature(fct,follow_wrapped=False),inspect.signature(wraps),inspect.unwrap(wraps))
-                    print(function_name,fct.__code__,fct_n.__dict__)
-            modules[key]    = functions_list
-
-    api.set_data({x:str(y) for x,y in modules.items()})
-
-@route('/test',
-parameters=[Parameter('name')])
+@route('/test',parameters=[Parameter('name')])
 def api_test():
-    name = api.get('name')
-    api.print("Hello to you %s !"%name)
+    api.set_data(api.get('name'))
     
 @route('/test/insert')
 def test_insert():
-    db.add(defs.Test(
-            name=      'a',
-            number=    12,
-            text=      'text',
-            date=      datetime.datetime.now()
-    ))
-    tests = db.select(defs.Test)
-    api.set_data(tests)
-
-def has_no_empty_params(rule):
-    defaults = rule.defaults if rule.defaults is not None else ()
-    arguments = rule.arguments if rule.arguments is not None else ()
-    return len(defaults) >= len(arguments)
-
-@route("/site-map")
-def site_map():
-    links = []
-    for rule in api.url_map.iter_rules():
-        # Filter out rules we can't navigate to in a browser
-        # and rules that require parameters
-        if "GET" in rule.methods and has_no_empty_params(rule) and not '.' in rule.endpoint:
-            url = url_for(rule.endpoint, **(rule.defaults or {}))
-
-            links.append({'url':url, 'endpoint':rule.endpoint})
-
-    api.set_data(links)
-    # links is now a list of url, endpoint tuples
+    api.set_data(api_tests.insert())
 
 @route('/register', methods = ['POST'],
     parameters = [
