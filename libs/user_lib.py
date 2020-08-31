@@ -1,11 +1,9 @@
 from . import sql_lib, secure_lib
 
-def get_user_data_by_usernamePassword(db,username, password_attempt,log=None,close_cnx=True):
-    db 
-    query    = "SELECT id, password FROM user WHERE username = %s;"
-    values   = (username,)
+from ..models.database import main_definitions as defs
 
-    results  = db.get_query_results(query,values,unique=False,close_cnx=False)
+def get_user_data_by_usernamePassword(db,username, password_attempt,log=None,close_cnx=True): 
+    results  = db.select(defs.User,filters=[defs.User.username==username],json=True)
 
     for user in results:
         user_id         = user['id']
@@ -13,13 +11,12 @@ def get_user_data_by_usernamePassword(db,username, password_attempt,log=None,clo
         valid           = secure_lib.compare_passwords(password_attempt,hash_saved)
 
         if valid:
+            print('1',user_id)
             return get_user_data_by_id(db, user_id,close_cnx=close_cnx)
     return None
 
 def get_user_data_by_mailPassword(db,mail, password_attempt,log=None,close_cnx=True):
-    query    = "SELECT id, password FROM user WHERE mail = %s;"
-    values   = (mail,)
-    results  = db.get_query_results(query,values,unique=False,close_cnx=False)
+    results  = db.select(defs.User,filters=[defs.User.mail==mail],json=True)
 
     for user in results:
         user_id         = user['id']
@@ -27,6 +24,7 @@ def get_user_data_by_mailPassword(db,mail, password_attempt,log=None,close_cnx=T
         valid           = secure_lib.compare_passwords(password_attempt,hash_saved)
 
         if valid:
+            print('2',user_id)
             return get_user_data_by_id(db, user_id,close_cnx=close_cnx)
     return None
 
@@ -41,12 +39,8 @@ def get_user_data_FromLogin(db,login, password,log=None,close_cnx=True):
 
 def get_user_data(db, value, column, close_cnx=True,log=None):
     ''' Get the user role associated with given column'''
-    query    = "SELECT * FROM user WHERE -lookup- = %s;"
-    query    = query.replace("-lookup-", column)
- 
-    values   = (value,)
-
-    results  = db.get_query_results(query,values,unique=False,close_cnx=close_cnx)
+    print('LA debug',defs.User.__dict__[column],value,type(defs.User.__dict__[column]),type(value))
+    results  = db.select(defs.User,filters=[defs.User.__dict__[column]==value],json=True)
     if len(results) != 0:
         return results[0]
     return {}
@@ -73,7 +67,7 @@ def get_user_data_by_telegram_id(db, telegram_id, close_cnx=True,log=None):
     return get_user_data(db, telegram_id, "telegram_id", close_cnx=close_cnx)
 
 def update_users(db,close_cnx=True):
-    ''' Update all golliath users '''
+    ''' Update all users '''
     # Connect to db
     
     # Set expired states if needed
@@ -93,14 +87,11 @@ def update_users(db,close_cnx=True):
     db.execute_query(query,None,close_cnx=close_cnx)
                  
 def is_valid_mail(db,email,close_cnx=True): #TODO: update
-    query    = "SELECT email FROM mailing_list where email = %s;"
-    values   = (email,)
-    results  = db.get_query_results(query,values,close_cnx=close_cnx)
-    valid    = len([x['email'] for x in results]) != 0
+    results     = db.select(defs.MailingList,filters=[defs.MailingList.email==email],json=True)
+    valid       = len([x['email'] for x in results]) != 0
     return valid
 
 def get_all_address_mails(db,close_cnx=True):
-    query       = "SELECT distinct email FROM mailing_list;"
-    results     = db.get_query_results(query,None,close_cnx=close_cnx) 
-    emails      = [x['email'] for x in results]
+    results     = db.select(defs.MailingList,distinct=defs.MailingList.email,json=True)
+    emails      = list(set([x['email'] for x in results]))
     return emails

@@ -28,6 +28,27 @@ def merge_configuration(configuration,source_configuration,replace=False):
         if (not key2 in configuration or replace) and type(value2) != dict:
             configuration[key2] = value2
 
+def jsonify_database_models(model,first=False):
+    schema          = model.get_schema()
+    structures      = schema(many=True) if not first else schema()
+    results_json    = structures.dump([model])
+    return results_json
+
+def jsonify_data(data):
+    if type(data) == list:
+        result = [jsonify_data(x) for x in data]
+    elif type(data) == dict:
+        result = {jsonify_data(x):jsonify_data(y) for x,y in data.items()}
+    else:
+        result = data
+        if hasattr(data,"schema"):
+            print('schema',data)
+            result = jsonify_database_models(data)
+        #else:
+        #    print('no data',data)
+        #    result = jsonify(data)
+    return result
+
 class AlphaFlask(Flask):
     user            = None
     mode            = 'data'
@@ -165,11 +186,24 @@ class AlphaFlask(Flask):
         self.returned['data'] = {}
         if self.data is not None and (len(self.data) > 0 or forceData):
             self.returned['data'] = self.data
+    
+        self.returned['data'] = jsonify_data(self.returned['data'])
+
+        returned = jsonify(self.returned)
+        if return_status is not None:
+            returned.status_code = return_status
+
+        return returned
+
+    """def get_return(self,forceData=False, return_status=None):
+        self.returned['data'] = {}
+        if self.data is not None and (len(self.data) > 0 or forceData):
+            self.returned['data'] = self.data
         
         response = jsonify(self.returned)
         if return_status is not None:
             response.status_code = return_status
-        return response
+        return response"""
 
     def init_return(self):
         returned = {'token_status' : 'success', 'status' : 'success', 'error':0}
@@ -265,7 +299,9 @@ class AlphaFlask(Flask):
         token       = self.get_token()
         if token is not None:
             from ...utils.apis import api_users #todo: modify
-            user_data   = api_users.get_user_dataFromToken(self,self.db,token)
+            from core import core
+            db = core.get_database('users')
+            user_data   = api_users.get_user_dataFromToken(self,db,token)
         return user_data
 
     def get_token(self):

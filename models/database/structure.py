@@ -186,7 +186,7 @@ class AlphaDatabaseNew(SQLAlchemy):
                  #   query = get_filter(query,filter)
                  query = get_filter_conditions(query,filters)
             else:
-                query = get_filter(query,filters)
+                query = get_filter(query,filters,model)
         return query 
 
     def select(self,model,filters=None,first=False,json=False,distinct=None,unique=None,count=False,order_by=None,limit=None):
@@ -257,32 +257,36 @@ def get_filter_conditions(query,filters,verbose=True):
     
     conditions = []
 
-    for filters_conditions in filters:
-        for key, value in filters_conditions.items():
-            if type(key) == str:
-                key = getattr(model,key)
-            
-            if type(value) == set: 
-                value = list(value)
+    if type(filters) == list:
+        conditions = filters
+        
+    elif type(filters_conditions) == dict:
+        for filters_conditions in filters:
+            for key, value in filters_conditions.items():
+                if type(key) == str:
+                    key = getattr(model,key)
                 
-            if type(value) == dict:
-                for k, v in value.items():
-                    if k == '==' or k == '=':               conditions.append(key == v)
-                    if k == '!=' or k == '!':               conditions.append(key != v)
-                    if k == '%':                            conditions.append(key.like(v))
-                    if k == '!%':                           conditions.append(~key.like(v))
-                    if k == '>':                            conditions.append(key > v)
-                    if k == '<':                            conditions.append(key < v)
-                    if k == '>=':                           conditions.append(key >= v)
-                    if k == '<=':                           conditions.append(key <= v)
-                    if k == '!':                            conditions.append(key != v)
-                    if k == 'notin':                        conditions.append(key.notin_(v))
-                    if k == 'in':                           conditions.append(key.in_(v))
-                                        
-            elif type(value) != list:
-                equals[key] = value
-            else:
-                ins[key] = value
+                if type(value) == set: 
+                    value = list(value)
+                    
+                if type(value) == dict:
+                    for k, v in value.items():
+                        if k == '==' or k == '=':               conditions.append(key == v)
+                        if k == '!=' or k == '!':               conditions.append(key != v)
+                        if k == '%':                            conditions.append(key.like(v))
+                        if k == '!%':                           conditions.append(~key.like(v))
+                        if k == '>':                            conditions.append(key > v)
+                        if k == '<':                            conditions.append(key < v)
+                        if k == '>=':                           conditions.append(key >= v)
+                        if k == '<=':                           conditions.append(key <= v)
+                        if k == '!':                            conditions.append(key != v)
+                        if k == 'notin':                        conditions.append(key.notin_(v))
+                        if k == 'in':                           conditions.append(key.in_(v))
+                                            
+                elif type(value) != list:
+                    equals[key] = value
+                else:
+                    ins[key] = value
 
     for key, value in equals.items():
         conditions.append(key==value)
@@ -294,7 +298,7 @@ def get_filter_conditions(query,filters,verbose=True):
     query       = query.filter(filter_cond)
     return query
 
-def get_filter(query,filters,verbose=True):
+def get_filter(query,filters,model,verbose=True):
     equals, ins, likes, sups, infs, sups_st, infs_st = {}, {}, {}, {}, {}, {}, {}
 
     for key, value in filters.items():

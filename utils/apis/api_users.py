@@ -197,14 +197,14 @@ def logout(api,token,db,log=None,close_cnx=True):
 
 def get_user_dataFromToken(api,db,token):
     user_id     = None
-    query       = ("SELECT user_id FROM user_session WHERE token = %s")
-    values      = (token,)
-    results     = db.get_query_results(query,values,unique=True,close_cnx=False)
+
+    results     = db.select(defs.UserSession,filters=[defs.UserSession.token==token],json=True)
 
     if len(results) != 0:
-        user_id = results[0]
+        user_id = results[0]['id']
 
     if user_id is not None:
+        print('3',user_id)
         return user_lib.get_user_data_by_id(db, user_id)
     return None
 
