@@ -1,15 +1,15 @@
 
-import  os, json, inspect, copy, sys, socket, re
+import  os, json, inspect, copy, sys, socket, re, platform, getpass
 import numpy as np
-from ..libs import converter_lib, sql_lib, io_lib
-from ..utils.logger import AlphaLogger, get_alpha_logs_root
-from .utils import merge_configuration, get_parameters
-from ..models.database.structure import AlphaDatabase
 
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
-import platform, getpass
+from .utils import merge_configuration, get_parameters
+
+from ..libs import converter_lib, sql_lib, io_lib
+from ..utils.logger import AlphaLogger, get_alpha_logs_root
+from ..models.database.structure import AlphaDatabase
 
 PAREMETER_PATTERN = '{{%s}}'
 
@@ -29,8 +29,10 @@ def ensure_path(dict_object,paths=[],value=None):
 class AlphaConfig():
     reserved    =  ['user']
 
-    def __init__(self,name='config',filepath=None,root=None,filename=None,log=None,configuration=None,logger_root=None,data=None):
-        self.tmp = {}
+    def __init__(self,name='config',filepath=None,root=None,filename=None,log=None,configuration=None,logger_root=None,data=None,origin=None):
+        self.origin         = origin
+        self.tmp            = {}
+
         self.data_origin = {}
 
         self.data        = {}
@@ -106,6 +108,7 @@ class AlphaConfig():
         if os.path.isfile(self.config_file):
             self.exist = True
             self.add_tmp('configuration',configuration)
+            self.add_tmp('run',os.getcwd())
             self.load(configuration)
             self.check_required()
         else:
@@ -444,10 +447,13 @@ class AlphaConfig():
         if data is None:
             data = self.data
 
-        if parameters[0] not in data:
+        if parameters[0] not in data and parameters[0] not in self.data_origin:
             return None
         if len(parameters) == 1:
-            return data[parameters[0]]
+            if parameters[0] in data:
+                return data[parameters[0]]
+            if parameters[0] in self.data_origin:
+                return self.data_origin[parameters[0]]
 
         return self.get_parameter_path(parameters[1:],data[parameters[0]],level = level + 1)
 
@@ -458,6 +464,11 @@ class AlphaConfig():
 
     def get_value_from_main_config(self,parameter,force_exit=False):
         value = None
+        if self.origin is not None:
+            value = self.origin.get(parameter)
+            if value is not None:
+                return value 
+
         if self.name != 'config':
             from core import core
             if core.config is not None:
@@ -523,7 +534,8 @@ class AlphaConfig():
             else:
                 if isinstance(parameter,list):
                     parameter = '/'.join(parameter)
-                parameters_value[parameter]                       = self.get_value_from_main_config(parameter)
+                value = self.get_value_from_main_config(parameter,force_exit=True)
+                parameters_value[parameter]                       = value
 
         l = 0
         set_parameter_value(parameters_value,l)
@@ -538,7 +550,7 @@ class AlphaConfig():
             config_path = values[0]
             if not config_path in sub_configurations:
                 name                            = config_path.split(os.sep)[-1]
-                sub_configurations[config_path] = AlphaConfig(name=name,filepath=config_path,log=self.log,configuration=self.configuration,logger_root=self.logger_root)
+                sub_configurations[config_path] = AlphaConfig(name=name,filepath=config_path,log=self.log,configuration=self.configuration,logger_root=self.logger_root,origin=self)
 
         # replace sub configurations
         set_paths(config,paths,configs_values,sub_configurations,types='configs')
