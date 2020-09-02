@@ -78,6 +78,8 @@ class AlphaFlask(Flask):
     file_to_send           = (None, None)
 
     def __init__(self,*args,**kwargs):
+        self.pid = None
+
         super().__init__(*args,**kwargs)
 
         self.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True #TODO: enhance
@@ -114,7 +116,10 @@ class AlphaFlask(Flask):
             self.log.error('Mail configuration is not defined ("mails/mail_server" parameter)')        
 
     def start(self):
-        pid                 = os.getpid()     
+        if self.pid is not None:
+            return
+            
+        self.pid                 = os.getpid()     
         #self.conf.set_data(paths=['tmp','process'],value=pid)
         #self.conf.save()
 
@@ -129,7 +134,10 @@ class AlphaFlask(Flask):
 
         self.log.info('Run api on host %s port %s %s'%(host,port,'DEBUG MODE' if self.debug else ''))
 
+        #try:
         self.run(host=host,port=port,debug=self.debug,threaded=threaded,ssl_context=ssl_context)
+        #except SystemExit:
+        #    self.info('API stopped')
 
     def stop(self,config_path=None):
         if config_path is None:

@@ -34,6 +34,7 @@ class Parameter():
 #toolbar = flask_debugtoolbar.DebugToolbarExtension(api)
 
 def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,logged=False,admin=False,timeout=None):
+    if path[0] != '/': path = '/' + path
     def api_in(func):
         names = []
         for parameter in parameters:

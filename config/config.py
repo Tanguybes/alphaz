@@ -86,6 +86,8 @@ class AlphaConfig():
         self.config_file    = self.filepath if root.strip() != '' else self.filename + '.json'
 
         self.log            = log
+
+        self.info('Set configuration %s'%self.config_file)
                         
         if data is None:
             self.set_configuration(configuration)
@@ -107,8 +109,7 @@ class AlphaConfig():
                 
         if os.path.isfile(self.config_file):
             self.exist = True
-            self.add_tmp('configuration',configuration)
-            self.add_tmp('run',os.getcwd())
+            #self.add_tmp('configuration',configuration)
             self.load(configuration)
             self.check_required()
         else:
@@ -135,7 +136,7 @@ class AlphaConfig():
         else:
             self.warnings.append(message)
 
-    def error(self,message,out=True):
+    def error(self,message,out=False):
         for info in self.infos:
             print('   INFO: %s'%info)
         if self.log is not None:
@@ -200,6 +201,9 @@ class AlphaConfig():
                 self.data_env = configurations[default_configuration]
 
         self.configuration = configuration
+
+        self.add_tmp('configuration',configuration)
+        self.add_tmp('run',os.getcwd())
 
         user = getpass.getuser()
         user_configured = False

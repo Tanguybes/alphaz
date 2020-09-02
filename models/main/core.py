@@ -2,14 +2,16 @@ import os, sys, datetime, glob, importlib, inspect
 
 from ...utils.logger import AlphaLogger
 from ...config.config import AlphaConfig
-from ...libs import io_lib
+from ...libs import io_lib, flask_lib, database_lib
 from ...models import database as database_models
 
 from ..api.structures import AlphaFlask
 from ..database.structure import AlphaDatabaseNew
 
 from flask_marshmallow import Marshmallow
-from flask_admin import Admin     
+from flask_admin import Admin    
+
+from itertools import chain
 
 class AlphaCore: 
     instance                = None
@@ -90,8 +92,9 @@ class AlphaCore:
             self.databases[name] = AlphaDatabaseNew(self.api,name=name,log=db_logger,config=cf)
 
     def get_database(self,name=None) -> AlphaDatabaseNew:
-        """if self.api is None:
-            self.prepare_api()"""
+        if self.api is None:
+            # required for database cnx
+            self.prepare_api()
 
         if name is None:
             return self.db
@@ -123,28 +126,24 @@ class AlphaCore:
                 exit()
 
     def init_admin_view(self,models_sources):
-        modules = flask_lib.get_definitions_modules(models_sources,log=self.log)
-        
-        print(modules)
-        exit()
+        modules             = flask_lib.get_definitions_modules(models_sources,log=self.log)
 
-        #views = list(set().union(*[flask_lib.load_views(module=y, db=core.get_database(x)) for x,y in database_modules.items()]))
-
+        views               = list(chain(*[flask_lib.load_views(module=x) for x in modules]))
+        endpoints           = [x.endpoint for x in views]
 
         from alphaz.models.database.views import views as alpha_views
-        views = set(views).union(set(alpha_views))
+        for view in alpha_views:
+            if view.endpoint not in endpoints:
+                views.append(view)
 
         api_name            = self.config.get('api/name')
         self.admin_db       = Admin(self.api, name=api_name, template_mode='bootstrap3')
-        for view in views:  
-            self.admin_db.add_view(view)
+        
+        self.admin_db.add_views(*views)
 
-    def init_database(self,models_sources=[],drop=False):
+    def init_database(self,models_sources=[],databases=None,drop=False):
         #if drop:
         #    self.db.drop_all()
-        
-        #self.db.create_all()
-        
         init_database_config = self.config.get('databases')
 
         if init_database_config is None:
@@ -153,6 +152,13 @@ class AlphaCore:
 
         initiated = []
         for database_name, cf in init_database_config.items():
+            if databases is not None and database_name not in databases: continue
+
+            db = self.get_database(database_name)
+            if db is not None:
+                self.log.info('Creating database %s'%database_name)
+                db.create_all()
+
             #class_name      = ''.join([x.capitalize() for x in table.split('_')])
             if not type(cf) == dict:    continue
             if not 'ini' in cf or not cf['ini']:           continue
@@ -163,7 +169,7 @@ class AlphaCore:
 
                 files   = glob.glob(json_ini + os.sep + '*.json')
 
-                self.log.info('Initiating table %s from json files: \n%s'%(database_name,files))
+                self.log.info('Initiating table %s from json files: \n%s'%(database_name,'\n'.join(['   - %s'%x for x in files])))
 
                 for file_path in files:
                     self.process_databases_init(file_path,models_sources,file_type='json')
@@ -172,13 +178,12 @@ class AlphaCore:
             if 'init_database_dir_py' in cf:
                 py_ini = cf['init_database_dir_py']
 
-                files   = glob.glob(py_ini + os.sep + '*.py')
+                files   = [ x for x in glob.glob(py_ini + os.sep + '*.py') if not '__init__' in x]
 
-                self.log.info('Initiating table %s from python files: \n%s'%(database_name,files))
+                self.log.info('Initiating table %s from python files: \n%s'%(database_name,'\n'.join(['   - %s'%x for x in files])))
 
                 for file_path in files:
                     self.process_databases_init(file_path,models_sources)
-        exit()
 
     def process_databases_init(self,file_path,models_sources,file_type='py'):
         if not database_models in models_sources: models_sources.append(database_models)
@@ -198,7 +203,7 @@ class AlphaCore:
                     self.log.error('In file %s <ini> configuration must be of type <dict>'%(file_path))
                     return
 
-                    self.get_entries(models_sources,file_path,ini)
+                self.get_entries(models_sources,file_path,ini)
         elif file_type =='json':
             try:
                 ini = io_lib.read_json(file_path)
@@ -211,6 +216,7 @@ class AlphaCore:
         from alphaz.models.database.models import AlphaModel
 
         for database, tables_config in configuration.items():
+            db = database
             if type(database) == str:
                 db = self.get_database(database)
                 if db is None:
@@ -222,6 +228,7 @@ class AlphaCore:
                 continue
 
             for table, config in tables_config.items():
+                table_name = table
                 if type(table) == str:
                     found = False
                     for model in models_sources:
@@ -269,65 +276,10 @@ class AlphaCore:
                             continue
                         entries.append(entry)
 
-                    self.process_entries(models_sources,db,table,headers=config['headers'],values=entries)
+                    self.log.info('Adding %s entries from <list> for table %s in database %s from file %s'%(len(entries),table_name,database,file_path))
+                    database_lib.process_entries(models_sources,db,table,self.log,headers=config['headers'],values=entries)
 
                 if 'objects' in config:
-                    self.process_entries(models_sources,db,table,values=entries)
-
-                    """if not database in entries:
-                        entries[database] = {}
-                    if not table in entries[database]:
-                        entries[database][table] = {}
-                    if not 'headers' in entries[database][table]:
-                        entries[database][table]['headers'] = config['headers']
-                    if not 'values' in entries[database][table]:
-                        entries[database][table]['values'] = []]
-                    
-                    entries[database][table]['values'].append(entry)"""
-
-    def process_entries(self,models_sources:list,db,table,values:list,headers:list=None):
-        print('    >>>>',db,table,headers)
-        if headers is not None:
-            headers = [x.lower().replace(' ','_') for x in headers]
-
-            entries = [table(**{headers[i]:value for i,value in enumerate(values_list)}) for values_list in values]
-        else:
-            entries = values
-
-        db.session.add_all(entries)
-
-        """for model_source in models_sources:
-            if hasattr(model_source,database_name):
-                import_models = getattr(model_source,database_name)
-
-
-        class_instance = None
-        for models_module in models_modules:
-            if hasattr(models_module,class_name):
-                class_instance  = getattr(models_module,class_name)
-            else:
-                continue
-        if class_instance is None:
-            self.log.error('Missing model module')
-            continue
-
-        is_file         = os.path.isfile(cf)
-        data            = io_lib.read_json(cf)
-
-        for row_column in data:
-            converted_columns = {}
-            for key, row_entry in row_column.items():
-                if type(row_entry) == str and len(row_entry) > 7 and row_entry[4] == '/' and row_entry[7] == '/':
-                    row_entry = datetime.datetime.strptime(row_entry, '%Y/%m/%d')
-                converted_columns[key] = row_entry
-
-            #db.session.query(class_instance).delete()
-            row = class_instance(**converted_columns)
-
-            try:
-                self.db.session.add(row)
-                self.db.session.commit()
-            except Exception as e:
-                print('ERROR:',e)
-                exit()
-        """
+                    entries = config['objects']
+                    self.log.info('Adding %s entries from <objects> for table %s in database %s from file %s'%(len(entries),table_name,database,file_path))
+                    database_lib.process_entries(models_sources,db,table,self.log,values=entries)

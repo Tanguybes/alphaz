@@ -77,3 +77,28 @@ def universal_decode(txt,encodings_methods=[],blacklist=[]):
             if decoded:
                 return result
     return result
+
+def python_case(txt):
+    txt = txt.replace(' ','_')
+    txt         = re.sub('[^a-zA-Z0-9_ \n\.]', '', txt)
+    return txt.lower()
+
+def pascal_case(txt):
+    output = ''
+    
+    for el in txt.split('_'):
+        output += el.lower().capitalize() 
+    output         = re.sub('[^a-zA-Z0-9 \n\.]', '', output)
+    return output
+
+def camel_case(txt):
+    output = ''
+    i = 0
+    for el in txt.split('_'):
+        if i == 0:
+            output += el.lower()
+        else:
+            output += el.lower().capitalize() 
+        i += 1
+
+    return output

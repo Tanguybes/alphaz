@@ -18,4 +18,9 @@ for db_classe_name in db_classes_names:
     if not db_classe_name in view_config:
         class_object = getattr(defs,db_classe_name)
         if '__tablename__' in class_object.__dict__:
-            views.append(ModelView(class_object,db.session))
+            base_name = 'ALPHA'
+            name        = '%s:%s'%(base_name,class_object.__tablename__)
+            views.append(ModelView(class_object,db.session,
+                    name=class_object.__tablename__,
+                    category=base_name,
+                    endpoint=name))
