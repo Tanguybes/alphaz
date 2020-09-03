@@ -68,6 +68,11 @@ class AlphaDatabaseNew(SQLAlchemy):
             self.engine = create_engine(config['cnx'])"""
 
     def test(self):
+        """[Test the connection]
+
+        Returns:
+            [type]: [description]
+        """
         query = "SELECT 1"
         if self.db_type == "oracle":
             query = "SELECT 1 FROM DUAL"
@@ -77,6 +82,9 @@ class AlphaDatabaseNew(SQLAlchemy):
         except Exception as ex:
             print('ex:',ex)
             return False
+
+    def drop(self,table_model):
+        table_model.__table__.drop(self.engine)
 
     def execute_query(self,query,values=None,close_cnx=True):
         if self.db_type == 'sqlite':
@@ -140,7 +148,7 @@ class AlphaDatabaseNew(SQLAlchemy):
         values_update = self.get_values(model,values,{})
         return self.add(model,parameters=values_update,commit=commit,test=test)
 
-    def add(self,obj,parameters=None,commit=True,test=False):
+    def add(self,obj,parameters=None,commit=True,test=False,update=True):
         if test:
             self.log.info('Insert %s with values %s'%(obj,parameters))
             return None
@@ -152,12 +160,16 @@ class AlphaDatabaseNew(SQLAlchemy):
         if type(obj) == list:
             self.session.add_all(obj)
         else:
-            self.session.add(obj)
+            if not update:
+                self.session.add(obj)
+            else:
+                self.session.merge(obj)
 
         if commit: 
             try:
                 self.commit()
             except Exception as ex:
+                print(str(ex))
                 return str(ex)
         return None
 
@@ -172,6 +184,7 @@ class AlphaDatabaseNew(SQLAlchemy):
         obj = self.select(model,filters=filters,first=True,json=False)
 
         if obj is not None:
+            self.session.commit()
             self.session.delete(obj)
             if commit: self.commit()
             return True
@@ -209,7 +222,7 @@ class AlphaDatabaseNew(SQLAlchemy):
             return results
             
         try:
-            if not unique:
+            if unique is None:
                 results = query.all() if not first else query.first()
             else:
                 results = query.all(unique)  if not first else query.first(unique)

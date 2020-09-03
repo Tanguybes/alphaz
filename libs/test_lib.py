@@ -4,7 +4,7 @@ import importlib
 from inspect import getmembers, isfunction, isclass
 from .py_lib import reload_modules
 
-def get_tests_auto(test_directory,rejects=[],name=None,group=None,import_path=None,log=None):
+def get_tests_auto(test_directory,rejects=[],name=None,group=None,import_path=None,log=None,verbose=False):
     #if test_directory:
     #test_directory = os.path.basename(os.path.dirname(os.path.realpath(__file__)))
 
@@ -51,12 +51,12 @@ def get_tests_auto(test_directory,rejects=[],name=None,group=None,import_path=No
 
     return test_groups
 
-def execute_all_tests_auto(directory,output=True,verbose=False,refresh=True,name=None):
-    return operate_all_tests_auto(directory,output=output,verbose=verbose,refresh=refresh,name=name,
+def execute_all_tests_auto(directory,output=True,verbose=False,refresh=True,name=None,log=None):
+    return operate_all_tests_auto(directory,output=output,verbose=verbose,refresh=refresh,name=name,log=log,
         action='execute')
 
 def save_all_tests_auto(directory,output=True,verbose=False,refresh=True,name=None):
-    return operate_all_tests_auto(directory,output=output,verbose=verbose,refresh=refresh,name=name,
+    return operate_all_tests_auto(directory,output=output,verbose=verbose,refresh=refresh,name=name,log=log,
         action='save')
 
 def operate_all_tests_auto(directory,output=True,verbose=False,refresh=True,name=None,action='execute',group=None,import_path=None,log=None):
