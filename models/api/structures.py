@@ -79,9 +79,9 @@ class AlphaFlask(Flask):
 
     def __init__(self,*args,**kwargs):
         self.pid = None
-
         super().__init__(*args,**kwargs)
 
+        self.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
         self.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True #TODO: enhance
 
     def init(self,config_path,configuration=None,root=None,encode_rules={}):
