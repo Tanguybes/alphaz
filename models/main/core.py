@@ -142,6 +142,10 @@ class AlphaCore:
         self.admin_db.add_views(*views)
 
     def init_database(self,models_sources=[],databases=None,drop=False):
+
+        modules             = flask_lib.get_definitions_modules(models_sources,log=self.log)
+        from alphaz.models.database import main_definitions
+
         #if drop:
         #    self.db.drop_all()
         init_database_config = self.config.get('databases')
@@ -155,9 +159,9 @@ class AlphaCore:
             if databases is not None and database_name not in databases: continue
 
             db = self.get_database(database_name)
-            if db is not None:
-                self.log.info('Creating database %s'%database_name)
-                db.create_all()
+            self.log.info('Creating database %s'%database_name)
+            db.create_all()
+            db.commit()
 
             #class_name      = ''.join([x.capitalize() for x in table.split('_')])
             if not type(cf) == dict:    continue

@@ -87,7 +87,7 @@ class AlphaConfig():
 
         self.log            = log
 
-        self.info('Set configuration %s'%self.config_file)
+        #self.info('Set configuration %s'%self.config_file) # TODO: check
                         
         if data is None:
             self.set_configuration(configuration)
