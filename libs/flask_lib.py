@@ -33,13 +33,14 @@ def load_views(module:ModuleType) -> List[ModelView]:
 
         if not db_classe_name in view_config:
             if '__tablename__' in class_object.__dict__:
-                name        = '%s:%s'%(class_object.__bind_key__,class_object.__tablename__)
+                database_name   = "main" if not hasattr(class_object,"__bind_key__") else class_object.__bind_key__
+                name        = '%s:%s'%(database_name,class_object.__tablename__)
                 #if print('Add view %s for %s'%(class_object.__tablename__,class_object.__bind_key__))
                 views.append(ModelView(
                     class_object,
                     db.session,
                     name=class_object.__tablename__,
-                    category=class_object.__bind_key__,
+                    category=database_name,
                     endpoint=name))
         else:
             views.append(view_config[db_classe_name](class_object,db.session))
