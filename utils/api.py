@@ -10,7 +10,7 @@ from ..models.database import main_definitions as defs
 
 from core import core
 api = core.api
-db  = core.get_database()
+db  = core.db
 
 class Parameter():
     name = None
@@ -50,7 +50,7 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
             api.dataGet = {} if request.args is None else {x:y for x,y in request.args.items()}
 
             if logged:
-                api.user = api.get_logged_user()
+                api.user            = api.get_logged_user()
 
             api.info('{:4} {}'.format(request.method,request.path))
 

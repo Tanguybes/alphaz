@@ -94,10 +94,10 @@ class AlphaDatabaseNew(SQLAlchemy):
         select = query.strip().upper()[:6] == 'SELECT'
         if select:
             return self.get_query_results(query,values,unique=False)
-
+        
         try:
             self.engine.execute(query, values)
-            self.query_str = query.statement
+            self.query_str = self.engine.statement
             return True
         except Exception as err:
             self.log.error(err)
@@ -272,7 +272,7 @@ def get_filter_conditions(query,filters,verbose=True):
 
     if type(filters) == list:
         conditions = filters
-        
+
     elif type(filters_conditions) == dict:
         for filters_conditions in filters:
             for key, value in filters_conditions.items():

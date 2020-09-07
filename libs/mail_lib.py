@@ -5,10 +5,13 @@ from flask import current_app
 from flask_mail import Message
 
 import uuid
+
 from . import sql_lib
 from ..config.utils import merge_configuration, get_mails_parameters
 
-MAIL_PARAMETERS_PATTERN = "[[%s]]"
+REQUIRED_PARAMETERS         = ['mail']
+KEY_SIGNATURE               = '<alpha mail>'
+MAIL_PARAMETERS_PATTERN     = "[[%s]]"
 
 def mail2(to_mails,subject,body,bodyHtml=None,attachments=[]):
     import win32com.client as win32
@@ -133,9 +136,6 @@ def set_parameters(content,parameters):
         if value is not None:
             content = content.replace(MAIL_PARAMETERS_PATTERN%parameter,str(value))
     return content
-
-REQUIRED_PARAMETERS = ['mail']
-KEY_SIGNATURE       = '<alpha mail>'
 
 def add_mail_classic_parameter(parameters):
     now     = datetime.datetime.now()
@@ -268,16 +268,21 @@ def get_unique_parameters(parameter):
     return unique_parameters
 
 def is_mail_already_send(db,mail_type,parameters, close_cnx=True,log=None):
-    mail_type   = get_mail_type(mail_type)
-    unique_parameters = get_unique_parameters(parameters)
-    query   = "SELECT * from mail_history where mail_type = %s and parameters = %s"
-    values  = (mail_type,json.dumps(unique_parameters))
-    results = db.get_query_results(query,values,unique=False,close_cnx=close_cnx)
+    from ..models.database import main_definitions as defs
+    mail_type           = get_mail_type(mail_type)
+    unique_parameters   = get_unique_parameters(parameters)
+
+    results             = db.select(defs.MailHistory,filters=[
+        defs.MailHistory.mail_type==mail_type,
+        defs.MailHistory.parameters==json.dumps(unique_parameters)
+    ],json=True)
     return len(results) != 0
 
 def is_blacklisted(db,user_mail,mail_type,close_cnx=True,log=None):
+    from ..models.database import main_definitions as defs
     mail_type   = get_mail_type(mail_type)
-    query   = "SELECT * from mail_blacklist where mail_type = %s and mail = %s "
-    values  = (mail_type,user_mail)
-    results = db.get_query_results(query,values,unique=False,close_cnx=close_cnx)
+    results             = db.select(defs.MailBlacklist,filters=[
+        defs.MailBlacklist.mail_type==mail_type,
+        defs.MailBlacklist.mail==user_mail
+    ],json=True)
     return len(results) != 0

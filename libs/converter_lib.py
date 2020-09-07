@@ -4,6 +4,8 @@ Created on 13 janv. 2019
 @author: aurele durand
 '''
 
+import math
+
 def to_int(value):
     try:
         return int(value), True
@@ -28,7 +30,7 @@ def is_num(s):
     except ValueError:
         try:
             a = float(s)
-            return True
+            return not math.isnan(a)
         except ValueError:
             return False
 
