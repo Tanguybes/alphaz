@@ -163,8 +163,6 @@ def try_reset_password(api,user_data, password, password_confirmation,db,log=Non
         return "password_format"'''
     # Set New password and revoke token
     password_hashed = secure_lib.secure_password(password)
-
-    print('RESET ',password,password_hashed)
    
     # Reset password
     query   = "UPDATE user SET password = %s, password_reset_token = 'consumed' WHERE id = %s;"
@@ -197,14 +195,11 @@ def logout(api,token,db,log=None,close_cnx=True):
 
 def get_user_dataFromToken(api,db,token):
     user_id     = None
-
     results     = db.select(defs.UserSession,filters=[defs.UserSession.token==token],json=True)
-
     if len(results) != 0:
-        user_id = results[0]['id']
+        user_id = results[0]['user_id']
 
     if user_id is not None:
-        print('3',user_id)
         return user_lib.get_user_data_by_id(db, user_id)
     return None
 

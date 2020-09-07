@@ -8,6 +8,8 @@ from types import ModuleType
 from ..utils.logger import AlphaLogger
 from ..models.database.structure import AlphaDatabaseNew
 
+from sqlalchemy.orm.attributes import InstrumentedAttribute
+
 def load_views(module:ModuleType) -> List[ModelView]:
     """[Load view from tables definitions module]
 
@@ -33,14 +35,20 @@ def load_views(module:ModuleType) -> List[ModelView]:
 
         if not db_classe_name in view_config:
             if '__tablename__' in class_object.__dict__:
-                name        = '%s:%s'%(class_object.__bind_key__,class_object.__tablename__)
+                database_name   = "main" if not hasattr(class_object,"__bind_key__") else class_object.__bind_key__
+                name        = '%s:%s'%(database_name,class_object.__tablename__)
                 #if print('Add view %s for %s'%(class_object.__tablename__,class_object.__bind_key__))
-                views.append(ModelView(
+
+                attributes                  = [x for x,y in class_object.__dict__.items() if isinstance(y,InstrumentedAttribute)]
+
+                view = ModelView(
                     class_object,
                     db.session,
                     name=class_object.__tablename__,
-                    category=class_object.__bind_key__,
-                    endpoint=name))
+                    category=database_name,
+                    endpoint=name)
+                view.column_list    = attributes
+                views.append(view)
         else:
             views.append(view_config[db_classe_name](class_object,db.session))
     

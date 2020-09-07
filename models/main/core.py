@@ -96,7 +96,10 @@ class AlphaCore:
             # required for database cnx
             self.prepare_api()
 
-        if name is None:
+        if name is None or name == 'main':
+            return self.db
+
+        if name == "users" and not 'users' in self.databases:
             return self.db
 
         if name in self.databases:
@@ -157,8 +160,10 @@ class AlphaCore:
         initiated = []
         for database_name, cf in init_database_config.items():
             if databases is not None and database_name not in databases: continue
+            if type(cf) != dict: continue
 
             db = self.get_database(database_name)
+
             self.log.info('Creating database %s'%database_name)
             db.create_all()
             db.commit()
@@ -169,23 +174,19 @@ class AlphaCore:
 
             # json ini
             if 'init_database_dir_json' in cf:
-                json_ini = cf['init_database_dir_json']
+                json_ini    = cf['init_database_dir_json']
+                files       = glob.glob(json_ini + os.sep + '*.json')
 
-                files   = glob.glob(json_ini + os.sep + '*.json')
-
-                self.log.info('Initiating table %s from json files: \n%s'%(database_name,'\n'.join(['   - %s'%x for x in files])))
-
+                self.log.info('Initiating table %s from json files (%s): \n%s'%(database_name,json_ini,'\n'.join(['   - %s'%x for x in files])))
                 for file_path in files:
                     self.process_databases_init(file_path,models_sources,file_type='json')
 
             # python ini
             if 'init_database_dir_py' in cf:
-                py_ini = cf['init_database_dir_py']
+                py_ini      = cf['init_database_dir_py']
+                files       = [ x for x in glob.glob(py_ini + os.sep + '*.py') if not '__init__' in x]
 
-                files   = [ x for x in glob.glob(py_ini + os.sep + '*.py') if not '__init__' in x]
-
-                self.log.info('Initiating table %s from python files: \n%s'%(database_name,'\n'.join(['   - %s'%x for x in files])))
-
+                self.log.info('Initiating table %s from python files (%s): \n%s'%(database_name,py_ini,'\n'.join(['   - %s'%x for x in files])))
                 for file_path in files:
                     self.process_databases_init(file_path,models_sources)
 
