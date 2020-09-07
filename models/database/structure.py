@@ -242,6 +242,8 @@ class AlphaDatabaseNew(SQLAlchemy):
         else:
             self.log.error('Missing schema for model <%s>'%str(model.__name__))
         self.query_str = query.statement
+
+        self.query_str = self.query_str.compile(compile_kwargs={"literal_binds": True})
         return results_json
 
     def update(self,model,values={},filters={}):
