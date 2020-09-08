@@ -11,8 +11,11 @@ proxies = {
 
 cert_path = 'merged-CA.pem'
 
-def get_wsdl_response(base,wsdl,method,parameters,use_cert=False,use_proxy=False):
+def get_wsdl_response(base,wsdl,method,parameters,use_cert=False,use_proxy=False,log=None,verbose=False):
     wsdl_url = '%s/%s'%(base,wsdl)
+    
+    if log is not None and verbose:
+        log.info('Request url %s, method %s with parameters %s'%(wsdl_url,method,parameters))
     if use_cert:
         session         = Session()
         session.verify  = cert_path
