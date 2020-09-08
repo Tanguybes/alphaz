@@ -187,7 +187,7 @@ class AlphaFlask(Flask):
         self.mode       = 'file'
         self.file_to_send       = (directory, filename)
 
-    def set_html(self,page,parameters):
+    def set_html(self,page,parameters={}):
         self.mode = 'html'
         self.html = {'page':page,'parameters':parameters}
 
