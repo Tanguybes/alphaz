@@ -51,7 +51,7 @@ class AlphaCore:
 
     def prepare_api(self):
         self.config.info('Configuring API for configuration %s ...'%self.config.config_file)
-        self.api            = AlphaFlask(__name__)
+        self.api            = AlphaFlask(__name__,template_folder=self.root + os.sep + 'templates')
 
         #self.config.api     = self.api
         db_cnx              = self.config.db_cnx
@@ -74,6 +74,8 @@ class AlphaCore:
 
         self.api.config['MYSQL_DATABASE_CHARSET']           = 'utf8mb4'
         self.api.config['QLALCHEMY_TRACK_MODIFICATIONS']    = True
+        #self.api.config['EXPLAIN_TEMPLATE_LOADING']         = True
+        self.api.config['UPLOAD_FOLDER']                    = self.root + os.sep + 'templates'
 
         db_logger           = self.config.get_logger('database')
         if db_logger is None:

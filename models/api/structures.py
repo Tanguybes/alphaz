@@ -81,8 +81,10 @@ class AlphaFlask(Flask):
     file_to_send           = (None, None)
 
     def __init__(self,*args,**kwargs):
-        self.pid = None
-        self.format = 'json'
+        self.pid        = None
+        self.format     = 'json'
+        self.html       = {'page':None,'parameters':None}
+
         super().__init__(*args,**kwargs)
 
         self.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
@@ -184,6 +186,10 @@ class AlphaFlask(Flask):
     def set_file(self,directory, filename):
         self.mode       = 'file'
         self.file_to_send       = (directory, filename)
+
+    def set_html(self,page,parameters):
+        self.mode = 'html'
+        self.html = {'page':page,'parameters':parameters}
 
     def get_cached(self,api_route,parameters=[]):
         key = self.get_key(api_route,parameters)

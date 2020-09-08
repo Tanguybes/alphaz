@@ -1,4 +1,4 @@
-from flask import request, send_file, send_from_directory, safe_join, abort, url_for
+from flask import request, send_file, send_from_directory, safe_join, abort, url_for, render_template
 
 from flask_marshmallow import Marshmallow
 
@@ -110,6 +110,8 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
                     api.set_error('inputs')
                 api.cache(path,parameters)
 
+            if api.mode == 'html':
+                return render_template(api.html['page'],**api.html['parameters'])
             if api.mode == 'print':
                 return api.message
             if api.mode == 'file':
@@ -151,7 +153,7 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Credentials', 'true')
     return response
 
-@route("/api-map")
+@route("/map")
 def api_map():
     api.set_data(api_core.get_routes_infos())
 
