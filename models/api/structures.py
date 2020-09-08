@@ -1,7 +1,9 @@
 import os, configparser, datetime, copy
 
+from dicttoxml import dicttoxml
+
 from flask import Flask
-from flask import jsonify, request
+from flask import jsonify, request, Response, make_response
 from flask_mail import Mail
 
 from ...libs import mail_lib
@@ -80,6 +82,7 @@ class AlphaFlask(Flask):
 
     def __init__(self,*args,**kwargs):
         self.pid = None
+        self.format = 'json'
         super().__init__(*args,**kwargs)
 
         self.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
@@ -198,9 +201,16 @@ class AlphaFlask(Flask):
     
         self.returned['data'] = jsonify_data(self.returned['data'])
 
-        returned = jsonify(self.returned)
-        if return_status is not None:
-            returned.status_code = return_status
+        if self.format == 'xml':
+            xml_output = dicttoxml(self.returned)   
+            print('xml:',xml_output)                                            
+            response = make_response(xml_output)                                           
+            response.headers['Content-Type'] = 'text/xml; charset=utf-8'            
+            return response
+        else:
+            returned = jsonify(self.returned)
+            if return_status is not None:
+                returned.status_code = return_status
 
         return returned
 

@@ -59,6 +59,9 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
             dataPost                = request.get_json()
             api.dataPost            = {} if dataPost is None else {x:y for x,y in dataPost.items()}
 
+            if 'format' in api.dataGet:
+                api.format = api.dataGet['format'].lower()
+
             """if api.debug:
                 print('POST:',dataPost)
                 print('GET:',request.args)
@@ -95,6 +98,7 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
             reloadCache         = request.args.get('reloadCache', None) is not None or api.is_time(timeout)
             
             api.configure_route(path,parameters=parameters,cache=cache)
+
             if api.keep(path,parameters) and not reloadCache: 
                 api.get_cached(path,parameters)
             else:
@@ -104,6 +108,7 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
                 else:
                     api.set_error('inputs')
                 api.cache(path,parameters)
+
             if api.mode == 'print':
                 return api.message
             if api.mode == 'file':
@@ -116,6 +121,7 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
                         abort(404)
                 else:
                     api.set_error('missing_file')
+
             return api.get_return()
         api_wrapper.__name__ = func.__name__
         api_wrapper._kwargs   = {
