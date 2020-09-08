@@ -6,6 +6,7 @@ from flask_mail import Mail
 
 from ...libs import mail_lib
 from ...utils.logger import AlphaLogger
+from ...utils import AlphaException
 from ...config.config import AlphaConfig
 
 from .utils import AlphaJSONEncoder
@@ -223,6 +224,9 @@ class AlphaFlask(Flask):
         self.message    = message
 
     def set_error(self,message):
+        if type(message) == AlphaException:
+            message = message.name
+
         self.returned['status']     = message
         self.returned['error']      = 1
 
