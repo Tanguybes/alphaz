@@ -52,7 +52,8 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
             if logged:
                 api.user            = api.get_logged_user()
 
-            api.info('{:4} {}'.format(request.method,request.path))
+            if len(request.path.strip()) > 1:
+                api.info('{:4} {}'.format(request.method,request.path))
 
             missing = False
 

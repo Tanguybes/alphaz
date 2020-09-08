@@ -97,7 +97,7 @@ class AlphaFlask(Flask):
             for key, value in confs.items():
                 self.config[key] = value
             
-        self.json_encoder                            = AlphaJSONEncoder
+        self.json_encoder = AlphaJSONEncoder
         for key_rule, fct in encode_rules.items():
             AlphaJSONEncoder.rules[key_rule] = fct
 
@@ -160,7 +160,7 @@ class AlphaFlask(Flask):
     def set_config(self,config_path,configuration=None,root=None):
         self.config_path    = config_path
         self.configuration  = configuration
-        print('Set api configuration ...')
+        self.log.info('Set api configuration from %s ...'%config_path)
         self.conf           = AlphaConfig(filepath=config_path,configuration=configuration,root=root) # root=os.path.dirname(os.path.realpath(__file__))
 
     def get_database(self,name):
@@ -202,8 +202,7 @@ class AlphaFlask(Flask):
         self.returned['data'] = jsonify_data(self.returned['data'])
 
         if self.format == 'xml':
-            xml_output = dicttoxml(self.returned)   
-            print('xml:',xml_output)                                            
+            xml_output = dicttoxml(self.returned)                                              
             response = make_response(xml_output)                                           
             response.headers['Content-Type'] = 'text/xml; charset=utf-8'            
             return response
