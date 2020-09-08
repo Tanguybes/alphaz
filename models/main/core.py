@@ -51,7 +51,9 @@ class AlphaCore:
 
     def prepare_api(self):
         self.config.info('Configuring API for configuration %s ...'%self.config.config_file)
-        self.api            = AlphaFlask(__name__,template_folder=self.root + os.sep + 'templates')
+        self.api            = AlphaFlask(__name__,
+            template_folder=self.root + os.sep + 'templates',
+            static_folder=self.root + os.sep + 'static')
 
         #self.config.api     = self.api
         db_cnx              = self.config.db_cnx
