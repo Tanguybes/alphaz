@@ -151,9 +151,9 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Credentials', 'true')
     return response
 
-@route("/map")
+@route("/map",parameters=[Parameter('all',default=False)])
 def api_map():
-    api.set_data(api_core.get_routes_infos())
+    api.set_data(api_core.get_routes_infos(all=api.get('all')))
 
 @route('/test',parameters=[Parameter('name')])
 def api_test():

@@ -53,41 +53,41 @@ def jsonify_data(data):
     return result
 
 class AlphaFlask(Flask):
-    user            = None
-    mode            = 'data'
-    message         = 'No message'
-    data            = {}
-    returned        = {}
-
-    debug           = False
-
-    conf            = None
-    config_path     = ''
-
-    verbose         = False
-
-    current_route   = None
-    routes          = {}
-    routes_values   = {}
-
-    dataPost        = {}
-    dataGet         = {}
-
-    log = None
-    db = None
-
-    #connections     = {}
-
-    file_to_send           = (None, None)
 
     def __init__(self,*args,**kwargs):
-        self.pid        = None
-        self.format     = 'json'
-        self.html       = {'page':None,'parameters':None}
-
         super().__init__(*args,**kwargs)
+        self.pid            = None
+        self.format         = 'json'
+        self.html           = {'page':None,'parameters':None}
 
-        self.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
+        self.user           = None
+        self.mode           = 'data'
+        self.message        = 'No message'
+        self.data           = {}
+        self.returned       = {}
+
+        self.debug          = False
+
+        self.conf           = None
+        self.config_path    = ''
+
+        self.verbose        = False
+
+        self.current_route  = None
+        self.routes         = {}
+        self.routes_values  = {}
+
+        self.dataPost       = {}
+        self.dataGet        = {}
+
+        self.log            = None
+        self.db             = None
+
+        #connections     = {}
+
+        self.file_to_send   = (None, None)
+
+        self.secret_key     = b'_5#y2L"F4Q8z\n\xec]/'
         self.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True #TODO: enhance
 
     def init(self,config_path,configuration=None,root=None,encode_rules={}):
