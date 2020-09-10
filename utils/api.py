@@ -1,4 +1,4 @@
-from flask import request, send_file, send_from_directory, safe_join, abort, url_for
+from flask import request, send_file, send_from_directory, safe_join, abort, url_for, render_template
 
 from flask_marshmallow import Marshmallow
 
@@ -27,8 +27,6 @@ class Parameter():
         self.options    = options
         self.required  = required
 
-#api = AlphaFlask(__name__)
-
 # Specify the debug panels you want
 #api.config['DEBUG_TB_PANELS'] = [ 'flask_debugtoolbar.panels.versions.VersionDebugPanel', 'flask_debugtoolbar.panels.timer.TimerDebugPanel', 'flask_debugtoolbar.panels.headers.HeaderDebugPanel', 'flask_debugtoolbar.panels.request_vars.RequestVarsDebugPanel', 'flask_debugtoolbar.panels.template.TemplateDebugPanel', 'flask_debugtoolbar.panels.sqlalchemy.SQLAlchemyDebugPanel', 'flask_debugtoolbar.panels.logger.LoggingPanel', 'flask_debugtoolbar.panels.profiler.ProfilerDebugPanel', 'flask_debugtoolbar_lineprofilerpanel.panels.LineProfilerPanel' ]
 #toolbar = flask_debugtoolbar.DebugToolbarExtension(api)
@@ -52,12 +50,16 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
             if logged:
                 api.user            = api.get_logged_user()
 
-            api.info('{:4} {}'.format(request.method,request.path))
+            if len(request.path.strip()) > 1:
+                api.info('{:4} {}'.format(request.method,request.path))
 
             missing = False
 
             dataPost                = request.get_json()
             api.dataPost            = {} if dataPost is None else {x:y for x,y in dataPost.items()}
+
+            if 'format' in api.dataGet:
+                api.format = api.dataGet['format'].lower()
 
             """if api.debug:
                 print('POST:',dataPost)
@@ -95,6 +97,7 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
             reloadCache         = request.args.get('reloadCache', None) is not None or api.is_time(timeout)
             
             api.configure_route(path,parameters=parameters,cache=cache)
+
             if api.keep(path,parameters) and not reloadCache: 
                 api.get_cached(path,parameters)
             else:
@@ -104,6 +107,9 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
                 else:
                     api.set_error('inputs')
                 api.cache(path,parameters)
+
+            if api.mode == 'html':
+                return render_template(api.html['page'],**api.html['parameters'])
             if api.mode == 'print':
                 return api.message
             if api.mode == 'file':
@@ -116,6 +122,7 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
                         abort(404)
                 else:
                     api.set_error('missing_file')
+
             return api.get_return()
         api_wrapper.__name__ = func.__name__
         api_wrapper._kwargs   = {
@@ -144,9 +151,9 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Credentials', 'true')
     return response
 
-@route("/api-map")
+@route("/map",parameters=[Parameter('all',default=False)])
 def api_map():
-    api.set_data(api_core.get_routes_infos())
+    api.set_data(api_core.get_routes_infos(all=api.get('all')))
 
 @route('/test',parameters=[Parameter('name')])
 def api_test():

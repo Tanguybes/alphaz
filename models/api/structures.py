@@ -1,11 +1,14 @@
 import os, configparser, datetime, copy
 
+from dicttoxml import dicttoxml
+
 from flask import Flask
-from flask import jsonify, request
+from flask import jsonify, request, Response, make_response
 from flask_mail import Mail
 
 from ...libs import mail_lib
 from ...utils.logger import AlphaLogger
+from ...utils import AlphaException
 from ...config.config import AlphaConfig
 
 from .utils import AlphaJSONEncoder
@@ -50,38 +53,41 @@ def jsonify_data(data):
     return result
 
 class AlphaFlask(Flask):
-    user            = None
-    mode            = 'data'
-    message         = 'No message'
-    data            = {}
-    returned        = {}
-
-    debug           = False
-
-    conf            = None
-    config_path     = ''
-
-    verbose         = False
-
-    current_route   = None
-    routes          = {}
-    routes_values   = {}
-
-    dataPost        = {}
-    dataGet         = {}
-
-    log = None
-    db = None
-
-    #connections     = {}
-
-    file_to_send           = (None, None)
 
     def __init__(self,*args,**kwargs):
-        self.pid = None
         super().__init__(*args,**kwargs)
+        self.pid            = None
+        self.format         = 'json'
+        self.html           = {'page':None,'parameters':None}
 
-        self.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
+        self.user           = None
+        self.mode           = 'data'
+        self.message        = 'No message'
+        self.data           = {}
+        self.returned       = {}
+
+        self.debug          = False
+
+        self.conf           = None
+        self.config_path    = ''
+
+        self.verbose        = False
+
+        self.current_route  = None
+        self.routes         = {}
+        self.routes_values  = {}
+
+        self.dataPost       = {}
+        self.dataGet        = {}
+
+        self.log            = None
+        self.db             = None
+
+        #connections     = {}
+
+        self.file_to_send   = (None, None)
+
+        self.secret_key     = b'_5#y2L"F4Q8z\n\xec]/'
         self.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True #TODO: enhance
 
     def init(self,config_path,configuration=None,root=None,encode_rules={}):
@@ -93,7 +99,7 @@ class AlphaFlask(Flask):
             for key, value in confs.items():
                 self.config[key] = value
             
-        self.json_encoder                            = AlphaJSONEncoder
+        self.json_encoder = AlphaJSONEncoder
         for key_rule, fct in encode_rules.items():
             AlphaJSONEncoder.rules[key_rule] = fct
 
@@ -156,7 +162,7 @@ class AlphaFlask(Flask):
     def set_config(self,config_path,configuration=None,root=None):
         self.config_path    = config_path
         self.configuration  = configuration
-        print('Set api configuration ...')
+        self.info('Set api configuration from %s ...'%config_path)
         self.conf           = AlphaConfig(filepath=config_path,configuration=configuration,root=root) # root=os.path.dirname(os.path.realpath(__file__))
 
     def get_database(self,name):
@@ -181,6 +187,10 @@ class AlphaFlask(Flask):
         self.mode       = 'file'
         self.file_to_send       = (directory, filename)
 
+    def set_html(self,page,parameters={}):
+        self.mode = 'html'
+        self.html = {'page':page,'parameters':parameters}
+
     def get_cached(self,api_route,parameters=[]):
         key = self.get_key(api_route,parameters)
         if self.verbose:
@@ -197,9 +207,15 @@ class AlphaFlask(Flask):
     
         self.returned['data'] = jsonify_data(self.returned['data'])
 
-        returned = jsonify(self.returned)
-        if return_status is not None:
-            returned.status_code = return_status
+        if self.format == 'xml':
+            xml_output = dicttoxml(self.returned)                                              
+            response = make_response(xml_output)                                           
+            response.headers['Content-Type'] = 'text/xml; charset=utf-8'            
+            return response
+        else:
+            returned = jsonify(self.returned)
+            if return_status is not None:
+                returned.status_code = return_status
 
         return returned
 
@@ -223,6 +239,9 @@ class AlphaFlask(Flask):
         self.message    = message
 
     def set_error(self,message):
+        if type(message) == AlphaException:
+            message = message.name
+
         self.returned['status']     = message
         self.returned['error']      = 1
 
