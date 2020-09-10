@@ -13,7 +13,8 @@ log = core.get_logger('api')
 @route('/')
 def home():
     config = api.conf
-    #statistics = api.statistics
+
+    debug =  core.config.configuration != 'prod'
 
     api.set_html('home.html',parameters={
         'mode':core.config.configuration,
@@ -23,9 +24,10 @@ def home():
         'year':datetime.datetime.now().year,
         'users':0,
         'ip': request.environ['REMOTE_ADDR'],
-        'admin': core.config.configuration == 'local',
+        'admin': debug,
         'routes': get_routes_infos(log=log),
         'compagny': config.get('parameters/compagny'),
         'compagny_website': config.get('parameters/compagny_website'),
-        'statistics': core.config.configuration == 'local'
+        'statistics': debug,
+        'dashboard':debug,
     })

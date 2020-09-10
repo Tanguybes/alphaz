@@ -8,21 +8,11 @@ from ...models import database as database_models
 from ..api.structures import AlphaFlask
 from ..database.structure import AlphaDatabaseNew
 
-from flask_marshmallow import Marshmallow
-from flask_admin import Admin    
-from flask_statistics import Statistics
-from flask_debugtoolbar import DebugToolbarExtension
-
-import flask_monitoringdashboard as dashboard
-
-from itertools import chain
-
 class AlphaCore: 
     instance                = None
 
     api         = None
     db          = None
-    admin_db    = None
     ma          = None
 
     databases   = {}
@@ -65,6 +55,7 @@ class AlphaCore:
         self.api            = AlphaFlask(__name__,
             template_folder=self.root + os.sep + 'templates',
             static_folder=self.root + os.sep + 'static')
+        self.ma = self.api.ma
             
         #self.config.api     = self.api
         db_cnx              = self.config.db_cnx
@@ -95,22 +86,6 @@ class AlphaCore:
             db_logger       = self.config.get_logger('main')
 
         self.db             = AlphaDatabaseNew(self.api,name="main",log=db_logger,config=db_cnx['main'])
-
-        self.ma             = Marshmallow(self.api)
-
-        from ..database.main_definitions import Request
-        self.api.statistics = Statistics(self.api, self.db, Request)
-
-        toolbar = DebugToolbarExtension(self.api)
-
-        #config_dashboard = os.path.join(self.root,'apis','config.cfg')
-
-        #dashboard.config.init_from(file=config_dashboard)
-        dashboard.bind(self.api)
-
-        #Base.prepare(self.db.engine, reflect=True)
-
-        #set_alpha_tables(self.db)
 
         for name, cf in db_cnx.items():
             self.databases[name] = AlphaDatabaseNew(self.api,name=name,log=db_logger,config=cf)
@@ -151,22 +126,6 @@ class AlphaCore:
             if self.config is None:
                 print('Configuration need to be initialized')
                 exit()
-
-    def init_admin_view(self,models_sources):
-        modules             = flask_lib.get_definitions_modules(models_sources,log=self.log)
-
-        views               = list(chain(*[flask_lib.load_views(module=x) for x in modules]))
-        endpoints           = [x.endpoint for x in views]
-
-        from alphaz.models.database.views import views as alpha_views
-        for view in alpha_views:
-            if view.endpoint not in endpoints:
-                views.append(view)
-
-        api_name            = self.config.get('api/name')
-        self.admin_db       = Admin(self.api, name=api_name, template_mode='bootstrap3')
-        
-        self.admin_db.add_views(*views)
 
     def init_database(self,models_sources=[],databases=None,drop=False):
 
