@@ -56,6 +56,7 @@ class AlphaFlask(Flask):
 
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
+
         self.pid            = None
         self.format         = 'json'
         self.html           = {'page':None,'parameters':None}
@@ -82,19 +83,20 @@ class AlphaFlask(Flask):
 
         self.log            = None
         self.db             = None
+        self.statistics     = None
 
         #connections     = {}
 
         self.file_to_send   = (None, None)
 
-        self.secret_key     = b'_5#y2L"F4Q8z\n\xec]/'
-        self.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True #TODO: enhance
+        # need to put it here to avoid warnings
+        self.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True #TODO modify
 
     def init(self,config_path,configuration=None,root=None,encode_rules={}):
         self.set_config(config_path,configuration,root=root)
 
         # Flask configuration
-        confs = self.conf.get('conf')
+        confs = self.conf.get('config')
         if confs is not None:
             for key, value in confs.items():
                 self.config[key] = value
@@ -106,6 +108,13 @@ class AlphaFlask(Flask):
         root_log    = self.get_config('log_directory')
         self.log    = AlphaLogger('api','api',root=root_log)
 
+        self.config['SECRET_KEY'] = b'_5#y2L"F4Q8z\n\xec]/'
+
+        self.debug = self.conf.get('debug')
+        if self.debug:
+            self.info('Debug mode activated')
+
+        # MAILS
         mail_config = self.get_config('mails/mail_server')
 
         if mail_config is not None:
@@ -202,7 +211,9 @@ class AlphaFlask(Flask):
 
     def get_return(self,forceData=False, return_status=None):
         self.returned['data'] = {}
-        if self.data is not None and (len(self.data) > 0 or forceData):
+        
+        if self.data is not None:
+        #if self.data is not None and (len(self.data) > 0 or forceData):
             self.returned['data'] = self.data
     
         self.returned['data'] = jsonify_data(self.returned['data'])
@@ -362,10 +373,10 @@ class AlphaFlask(Flask):
     def is_time(self,timeout, verbose=False):
         is_time = False
         if timeout is not None:
-            now     = datetime.datetime.now()
-            lastrun = self.get_last_request_time()
-            nextrun = lastrun + datetime.timedelta(minutes=timeout)
-            is_time  = now > nextrun
+            now         = datetime.datetime.now()
+            lastrun     = self.get_last_request_time()
+            nextrun     = lastrun + datetime.timedelta(minutes=timeout)
+            is_time     = now > nextrun
 
             if verbose:
                 print('Time: ',is_time, ' now=',now,', lastrun=',lastrun,' nextrun=',nextrun)

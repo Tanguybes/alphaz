@@ -11,6 +11,11 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql.expression import or_, and_, all_
 from flask_sqlalchemy import SQLAlchemy
 
+from ...utils import AlphaException
+
+def get_compiled_query(query):
+    return query.statement.compile(compile_kwargs={"literal_binds": True})
+
 class Row(MutableMapping):
     """A dictionary that applies an arbitrary key-altering
        function before accessing the keys"""
@@ -97,7 +102,7 @@ class AlphaDatabaseNew(SQLAlchemy):
         
         try:
             self.engine.execute(query, values)
-            self.query_str = self.engine.statement
+            self.query_str = get_compiled_query(query)
             return True
         except Exception as err:
             self.log.error(err)
@@ -141,7 +146,7 @@ class AlphaDatabaseNew(SQLAlchemy):
             #function    = parentframe.function
             #index       = parentframe.index
 
-        #self.query_str = query.statement
+        #self.query_str = get_compiled_query(query)
         return rows
 
     def insert(self,model,values={},commit=True,test=False):
@@ -169,8 +174,7 @@ class AlphaDatabaseNew(SQLAlchemy):
             try:
                 self.commit()
             except Exception as ex:
-                print(str(ex))
-                return str(ex)
+                raise AlphaException('database_insert',message=str(ex))
         return None
 
     def commit(self):
@@ -218,7 +222,7 @@ class AlphaDatabaseNew(SQLAlchemy):
 
         if count:
             results = query.count()
-            self.query_str = query.statement
+            self.query_str = get_compiled_query(query)
             return results
             
         try:
@@ -227,11 +231,11 @@ class AlphaDatabaseNew(SQLAlchemy):
             else:
                 results = query.all(unique)  if not first else query.first(unique)
         except Exception as ex:
-            self.log.error('non valid query "%s" \n%s'%(query.statement,str(ex)))
+            self.log.error('non valid query "%s" \n%s'%(get_compiled_query(query),str(ex)))
             results = []
 
         if not json:
-            self.query_str = query.statement
+            self.query_str = get_compiled_query(query)
             return results
 
         results_json = {}
@@ -241,9 +245,7 @@ class AlphaDatabaseNew(SQLAlchemy):
             results_json    = structures.dump(results)
         else:
             self.log.error('Missing schema for model <%s>'%str(model.__name__))
-        self.query_str = query.statement
-
-        self.query_str = self.query_str.compile(compile_kwargs={"literal_binds": True})
+        self.query_str = get_compiled_query(query)
         return results_json
 
     def update(self,model,values={},filters={}):

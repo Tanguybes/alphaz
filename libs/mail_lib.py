@@ -286,3 +286,6 @@ def is_blacklisted(db,user_mail,mail_type,close_cnx=True,log=None):
         defs.MailBlacklist.mail==user_mail
     ],json=True)
     return len(results) != 0
+
+
+

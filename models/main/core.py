@@ -10,6 +10,10 @@ from ..database.structure import AlphaDatabaseNew
 
 from flask_marshmallow import Marshmallow
 from flask_admin import Admin    
+from flask_statistics import Statistics
+from flask_debugtoolbar import DebugToolbarExtension
+
+import flask_monitoringdashboard as dashboard
 
 from itertools import chain
 
@@ -55,15 +59,13 @@ class AlphaCore:
     def info(self,message):
         if self.log: self.log.info(message)
 
-    def prepare_api(self,debug=False):
-        self.config.info('Configuring API for configuration %s ...'%self.config.config_file)
+    def prepare_api(self):
+        self.config.info('Configuring API from configuration %s ...'%self.config.config_file)
+
         self.api            = AlphaFlask(__name__,
             template_folder=self.root + os.sep + 'templates',
             static_folder=self.root + os.sep + 'static')
-        self.api.debug = debug
-        if debug:
-            self.info('Debug mode activated')
-
+            
         #self.config.api     = self.api
         db_cnx              = self.config.db_cnx
         if db_cnx is None:
@@ -83,8 +85,8 @@ class AlphaCore:
         for key, cf_db in db_cnx.items():
             self.api.config['SQLALCHEMY_BINDS'] = {x:y['cnx'] for x,y in db_cnx.items() if x != 'main'}
 
-        self.api.config['MYSQL_DATABASE_CHARSET']           = 'utf8mb4'
-        self.api.config['QLALCHEMY_TRACK_MODIFICATIONS']    = True
+        #self.api.config['MYSQL_DATABASE_CHARSET']           = 'utf8mb4'
+        #self.api.config['QLALCHEMY_TRACK_MODIFICATIONS']    = True
         #self.api.config['EXPLAIN_TEMPLATE_LOADING']         = True
         self.api.config['UPLOAD_FOLDER']                    = self.root + os.sep + 'templates'
 
@@ -95,7 +97,16 @@ class AlphaCore:
         self.db             = AlphaDatabaseNew(self.api,name="main",log=db_logger,config=db_cnx['main'])
 
         self.ma             = Marshmallow(self.api)
-        #self.api.db         = self.db
+
+        from ..database.main_definitions import Request
+        self.api.statistics = Statistics(self.api, self.db, Request)
+
+        toolbar = DebugToolbarExtension(self.api)
+
+        #config_dashboard = os.path.join(self.root,'apis','config.cfg')
+
+        #dashboard.config.init_from(file=config_dashboard)
+        dashboard.bind(self.api)
 
         #Base.prepare(self.db.engine, reflect=True)
 
