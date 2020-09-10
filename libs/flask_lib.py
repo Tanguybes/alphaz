@@ -2,8 +2,8 @@ import inspect, glob, os, importlib
 
 from flask_admin.contrib.sqla import ModelView
 from flask import Markup
-from typing import List
-from types import ModuleType
+
+from ..utils import *
 
 from ..utils.logger import AlphaLogger
 from ..models.database.structure import AlphaDatabaseNew

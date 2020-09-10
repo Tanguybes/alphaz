@@ -42,7 +42,7 @@ class AlphaModel(object):
         return class_obj.schema
 
 class AlphaModelId(AlphaModel):
-    id =  AlphaColumn(Integer, primary_key=True)
+    id =  AlphaColumn(Integer, primary_key=True, autoincrement=True)
 
 """def set_alpha_tables(db):
     engine  = db.get_engine()

@@ -1,19 +1,19 @@
+from core import core
 
+api     = core.api
+db      = core.get_database('logs')
 
-def clear_logs(api):
-    db      = api.get_database('logs')
-    query   = "TRUNCATE golliath_logs"
+def clear_logs():
+    query   = "TRUNCATE logs"
     return db.execute(query)
 
-def get_logs(api,start_date=None, end_date=None, useLimit=False, pageForLimit=1):
+def get_logs(start_date=None, end_date=None, useLimit=False, pageForLimit=1):
     total = 0
     logs = []
     limit = 20
     start = (pageForLimit - 1) * limit
 
-    db      = api.get_database('logs')
-
-    query = "SELECT COUNT(*) AS count FROM golliath_logs"
+    query = "SELECT COUNT(*) AS count FROM logs"
     parameters = []
     if start_date is not None and end_date is not None:
         query += " AND CAST(date AS DATE) between %s and %s"
@@ -25,9 +25,7 @@ def get_logs(api,start_date=None, end_date=None, useLimit=False, pageForLimit=1)
     for row in rows:
         total = row[0]
 
-    print("Total " + str(total))
-
-    query = "SELECT type, origin, message, stack, date FROM golliath_logs"
+    query = "SELECT type, origin, message, stack, date FROM logs"
     parameters = []
     if start_date is not None and end_date is not None:
         query += " AND CAST(date AS DATE) between %s and %s"
@@ -49,5 +47,4 @@ def get_logs(api,start_date=None, end_date=None, useLimit=False, pageForLimit=1)
         log["date"] = row[4]
         logs.append(log)
 
-    
     return {'total' : total, 'logs' : logs}
