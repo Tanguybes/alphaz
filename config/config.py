@@ -204,6 +204,7 @@ class AlphaConfig():
 
         self.add_tmp('configuration',configuration)
         self.add_tmp('run',os.getcwd())
+        self.add_tmp('project',os.getcwd())
 
         user = getpass.getuser()
         user_configured = False
@@ -673,40 +674,60 @@ def search_it(nested, target,path=None):
 def get_configs_matchs(string):
     return re.findall(r"\$config\(([^\$]+)\)",string)
 
+def check_value(value,found,paths,object_type,next_path):
+    parameters      = get_parameters(value)
+
+    if '{{project}}' in str(value):
+        print('    RRRR',value,parameters)
+
+    if object_type == 'parameters':
+        results     = [ x.replace('{{','').replace('}}','') for x in parameters]
+    else:
+        results     = get_configs_matchs(value)
+
+    if len(results) != 0:
+        found.append( results)
+        paths.append(next_path)
+
 def get_object_from_config(nested,path=None,object_type='parameters'):
     found, paths = [], []
     if path is None:
         path = []
 
-    for key, value in nested.items():
-        next_path   = copy.copy(path)
-        next_path.append(key)
+    if isinstance(nested, dict):
+        for key, value in nested.items():
+            next_path   = copy.copy(path)
+            next_path.append(key)
 
-        if isinstance(value, str):
-            parameters  = get_parameters(value)
+            if isinstance(value, str):
+                check_value(value,found,paths,object_type,next_path)
+            elif isinstance(value, dict):
+                f, p = get_object_from_config(value, next_path,object_type)
+                found.extend(f)
+                paths.extend(p)
+            elif isinstance(value, list):
+                f, p = get_object_from_config(value, next_path,object_type)
+                found.extend(f)
+                paths.extend(p)
+    elif isinstance(nested, list):
+        for i, value in enumerate(nested):
+            next_path   = copy.copy(path)
+            next_path.append(i)
 
-            if object_type == 'parameters':
-                results     = [ x.replace('{{','').replace('}}','') for x in parameters]
-            else:
-                results     = get_configs_matchs(value)
-
-            if len(results) != 0:
-                found.append( results)
-                paths.append(next_path)
-
-        elif isinstance(value, dict):
-            f, p = get_object_from_config(value, next_path,object_type)
-            found.extend(f)
-            paths.extend(p)
-        elif isinstance(value, list):
-            i = 0
-            for item in value:
-                if isinstance(item, dict):
-                    path.append(i)
-                    f, p = get_object_from_config(item, next_path,object_type)
-                    found.extend(f)
-                    paths.extend(p)
-                i += 1
+            if isinstance(value, str):
+                check_value(value,found,paths,object_type,next_path)
+            elif isinstance(value, dict):
+                f, p = get_object_from_config(value, next_path,object_type)
+                found.extend(f)
+                paths.extend(p)
+            elif isinstance(value, list):
+                f, p = get_object_from_config(value, next_path,object_type)
+                found.extend(f)
+                paths.extend(p)
+    """if '{{project}}' in str(nested):
+        print('  >>>',str(nested))
+        print('   found',found)
+        print('   path',paths)"""
     return found, paths
 
 def get_parameters_from_config(nested, path=None):
@@ -780,6 +801,8 @@ def replace_parameter(key,value,replace_value,i):
         print('ERROR: replacement limit exceed for parameter %s'%key)
         exit()
     i += 1
+
+    print('    LIST',key,value)
 
     if isinstance(value,dict):
         replacements = {}

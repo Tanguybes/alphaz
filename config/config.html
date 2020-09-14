@@ -1,0 +1,72 @@
+
+
+<style>
+    /* Remove default bullets */
+    ul, #myUL {
+      list-style-type: none;
+    }
+    
+    /* Remove margins and padding from the parent ul */
+    #myUL {
+      margin: 0;
+      padding: 0;
+    }
+    
+    /* Style the caret/arrow */
+    .caret {
+      cursor: pointer;
+      user-select: none; /* Prevent text selection */
+    }
+    
+    /* Create the caret/arrow with a unicode, and style it */
+    .caret::before {
+      content: "\25B6";
+      color: black;
+      display: inline-block;
+      margin-right: 6px;
+    }
+    
+    /* Rotate the caret/arrow icon when clicked on (using JavaScript) */
+    .caret-down::before {
+      transform: rotate(90deg);
+    }
+    
+    /* Hide the nested list */
+    .nested {
+      display: none;
+    }
+    
+    /* Show the nested list when the user clicks on the caret/arrow (with JavaScript) */
+    .active {
+      display: block;
+    }
+    </style><!DOCTYPE html> 
+
+<html class="sr js anime-ready" style lang=en>
+  <head>
+    <meta charset=utf-8>
+    <meta http-equiv=X-UA-Compatible content="IE=edge">
+    <meta name=viewport content="width=device-width, initial-scale=1">
+
+    <title>Alpha</title>
+
+    <link rel="stylesheet" href="config.css">
+    <link rel="icon" type="image/png" href="static/alpha.png" />
+  </head>
+
+    <body style=height:100%>
+        <ul id="myUL"><li>configuration: <sub style="color:blue">local<sub></li><li><span class="caret">configurations</span><ul class="nested"><li><span class="caret">local</span><ul class="nested"><li><span class="caret">databases</span><ul class="nested"><li>sub_configuration: <sub style="color:blue">True<sub></li><li>main: <sub style="color:blue">ALPHA<sub></li><li><span class="caret">ALPHA</span><ul class="nested"><li>new: <sub style="color:blue">True<sub></li><li>ini: <sub style="color:blue">True<sub></li><li>path: <sub style="color:blue">C:\alpha\duranda1\configs\/back/src/alpha.sqlite<sub></li><li>type: <sub style="color:blue">sqlite<sub></li><li>init_database_dir_json: <sub style="color:blue">C:\alpha\duranda1\configs\/back/src/ini/ALPHA<sub></li><li>init_database_dir_py: <sub style="color:blue">C:\Git\pyMES/tests/databases/ini<sub></li><li>cnx: <sub style="color:blue">sqlite:///C:\alpha\duranda1\configs\/back/src/alpha.sqlite<sub></li></ul></li><li><span class="caret">FCM</span><ul class="nested"><li>new: <sub style="color:blue">True<sub></li><li>path: <sub style="color:blue">C:\alpha\duranda1\configs\/back/src/fcm.sqlite<sub></li><li>type: <sub style="color:blue">sqlite<sub></li><li>cnx: <sub style="color:blue">sqlite:///C:\alpha\duranda1\configs\/back/src/fcm.sqlite<sub></li></ul></li><li><span class="caret">IFA</span><ul class="nested"><li>new: <sub style="color:blue">True<sub></li><li>path: <sub style="color:blue">C:\alpha\duranda1\configs\/back/src/ifa.sqlite<sub></li><li>type: <sub style="color:blue">sqlite<sub></li><li>cnx: <sub style="color:blue">sqlite:///C:\alpha\duranda1\configs\/back/src/ifa.sqlite<sub></li></ul></li><li><span class="caret">DATAWARE</span><ul class="nested"><li>new: <sub style="color:blue">True<sub></li><li>path: <sub style="color:blue">C:\alpha\duranda1\configs\/back/src/dw.sqlite<sub></li><li>type: <sub style="color:blue">sqlite<sub></li><li>cnx: <sub style="color:blue">sqlite:///C:\alpha\duranda1\configs\/back/src/dw.sqlite<sub></li></ul></li><li><span class="caret">PPDB</span><ul class="nested"><li>new: <sub style="color:blue">True<sub></li><li>path: <sub style="color:blue">C:\alpha\duranda1\configs\/back/src/ppdb.sqlite<sub></li><li>type: <sub style="color:blue">sqlite<sub></li><li>cnx: <sub style="color:blue">sqlite:///C:\alpha\duranda1\configs\/back/src/ppdb.sqlite<sub></li></ul></li><li>configuration: <sub style="color:blue">local<sub></li><li>run: <sub style="color:blue">C:\Git\pyMES<sub></li><li>project: <sub style="color:blue">C:\Git\pyMES<sub></li><li>user: <sub style="color:blue">duranda1<sub></li><li>ip: <sub style="color:blue">10.129.6.171<sub></li><li>platform: <sub style="color:blue">Windows<sub></li><li>root: <sub style="color:blue">C:\alpha\duranda1\configs\<sub></li></ul></li></ul></li><li><span class="caret">dev</span><ul class="nested"><li><span class="caret">databases</span><ul class="nested"><li>sub_configuration: <sub style="color:blue">True<sub></li><li>main: <sub style="color:blue">ALPHA<sub></li><li><span class="caret">ALPHA</span><ul class="nested"><li>new: <sub style="color:blue">True<sub></li><li>host: <sub style="color:blue">crx033.cro.st.com<sub></li><li>password: <sub style="color:blue">STCrollesDev_38<sub></li><li>user: <sub style="color:blue">alphadevadm<sub></li><li>port: <sub style="color:blue">1525<sub></li><li>sid: <sub style="color:blue">FCM<sub></li><li>type: <sub style="color:blue">oracle<sub></li></ul></li><li><span class="caret">FCM</span><ul class="nested"><li>new: <sub style="color:blue">True<sub></li><li>host: <sub style="color:blue">crx033.cro.st.com<sub></li><li>password: <sub style="color:blue">welcome_to_fcmdev0<sub></li><li>user: <sub style="color:blue">fcmdev<sub></li><li>port: <sub style="color:blue">1525<sub></li><li>sid: <sub style="color:blue">FCM<sub></li><li>type: <sub style="color:blue">oracle<sub></li></ul></li><li><span class="caret">IFA</span><ul class="nested"><li>new: <sub style="color:blue">True<sub></li><li>host: <sub style="color:blue">crx197.cro.st.com<sub></li><li>user: <sub style="color:blue">ifaadm<sub></li><li>password: <sub style="color:blue">ifaadm<sub></li><li>port: <sub style="color:blue">1532<sub></li><li>sid: <sub style="color:blue">AUTO<sub></li><li>type: <sub style="color:blue">oracle<sub></li></ul></li><li><span class="caret">DATAWARE</span><ul class="nested"><li>new: <sub style="color:blue">True<sub></li><li>host: <sub style="color:blue">srv_dw.cro.st.com<sub></li><li>user: <sub style="color:blue">dw_select<sub></li><li>password: <sub style="color:blue">dw_select<sub></li><li>port: <sub style="color:blue">1524<sub></li><li>sid: <sub style="color:blue">dw<sub></li><li>type: <sub style="color:blue">oracle<sub></li></ul></li><li>configuration: <sub style="color:blue">local<sub></li><li>run: <sub style="color:blue">C:\Git\pyMES<sub></li><li>project: <sub style="color:blue">C:\Git\pyMES<sub></li><li>user: <sub style="color:blue">duranda1<sub></li><li>ip: <sub style="color:blue">10.129.6.171<sub></li><li>platform: <sub style="color:blue">Windows<sub></li><li>root: <sub style="color:blue">C:\alpha\duranda1\configs\<sub></li></ul></li></ul></li><li><span class="caret">prod</span><ul class="nested"><li><span class="caret">databases</span><ul class="nested"><li>sub_configuration: <sub style="color:blue">True<sub></li><li>configuration: <sub style="color:blue">local<sub></li><li>run: <sub style="color:blue">C:\Git\pyMES<sub></li><li>project: <sub style="color:blue">C:\Git\pyMES<sub></li><li>user: <sub style="color:blue">duranda1<sub></li><li>ip: <sub style="color:blue">10.129.6.171<sub></li><li>platform: <sub style="color:blue">Windows<sub></li><li>root: <sub style="color:blue">C:\alpha\duranda1\configs\<sub></li></ul></li></ul></li></ul></li><li><span class="caret">loggers</span><ul class="nested"><li><span class="caret">auto</span><ul class="nested"><li>level: <sub style="color:blue">debug<sub></li><li>cmd_output: <sub style="color:blue">True<sub></li></ul></li><li><span class="caret">vms</span><ul class="nested"><li>level: <sub style="color:blue">debug<sub></li><li>cmd_output: <sub style="color:blue">True<sub></li></ul></li><li><span class="caret">processes</span><ul class="nested"><li>level: <sub style="color:blue">info<sub></li><li>cmd_output: <sub style="color:blue">True<sub></li></ul></li><li><span class="caret">database</span><ul class="nested"><li>level: <sub style="color:blue">debug<sub></li></ul></li><li><span class="caret">locks</span><ul class="nested"><li>level: <sub style="color:blue">info<sub></li></ul></li><li><span class="caret">r8_to_crolles_ifa</span><ul class="nested"><li>level: <sub style="color:blue">info<sub></li></ul></li><li><span class="caret">cron</span><ul class="nested"><li>level: <sub style="color:blue">info<sub></li></ul></li><li><span class="caret">synchronize_ws</span><ul class="nested"><li>level: <sub style="color:blue">info<sub></li></ul></li><li><span class="caret">seqblk</span><ul class="nested"><li>level: <sub style="color:blue">info<sub></li></ul></li><li><span class="caret">test</span><ul class="nested"><li>level: <sub style="color:blue">debug<sub></li></ul></li><li><span class="caret">api</span><ul class="nested"><li>level: <sub style="color:blue">debug<sub></li></ul></li></ul></li><li>root: <sub style="color:blue">/alpha/duranda1<sub></li><li>home: <sub style="color:blue">/alpha/duranda1<sub></li><li><span class="caret">directories</span><ul class="nested"><li>data: <sub style="color:blue">/alpha/duranda1/data<sub></li><li>logs: <sub style="color:blue">/alpha/duranda1/logs<sub></li><li>tests: <sub style="color:blue">['C:\\Git\\pyMES/tests']<sub></li></ul></li><li><span class="caret">environment</span><ul class="nested"><li>NLS_LANG: <sub style="color:blue">FRENCH_FRANCE.WE8ISO8859P1<sub></li></ul></li><li><span class="caret">platforms</span><ul class="nested"><li><span class="caret">windows</span><ul class="nested"><li>root: <sub style="color:blue">/alpha/duranda1<sub></li><li>home: <sub style="color:blue">/alpha/duranda1<sub></li></ul></li></ul></li><li>run: <sub style="color:blue">C:\Git\pyMES<sub></li><li>project: <sub style="color:blue">C:\Git\pyMES<sub></li><li>user: <sub style="color:blue">duranda1<sub></li><li>ip: <sub style="color:blue">10.129.6.171<sub></li><li>platform: <sub style="color:blue">Windows<sub></li><li><span class="caret">databases</span><ul class="nested"><li>sub_configuration: <sub style="color:blue">True<sub></li><li>main: <sub style="color:blue">ALPHA<sub></li><li><span class="caret">ALPHA</span><ul class="nested"><li>new: <sub style="color:blue">True<sub></li><li>ini: <sub style="color:blue">True<sub></li><li>path: <sub style="color:blue">C:\alpha\duranda1\configs\/back/src/alpha.sqlite<sub></li><li>type: <sub style="color:blue">sqlite<sub></li><li>init_database_dir_json: <sub style="color:blue">C:\alpha\duranda1\configs\/back/src/ini/ALPHA<sub></li><li>init_database_dir_py: <sub style="color:blue">C:\Git\pyMES/tests/databases/ini<sub></li><li>cnx: <sub style="color:blue">sqlite:///C:\alpha\duranda1\configs\/back/src/alpha.sqlite<sub></li></ul></li><li><span class="caret">FCM</span><ul class="nested"><li>new: <sub style="color:blue">True<sub></li><li>path: <sub style="color:blue">C:\alpha\duranda1\configs\/back/src/fcm.sqlite<sub></li><li>type: <sub style="color:blue">sqlite<sub></li><li>cnx: <sub style="color:blue">sqlite:///C:\alpha\duranda1\configs\/back/src/fcm.sqlite<sub></li></ul></li><li><span class="caret">IFA</span><ul class="nested"><li>new: <sub style="color:blue">True<sub></li><li>path: <sub style="color:blue">C:\alpha\duranda1\configs\/back/src/ifa.sqlite<sub></li><li>type: <sub style="color:blue">sqlite<sub></li><li>cnx: <sub style="color:blue">sqlite:///C:\alpha\duranda1\configs\/back/src/ifa.sqlite<sub></li></ul></li><li><span class="caret">DATAWARE</span><ul class="nested"><li>new: <sub style="color:blue">True<sub></li><li>path: <sub style="color:blue">C:\alpha\duranda1\configs\/back/src/dw.sqlite<sub></li><li>type: <sub style="color:blue">sqlite<sub></li><li>cnx: <sub style="color:blue">sqlite:///C:\alpha\duranda1\configs\/back/src/dw.sqlite<sub></li></ul></li><li><span class="caret">PPDB</span><ul class="nested"><li>new: <sub style="color:blue">True<sub></li><li>path: <sub style="color:blue">C:\alpha\duranda1\configs\/back/src/ppdb.sqlite<sub></li><li>type: <sub style="color:blue">sqlite<sub></li><li>cnx: <sub style="color:blue">sqlite:///C:\alpha\duranda1\configs\/back/src/ppdb.sqlite<sub></li></ul></li><li>configuration: <sub style="color:blue">local<sub></li><li>run: <sub style="color:blue">C:\Git\pyMES<sub></li><li>project: <sub style="color:blue">C:\Git\pyMES<sub></li><li>user: <sub style="color:blue">duranda1<sub></li><li>ip: <sub style="color:blue">10.129.6.171<sub></li><li>platform: <sub style="color:blue">Windows<sub></li><li>root: <sub style="color:blue">C:\alpha\duranda1\configs\<sub></li></ul></li></ul>
+    </body>
+
+    <script>
+      var toggler = document.getElementsByClassName("caret");
+      var i;
+
+      for (i = 0; i < toggler.length; i++) {
+        toggler[i].addEventListener("click", function() {
+          this.parentElement.querySelector(".nested").classList.toggle("active");
+          this.classList.toggle("caret-down");
+        });
+      }
+    </script>
+</html>
