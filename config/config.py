@@ -677,9 +677,6 @@ def get_configs_matchs(string):
 def check_value(value,found,paths,object_type,next_path):
     parameters      = get_parameters(value)
 
-    if '{{project}}' in str(value):
-        print('    RRRR',value,parameters)
-
     if object_type == 'parameters':
         results     = [ x.replace('{{','').replace('}}','') for x in parameters]
     else:
@@ -801,8 +798,6 @@ def replace_parameter(key,value,replace_value,i):
         print('ERROR: replacement limit exceed for parameter %s'%key)
         exit()
     i += 1
-
-    print('    LIST',key,value)
 
     if isinstance(value,dict):
         replacements = {}
