@@ -1,4 +1,4 @@
-import os, configparser, datetime, copy, jwt
+import os, configparser, datetime, copy, jwt, logging, re
 
 from dicttoxml import dicttoxml
 from itertools import chain
@@ -12,7 +12,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 from flask_admin import Admin    
 import flask_monitoringdashboard as dashboard
 
-from ...libs import mail_lib, flask_lib
+from ...libs import mail_lib, flask_lib, io_lib
 from ...utils.logger import AlphaLogger
 from ...utils import AlphaException
 from ...config.config import AlphaConfig
@@ -21,6 +21,50 @@ from .utils import AlphaJSONEncoder
 
 SEPARATOR = '::'
 MAIL_PARAMETERS_PATTERN = '[[%s]]'
+
+class WerkzeugColorFilter:
+    P_REQUEST_LOG = re.compile(r'^(.*?) - - \[(.*?)\] "(.*?)" (\d+) (\d+|-)$')
+    method_colors = {
+        'GET': 'green',
+        'POST': 'yellow',
+        'PUT': 'blue',
+        'DELETE': 'red',
+    }
+
+    def filter(self, record):
+        match = self.P_REQUEST_LOG.match(record.msg)
+        if match:
+            try:
+                ip, date, request_line, status_code, size = match.groups()
+                method = request_line.split(' ')[0]  # key 0 always exists
+                route = request_line.split()[1]
+                if route.strip() == '/' or '/static' in route:
+                    return False
+
+                fmt = self.method_colors.get(method.upper(), 'white')
+                request_line = io_lib.colored_term(request_line,fmt)
+                ip = io_lib.colored_term(ip,'blue')
+                date = io_lib.colored_term(date,'yellow')
+                try:
+                    status_code_value = int(status_code)
+                    if status_code_value >= 500:
+                        status_code = io_lib.colored_term(status_code, back='red')
+                    elif status_code_value >= 400:
+                        status_code = io_lib.colored_term(status_code,'red')
+                    elif status_code_value >= 300:
+                        status_code = io_lib.colored_term(status_code,'black','yellow')
+                    elif status_code_value >= 200:
+                        status_code = io_lib.colored_term(status_code,'green')
+                    else:
+                        status_code = io_lib.colored_term(status_code,bold=True)
+                except ValueError:
+                    pass
+                record.msg = '%s - - [%s] "%s" %s %s' % (
+                    ip, date, request_line, status_code, size
+                )
+            except ValueError:
+                pass
+        return record
 
 def fill_config(configuration,source_configuration):
     for key, value in configuration.items():
@@ -60,6 +104,10 @@ class AlphaFlask(Flask):
 
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
+        log = logging.getLogger('werkzeug')
+        log.addFilter(WerkzeugColorFilter())
+        
+        #log.disabled = True
 
         self.pid            = None
         self.format         = 'json'

@@ -1,7 +1,8 @@
-import os, datetime, inspect
+import os, datetime, inspect, sys, re
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from alphaz.models.main.singleton import singleton
+from alphaz.libs import io_lib
 
 import platform 
 plt = platform.system()
@@ -37,6 +38,41 @@ def get_level(level):
         lvl = logging.WARNING 
     return lvl
 
+class ColorFilter:
+    method_colors = {
+        ' INFO ': 'cyan',
+        ' DEBUG ': 'green',
+        ' WARNING ': 'magenta',
+        ' ERROR ': 'yellow',
+        ' CRITICAL ': 'red',
+        ' None ': 'red'
+    }
+
+    def filter(self, record):
+        patterned = []
+
+        msg = record.msg
+        for pattern, v in self.method_colors.items():
+            if pattern in msg:
+                msg = msg.replace(pattern,io_lib.colored_term(pattern,v))
+                patterned.append(pattern)
+        
+        for pattern in re.findall(r'\s<[a-zA-Z0-9]*>\s', msg):
+            msg = msg.replace(pattern,io_lib.colored_term(pattern,'green'))
+            patterned.append(pattern)
+
+        for pattern in re.findall(r'\s[\.0-9]*\s', msg):
+            msg = msg.replace(pattern,io_lib.colored_term(pattern,'magenta'))
+            patterned.append(pattern)
+
+        for pattern in re.findall(r'\s[A-Z]*\s', msg):
+            if not pattern in patterned:
+                msg = msg.replace(pattern,io_lib.colored_term(pattern,'cyan'))
+
+        record.msg = msg
+
+        return record
+
 class AlphaLogger():   
     date_format             = "%Y-%m-%d %H:%M:%S"
     format_log              = "$(date) - $(level) - $(pid) - $(file) - $(line) - $(name): $(message)" # %(processName)s %(filename)s:%(lineno)s
@@ -46,7 +82,6 @@ class AlphaLogger():
     def __init__(self,name,filename=None,root=None,cmd_output=True,level='INFO'):
         self.level          = 'info'
         self.date_str       = ""
-        self.cmd_output     = False
 
         if filename is None:
             filename        = name
@@ -62,6 +97,7 @@ class AlphaLogger():
 
         # Create logger
         self.logger             = logging.getLogger(name)
+        self.logger.addFilter(ColorFilter())
 
         self.set_level(level)
 
@@ -74,9 +110,13 @@ class AlphaLogger():
 
         self.logger.addHandler(handler)
 
+        if cmd_output:
+            handler = logging.StreamHandler(sys.stdout)
+            self.logger.addHandler(handler)
+
         self.pid            = os.getpid()
         self.name           = name
-        self.cmd_output     = cmd_output if cmd_output is not None else True
+        #self.cmd_output     = cmd_output if cmd_output is not None else True
     
     def set_level(self,level):
         self.level_show = get_level(level)
@@ -97,8 +137,8 @@ class AlphaLogger():
             fct_monitor = getattr(self.monitoring_logger,self.level.lower())
             fct_monitor(full_message.replace(self.name,monitor))
 
-        if self.cmd_output and get_level(self.level) >= self.level_show:
-            print('   ',full_message)
+        """if self.cmd_output and get_level(self.level) >= self.level_show:
+            print('   ',full_message)"""
 
     def get_formatted_message(self,message,caller):
         msg = self.format_log

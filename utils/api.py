@@ -39,8 +39,8 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
             if logged:
                 api.user            = api.get_logged_user()
 
-            if len(request.path.strip()) > 1:
-                api.info('{:4} {}'.format(request.method,request.path))
+            """if len(request.path.strip()) > 1:
+                api.info('{:4} {}'.format(request.method,request.path))"""
 
             missing = False
 
@@ -85,6 +85,7 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
 
             api.configure_route(path,parameters=parameters,cache=cache)
             reset_cache = request.args.get('reset_cache', None) is not None or api.is_time(timeout)
+            requester   = request.args.get('requester', None)
 
             if api.keep(path,parameters) and not reset_cache: 
                 api.get_cached(path,parameters)
