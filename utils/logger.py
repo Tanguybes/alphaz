@@ -5,9 +5,9 @@ from alphaz.models.main.singleton import singleton
 from alphaz.libs import io_lib
 
 import platform 
-plt = platform.system()
+PLATFORM = platform.system().lower()
 
-if plt.lower() == "windows":
+if PLATFORM == "windows":
     from concurrent_log_handler import ConcurrentRotatingFileHandler
 
 def get_alpha_logs_root():
@@ -39,38 +39,25 @@ def get_level(level):
     return lvl
 
 class ColorFilter:
-    method_colors = {
-        ' INFO ': 'cyan',
-        ' DEBUG ': 'green',
-        ' WARNING ': 'magenta',
-        ' ERROR ': 'yellow',
-        ' CRITICAL ': 'red',
-        ' None ': 'red'
-    }
+    def __init__(self,configuration):
+        self.configuration = configuration
 
     def filter(self, record):
         patterned = []
 
         msg = record.msg
-        for pattern, v in self.method_colors.items():
-            if pattern in msg:
-                msg = msg.replace(pattern,io_lib.colored_term(pattern,v))
-                patterned.append(pattern)
-        
-        for pattern in re.findall(r'\s<[a-zA-Z0-9]*>\s', msg):
-            msg = msg.replace(pattern,io_lib.colored_term(pattern,'green'))
-            patterned.append(pattern)
 
-        for pattern in re.findall(r'\s[\.0-9]*\s', msg):
-            msg = msg.replace(pattern,io_lib.colored_term(pattern,'magenta'))
-            patterned.append(pattern)
-
-        for pattern in re.findall(r'\s[A-Z]*\s', msg):
-            if not pattern in patterned:
-                msg = msg.replace(pattern,io_lib.colored_term(pattern,'cyan'))
+        for pattern, pattern_config in self.configuration.items():
+            for result in re.findall(pattern, msg):
+                if not result in patterned:
+                    msg = msg.replace(result,io_lib.colored_term(result,
+                        front=pattern_config.get('color',None),
+                        back=pattern_config.get('background',None),
+                        bold=pattern_config.get('bold',None)
+                    ))
+                    patterned.append(pattern)
 
         record.msg = msg
-
         return record
 
 class AlphaLogger():   
@@ -79,7 +66,7 @@ class AlphaLogger():
 
     monitoring_logger = None
 
-    def __init__(self,name,filename=None,root=None,cmd_output=True,level='INFO'):
+    def __init__(self,name,filename=None,root=None,cmd_output=True,level='INFO',colors=None):
         self.level          = 'info'
         self.date_str       = ""
 
@@ -97,14 +84,16 @@ class AlphaLogger():
 
         # Create logger
         self.logger             = logging.getLogger(name)
-        self.logger.addFilter(ColorFilter())
+
+        if colors:
+            self.logger.addFilter(ColorFilter(colors))
 
         self.set_level(level)
 
         # File handler
         handler             = TimedRotatingFileHandler(log_path, when="midnight", interval=1,backupCount=7)
 
-        if plt.lower() == "windows":
+        if PLATFORM == "windows":
             handler         = ConcurrentRotatingFileHandler(log_path,"a", 512*1024, 5)
         #handler.suffix  = "%Y%m%d"
 

@@ -303,11 +303,13 @@ class AlphaConfig():
         if self.logger_root is None:
           self.error('Missing "directories/logs" entry in configuration file %s'%self.config_file)
           exit()
+
+        colors = self.get("colors/loggers")
         
         # log
         if self.log is None:
             log_filename        = "alpha" #type(self).__name__.lower()
-            self.log            = AlphaLogger(type(self).__name__,log_filename,root=self.logger_root)
+            self.log            = AlphaLogger(type(self).__name__,log_filename,root=self.logger_root,colors=colors)
 
         if self.is_path("loggers"):
             for logger_name in self.get("loggers").keys():
@@ -320,7 +322,8 @@ class AlphaConfig():
                         filename    = logger_config.get("filename"),
                         root        = root if root is not None else self.logger_root,
                         cmd_output  = logger_config.get("cmd_output"),
-                        level       = logger_config.get("level")
+                        level       = logger_config.get("level"),
+                        colors      = colors
                     )
             
         main_logger_name = "main"
@@ -328,7 +331,8 @@ class AlphaConfig():
             self.log = AlphaLogger(
                 main_logger_name,
                 root        = self.logger_root,
-                cmd_output  = True
+                cmd_output  = True,
+                colors=colors
             )
             self.loggers[main_logger_name] = self.log
         
