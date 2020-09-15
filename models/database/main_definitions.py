@@ -1,5 +1,5 @@
 from sqlalchemy.ext.automap import automap_base
-from sqlalchemy import Table, Column, ForeignKey, Integer, String, Text, DateTime, UniqueConstraint
+from sqlalchemy import Table, Column, ForeignKey, Integer, String, Text, DateTime, UniqueConstraint, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.ext.declarative import declared_attr
@@ -16,20 +16,20 @@ ma = core.ma
 class Request(db.Model,AlphaModel):
     __tablename__ = "request"
 
-    index = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    response_time = db.Column(db.Float)
-    date = db.Column(db.DateTime)
-    method = db.Column(db.String)
-    size = db.Column(db.Integer)
-    status_code = db.Column(db.Integer)
-    path = db.Column(db.String)
-    user_agent = db.Column(db.String)
-    remote_address = db.Column(db.String)
-    exception = db.Column(db.String)
-    referrer = db.Column(db.String)
-    browser = db.Column(db.String)
-    platform = db.Column(db.String)
-    mimetype = db.Column(db.String)
+    index = AlphaColumn(Integer, primary_key=True, autoincrement=True)
+    response_time = AlphaColumn(Float)
+    date = AlphaColumn(DateTime)
+    method = AlphaColumn(String(6))
+    size = AlphaColumn(Integer)
+    status_code = AlphaColumn(Integer)
+    path = AlphaColumn(String(100))
+    user_agent = AlphaColumn(String(200))
+    remote_address = AlphaColumn(String(20))
+    exception = AlphaColumn(String(500))
+    referrer = AlphaColumn(String(100))
+    browser = AlphaColumn(String(100))
+    platform = AlphaColumn(String(20))
+    mimetype = AlphaColumn(String(30))
 
 class NewsLetter(db.Model,AlphaModelId):
     name  = AlphaColumn(String(100))

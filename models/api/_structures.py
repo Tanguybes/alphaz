@@ -1,113 +1,33 @@
-import os, configparser, datetime, copy, jwt, logging, re
+import os, configparser, datetime, copy, jwt, logging, re, itertools, sys, importlib
 
 from dicttoxml import dicttoxml
-from itertools import chain
 
-from flask import Flask
-from flask import jsonify, request, Response, make_response
+from flask import Flask, jsonify, request, Response, make_response
 from flask_mail import Mail
 from flask_marshmallow import Marshmallow
 from flask_statistics import Statistics
 from flask_debugtoolbar import DebugToolbarExtension
 from flask_admin import Admin    
-import flask_monitoringdashboard as dashboard
+import flask_monitoringdashboard
 
 from ...libs import mail_lib, flask_lib, io_lib
 from ...utils.logger import AlphaLogger
 from ...utils import AlphaException
 from ...config.config import AlphaConfig
 
-from .utils import AlphaJSONEncoder
+from . import _converters, _utils, _colorations
 
 SEPARATOR = '::'
-MAIL_PARAMETERS_PATTERN = '[[%s]]'
-
-class WerkzeugColorFilter:
-    P_REQUEST_LOG = re.compile(r'^(.*?) - - \[(.*?)\] "(.*?)" (\d+) (\d+|-)$')
-    method_colors = {
-        'GET': 'green',
-        'POST': 'yellow',
-        'PUT': 'blue',
-        'DELETE': 'red',
-    }
-
-    def filter(self, record):
-        match = self.P_REQUEST_LOG.match(record.msg)
-        if match:
-            try:
-                ip, date, request_line, status_code, size = match.groups()
-                method = request_line.split(' ')[0]  # key 0 always exists
-                route = request_line.split()[1]
-                if route.strip() == '/' or '/static' in route:
-                    return False
-
-                fmt = self.method_colors.get(method.upper(), 'white')
-                request_line = io_lib.colored_term(request_line,fmt)
-                ip = io_lib.colored_term(ip,'blue')
-                date = io_lib.colored_term(date,'yellow')
-                try:
-                    status_code_value = int(status_code)
-                    if status_code_value >= 500:
-                        status_code = io_lib.colored_term(status_code, back='red')
-                    elif status_code_value >= 400:
-                        status_code = io_lib.colored_term(status_code,'red')
-                    elif status_code_value >= 300:
-                        status_code = io_lib.colored_term(status_code,'black','yellow')
-                    elif status_code_value >= 200:
-                        status_code = io_lib.colored_term(status_code,'green')
-                    else:
-                        status_code = io_lib.colored_term(status_code,bold=True)
-                except ValueError:
-                    pass
-                record.msg = '%s - - [%s] "%s" %s %s' % (
-                    ip, date, request_line, status_code, size
-                )
-            except ValueError:
-                pass
-        return record
-
-def fill_config(configuration,source_configuration):
-    for key, value in configuration.items():
-        for key2, value2 in source_configuration.items():
-            if type(value) != dict and MAIL_PARAMETERS_PATTERN%key2 in str(value):
-                value = str(value).replace(MAIL_PARAMETERS_PATTERN%key2,value2)
-        configuration[key] = value
-
-def merge_configuration(configuration,source_configuration,replace=False):
-    new_configuration = {}
-    for key2, value2 in source_configuration.items():
-        if (not key2 in configuration or replace) and type(value2) != dict:
-            configuration[key2] = value2
-
-def jsonify_database_models(model,first=False):
-    schema          = model.get_schema()
-    structures      = schema(many=True) if not first else schema()
-    results_json    = structures.dump([model])
-    return results_json
-
-def jsonify_data(data):
-    if type(data) == list:
-        result = [jsonify_data(x) for x in data]
-    elif type(data) == dict:
-        result = {jsonify_data(x):jsonify_data(y) for x,y in data.items()}
-    else:
-        result = data
-        if hasattr(data,"schema"):
-            print('schema',data)
-            result = jsonify_database_models(data)
-        #else:
-        #    print('no data',data)
-        #    result = jsonify(data)
-    return result
 
 class AlphaFlask(Flask):
 
-    def __init__(self,*args,**kwargs):
+    def __init__(self,*args,no_log:bool=False,**kwargs):
         super().__init__(*args,**kwargs)
+
+        # Get werkzueg logger
         log = logging.getLogger('werkzeug')
-        log.addFilter(WerkzeugColorFilter())
-        
-        #log.disabled = True
+        log.addFilter(_colorations.WerkzeugColorFilter())
+        log.disabled        = no_log
 
         self.pid            = None
         self.format         = 'json'
@@ -118,8 +38,6 @@ class AlphaFlask(Flask):
         self.message        = 'No message'
         self.data           = {}
         self.returned       = {}
-
-        self.debug          = False
 
         self.conf           = None
         self.config_path    = ''
@@ -140,8 +58,6 @@ class AlphaFlask(Flask):
         self.admin_db       = None
         self.ma             = None
 
-        #connections     = {}
-
         self.file_to_send   = (None, None)
 
         # need to put it here to avoid warnings
@@ -149,10 +65,16 @@ class AlphaFlask(Flask):
 
         self.ma = Marshmallow(self)
 
-    def init(self,config_path,db,configuration=None,root=None,encode_rules={}):
-        self.set_config(config_path,configuration,root=root)
+    def init(self,encode_rules={}):
+        from core import core
+        self.log: AlphaLogger    = core.get_logger('api')
 
-        self.db = db
+        self.set_config('api',core.configuration)
+
+        for route in self.conf.get('routes'):
+            importlib.import_module(route)
+
+        self.db = core.db
 
         # Flask configuration
         confs = self.conf.get('config')
@@ -160,18 +82,15 @@ class AlphaFlask(Flask):
             for key, value in confs.items():
                 self.config[key] = value
 
-        self.json_encoder = AlphaJSONEncoder
+        self.json_encoder = _converters.AlphaJSONEncoder
         for key_rule, fct in encode_rules.items():
-            AlphaJSONEncoder.rules[key_rule] = fct
-
-        root_log    = self.get_config('log_directory')
-        self.log    = AlphaLogger('api','api',root=root_log)
+            _converters.AlphaJSONEncoder.rules[key_rule] = fct
 
         self.config['SECRET_KEY'] = b'_5#y2L"F4Q8z\n\xec]/'
 
-        self.debug = self.conf.get('debug')
+        """self.debug = self.conf.get('debug')
         if self.debug:
-            self.info('Debug mode activated')
+            self.info('Debug mode activated')"""
 
         # MAILS
         mail_config = self.get_config('mails/mail_server')
@@ -193,22 +112,26 @@ class AlphaFlask(Flask):
 
         #config_dashboard = os.path.join(self.root,'apis','config.cfg')
 
-        #dashboard.config.init_from(file=config_dashboard)
-        dashboard.bind(self)
+        #flask_monitoringdashboard.config.init_from(file=config_dashboard)
+        flask_monitoringdashboard.bind(self)
 
         from ..database.main_definitions import Request
-        if db is None:
+        if core.db is None:
             self.log.error('Cannot initiate statistics, db is None')
-        self.statistics = Statistics(self, db, Request)
+        self.statistics = Statistics(self, core.db, Request)
+
+        if core.config.configuration == 'local':
+            self.init_admin_view()
 
         #Base.prepare(self.db.engine, reflect=True)
 
         #set_alpha_tables(self.db)
 
-    def init_admin_view(self,models_sources):
+    def init_admin_view(self):
+        models_sources      = self.conf.get('models') or []
         modules             = flask_lib.get_definitions_modules(models_sources,log=self.log)
 
-        views               = list(chain(*[flask_lib.load_views(module=x) for x in modules]))
+        views               = list(itertools.chain(*[flask_lib.load_views(module=x) for x in modules]))
         endpoints           = [x.endpoint for x in views]
 
         from ..database.views import views as alpha_views
@@ -237,6 +160,9 @@ class AlphaFlask(Flask):
         threaded    = self.conf.get('threaded')
         self.debug  = self.conf.get('debug')
 
+        if self.debug:
+            sys.dont_write_bytecode = True
+
         self.log.info('Run api on host %s port %s %s'%(host,port,'DEBUG MODE' if self.debug else ''))
 
         #try:
@@ -261,8 +187,7 @@ class AlphaFlask(Flask):
     def set_config(self,config_path,configuration=None,root=None):
         self.config_path    = config_path
         self.configuration  = configuration
-        self.info('Set api configuration from %s ...'%config_path)
-        self.conf           = AlphaConfig(filepath=config_path,configuration=configuration,root=root) # root=os.path.dirname(os.path.realpath(__file__))
+        self.conf           = AlphaConfig(filepath=config_path,configuration=configuration,root=root,log=self.log) # root=os.path.dirname(os.path.realpath(__file__))
 
     def get_database(self,name):
         return self.conf.get_database(name)
@@ -306,7 +231,7 @@ class AlphaFlask(Flask):
         #if self.data is not None and (len(self.data) > 0 or forceData):
             self.returned['data'] = self.data
     
-        self.returned['data'] = jsonify_data(self.returned['data'])
+        self.returned['data'] = _converters.jsonify_data(self.returned['data'])
 
         if self.format == 'xml':
             xml_output = dicttoxml(self.returned)                                              
@@ -416,11 +341,11 @@ class AlphaFlask(Flask):
 
     def error(self,message):
         if self.log is not None:
-            self.log.error(message)
+            self.log.error(message,level=4)
 
     def info(self,message):
         if self.log is not None:
-            self.log.info(message)
+            self.log.info(message,level=4)
 
     def get_logged_user(self):
         user_data   = None
@@ -507,16 +432,16 @@ class AlphaFlask(Flask):
 
             full_parameters = {'title':config['title']}
 
-            fill_config(parameters_config,source_configuration=parameters)
-            fill_config(root_config,source_configuration=parameters)
-            fill_config(root_config,source_configuration=parameters_config)
-            fill_config(parameters_config,source_configuration=root_config)
-            fill_config(parameters,source_configuration=parameters_config)
-            fill_config(parameters,source_configuration=root_config)
+            _utils.fill_config(parameters_config,source_configuration=parameters)
+            _utils.fill_config(root_config,source_configuration=parameters)
+            _utils.fill_config(root_config,source_configuration=parameters_config)
+            _utils.fill_config(parameters_config,source_configuration=root_config)
+            _utils.fill_config(parameters,source_configuration=parameters_config)
+            _utils.fill_config(parameters,source_configuration=root_config)
 
-            merge_configuration(full_parameters, source_configuration=root_config,replace=True)
-            merge_configuration(full_parameters, source_configuration=parameters_config,replace=True)
-            merge_configuration(full_parameters, source_configuration=parameters,replace=True)
+            _utils.merge_configuration(full_parameters, source_configuration=root_config,replace=True)
+            _utils.merge_configuration(full_parameters, source_configuration=parameters_config,replace=True)
+            _utils.merge_configuration(full_parameters, source_configuration=parameters,replace=True)
 
             full_parameters_list.append(full_parameters)
             """for key, value in full_parameters.items():

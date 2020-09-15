@@ -1,12 +1,14 @@
 import os, sys, datetime, glob, importlib, inspect
 
-from ...utils.logger import AlphaLogger
-from ...config.config import AlphaConfig
-from ...libs import io_lib, flask_lib, database_lib
-from ...models import database as database_models
+from ....utils.logger import AlphaLogger
+from ....config.config import AlphaConfig
+from ....libs import io_lib, flask_lib, database_lib
+from ....models import database as database_models
 
-from ..api.structures import AlphaFlask
-from ..database.structure import AlphaDatabaseNew
+from ...api import AlphaFlask
+from ...database.structure import AlphaDatabaseNew
+
+from . import _utils
 
 class AlphaCore: 
     instance                = None
@@ -31,11 +33,7 @@ class AlphaCore:
         self.configuration  = self.config.configuration
 
         # SET ENVIRONMENT VARIABLES
-        environs            = self.config.get('environment')
-
-        if environs:
-            for key, value in environs.items():
-                os.environ[key] = value
+        _utils.set_environment_variables(self.config.get('environment'))
 
         loggers_config      = self.config.get("loggers")
 
@@ -49,7 +47,9 @@ class AlphaCore:
     def info(self,message):
         if self.log: self.log.info(message)
 
-    def prepare_api(self):
+    def prepare_api(self,configuration):
+        self.set_configuration(configuration)
+
         self.config.info('Configuring API from configuration %s ...'%self.config.config_file)
 
         self.api            = AlphaFlask(__name__,
@@ -127,7 +127,8 @@ class AlphaCore:
                 print('Configuration need to be initialized')
                 exit()
 
-    def init_database(self,models_sources=[],databases=None,drop=False):
+    def init_databases(self,models_sources=[],databases=[],drop=False):
+        if len([x for x in databases if x is not None]) == 0: return
 
         modules             = flask_lib.get_definitions_modules(models_sources,log=self.log)
         from alphaz.models.database import main_definitions

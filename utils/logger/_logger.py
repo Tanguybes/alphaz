@@ -1,68 +1,20 @@
 import os, datetime, inspect, sys, re
 import logging
 from logging.handlers import TimedRotatingFileHandler
-from alphaz.models.main.singleton import singleton
+from alphaz.models.main import singleton
 from alphaz.libs import io_lib
 
 import platform 
 PLATFORM = platform.system().lower()
 
+from . import _colorations, _utils
+
 if PLATFORM == "windows":
     from concurrent_log_handler import ConcurrentRotatingFileHandler
 
-def get_alpha_logs_root():
-    current_folder  = os.path.dirname(os.path.realpath(__file__))
-    dirs            = current_folder.split(os.sep)
-    log_dir         = os.sep.join(dirs[:-1]) + os.sep + 'logs'
-    if not os.path.isdir(log_dir):
-        os.mkdir(log_dir)
-    return log_dir
-
-def check_root(root):
-    if root == '':
-        return root
-    if root is None:
-        root = get_alpha_logs_root()
-
-    if not os.path.isdir(root):
-        os.makedirs(root)
-    return root
-
-def get_level(level):
-    lvl = logging.INFO 
-    if level.upper() == 'ERROR':
-        lvl = logging.ERROR 
-    elif level.upper() == 'DEBUG':
-        lvl = logging.DEBUG 
-    elif level.upper() == 'WARNING':
-        lvl = logging.WARNING 
-    return lvl
-
-class ColorFilter:
-    def __init__(self,configuration):
-        self.configuration = configuration
-
-    def filter(self, record):
-        patterned = []
-
-        msg = record.msg
-
-        for pattern, pattern_config in self.configuration.items():
-            for result in re.findall(pattern, msg):
-                if not result in patterned:
-                    msg = msg.replace(result,io_lib.colored_term(result,
-                        front=pattern_config.get('color',None),
-                        back=pattern_config.get('background',None),
-                        bold=pattern_config.get('bold',None)
-                    ))
-                    patterned.append(pattern)
-
-        record.msg = msg
-        return record
-
 class AlphaLogger():   
     date_format             = "%Y-%m-%d %H:%M:%S"
-    format_log              = "$(date) - $(level) - $(pid) - $(file) - $(line) - $(name): $(message)" # %(processName)s %(filename)s:%(lineno)s
+    format_log              = "{$date} - {$level} - {$pid:5} - {$file:>20}.{$line:<4} - {$name:<10}: $message" # %(processName)s %(filename)s:%(lineno)s
 
     monitoring_logger = None
 
@@ -77,16 +29,13 @@ class AlphaLogger():
             parentframe     = inspect.stack()[1]
             module          = inspect.getmodule(parentframe[0])
             root            = os.path.abspath(module.__file__).replace(module.__file__,'')"""
-            root            = get_alpha_logs_root()
+            root            = _utils.get_alpha_logs_root()
 
-        self.root           = check_root(root)
+        self.root           =  _utils.check_root(root)
         log_path            = self.root + os.sep + filename + '.log'
 
         # Create logger
         self.logger             = logging.getLogger(name)
-
-        if colors:
-            self.logger.addFilter(ColorFilter(colors))
 
         self.set_level(level)
 
@@ -101,6 +50,8 @@ class AlphaLogger():
 
         if cmd_output:
             handler = logging.StreamHandler(sys.stdout)
+            if colors:
+                handler.addFilter(_colorations.ColorFilter(colors))
             self.logger.addHandler(handler)
 
         self.pid            = os.getpid()
@@ -108,7 +59,7 @@ class AlphaLogger():
         #self.cmd_output     = cmd_output if cmd_output is not None else True
     
     def set_level(self,level):
-        self.level_show = get_level(level)
+        self.level_show = _utils.get_level(level)
         self.logger.setLevel(self.level_show)
 
     def _log(self,message:str,caller,level:str='info',monitor:str=None):
@@ -126,13 +77,17 @@ class AlphaLogger():
             fct_monitor = getattr(self.monitoring_logger,self.level.lower())
             fct_monitor(full_message.replace(self.name,monitor))
 
-        """if self.cmd_output and get_level(self.level) >= self.level_show:
+        """if self.cmd_output and  _utils.get_level(self.level) >= self.level_show:
             print('   ',full_message)"""
 
     def get_formatted_message(self,message,caller):
         msg = self.format_log
-        
-        structure = '$(%s)'
+
+        parameters = re.findall("\{\$([a-zA-Z0-9]*):?[0-9<>]*\}", msg)
+
+        parameters_values = []
+
+        structure = '$%s'
         keys = {
             'date':     self.date_str,
             'pid':      self.pid,
@@ -143,27 +98,30 @@ class AlphaLogger():
             'line':     caller.lineno
         }
         
-        for key, value in keys.items():
-            if structure%key in self.format_log:
-                msg = msg.replace(structure%key,str(value))
+        for parameter_name in parameters:
+            if parameter_name in keys:
+                msg = msg.replace(structure%parameter_name,'')
+                parameters_values.append(keys[parameter_name])
 
         msg = msg.replace(structure%'message',str(message))
+
+        msg = msg.format(*parameters_values)
         return msg
 
-    def info(self,message,monitor=None):
-        self._log(message,inspect.getframeinfo(inspect.stack()[1][0]),'info',monitor=monitor)
+    def info(self,message,monitor=None,level=1):
+        self._log(message,inspect.getframeinfo(inspect.stack()[level][0]),'info',monitor=monitor)
 
-    def warning(self,message,monitor=None):
-        self._log(message,inspect.getframeinfo(inspect.stack()[1][0]),'warning',monitor=monitor)
+    def warning(self,message,monitor=None,level=1):
+        self._log(message,inspect.getframeinfo(inspect.stack()[level][0]),'warning',monitor=monitor)
 
-    def error(self,message,monitor=None):
-        self._log(message,inspect.getframeinfo(inspect.stack()[1][0]),'error',monitor=monitor)
+    def error(self,message,monitor=None,level=1):
+        self._log(message,inspect.getframeinfo(inspect.stack()[level][0]),'error',monitor=monitor)
 
-    def debug(self,message,monitor=None):
-        self._log(message,inspect.getframeinfo(inspect.stack()[1][0]),'debug',monitor=monitor)
+    def debug(self,message,monitor=None,level=1):
+        self._log(message,inspect.getframeinfo(inspect.stack()[level][0]),'debug',monitor=monitor)
 
-    def critical(self,message, monitor=None):
-        self._log(message,inspect.getframeinfo(inspect.stack()[1][0]),'critical',monitor=monitor)
+    def critical(self,message, monitor=None,level=1):
+        self._log(message,inspect.getframeinfo(inspect.stack()[level][0]),'critical',monitor=monitor)
 
     def set_current_date(self):
         current_date        = datetime.datetime.now()

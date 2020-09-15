@@ -69,6 +69,9 @@ def get_definitions_modules(modules_list:List[ModuleType],log:AlphaLogger) -> Li
     modules = []
 
     for module in modules_list:
+        if type(module) == str:
+            module = importlib.import_module(module)
+
         if '__init__.py' in module.__file__:
             sub_files   = glob.glob(module.__file__.replace('__init__','*'))
             names       = [os.path.basename(x).replace('.py','') for x in sub_files if not '__init__' in x]

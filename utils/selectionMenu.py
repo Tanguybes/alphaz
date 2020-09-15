@@ -33,7 +33,8 @@ class SelectionMenu():
 
     def __init__(self, name, parameters, save_directory, config_file=None, config_folder='config/menus',log=None):
         if log is None:
-            log = AlphaLogger('selection_menu')
+            log = core.get_logger()
+
         self.name           = name
         self.save_directory = save_directory
 

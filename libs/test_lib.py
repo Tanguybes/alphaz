@@ -5,19 +5,13 @@ from inspect import getmembers, isfunction, isclass
 from .py_lib import reload_modules
 
 def get_tests_auto(test_directory,rejects=[],name=None,group=None,import_path=None,log=None,verbose=False):
-    #if test_directory:
-    #test_directory = os.path.basename(os.path.dirname(os.path.realpath(__file__)))
-
     test_groups = TestGroups()
 
-    #test_dir    = test_root + os.sep + test_directory
-    if log is not None:
-        log.info('Loading tests in %s'%(os.getcwd() + os.sep + test_directory))   
+    if log: log.info('Loading tests in %s'%(os.getcwd() + os.sep + test_directory))   
 
     test_groups_directories = os.listdir(test_directory)
     if len(test_groups_directories) == 0:
-        if log is not None:
-            log.error('No tests files !')
+        if log: log.error('No tests files !')
 
     for path in test_groups_directories:
         if not path in rejects and not '__' in path and '.py' in path:    

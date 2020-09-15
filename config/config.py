@@ -5,10 +5,10 @@ import numpy as np
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
-from .utils import merge_configuration, get_parameters
+from . import utils
 
 from ..libs import converter_lib, sql_lib, io_lib
-from ..utils.logger import AlphaLogger, get_alpha_logs_root
+from ..utils.logger import AlphaLogger
 from ..models.database.structure import AlphaDatabase
 
 PAREMETER_PATTERN = '{{%s}}'
@@ -236,7 +236,7 @@ class AlphaConfig():
         self.init_data()
 
         if not self.sub_configuration: 
-            self.info('Configuration %s initiated for user %s%s, ip %s%s and platform %s%s'%(self.filepath,user,' ' if not user_configured else "*",current_ip,' ' if not ip_configured else "*",system_platform,' ' if not platform_configured else "*" ))
+            self.info('Configuration %s initiated for user <%s%s>, ip %s%s and platform <%s%s>'%(self.filepath,user,'' if not user_configured else "*",current_ip,' ' if not ip_configured else "*",system_platform,'' if not platform_configured else "*" ))
 
     def show(self):
         show(self.data)
@@ -275,10 +275,10 @@ class AlphaConfig():
         config_ip       = copy.deepcopy(self.data_ip)
         config_platform = copy.deepcopy(self.data_platform)
         
-        merge_configuration(config,config_ip,replace=True)
-        merge_configuration(config,config_platform,replace=True)
-        merge_configuration(config,config_user,replace=True)
-        merge_configuration(config,config_env,replace=True)
+        utils.merge_configuration(config,config_ip,replace=True)
+        utils.merge_configuration(config,config_platform,replace=True)
+        utils.merge_configuration(config,config_user,replace=True)
+        utils.merge_configuration(config,config_env,replace=True)
 
         if not 'root' in config:
             config['root'] = self.root
@@ -321,7 +321,7 @@ class AlphaConfig():
                         logger_name,
                         filename    = logger_config.get("filename"),
                         root        = root if root is not None else self.logger_root,
-                        cmd_output  = logger_config.get("cmd_output"),
+                        cmd_output  = logger_config.get("cmd_output") or True,
                         level       = logger_config.get("level"),
                         colors      = colors
                     )
@@ -434,7 +434,8 @@ class AlphaConfig():
                 name,
                 filename    = name,
                 root        = self.logger_root,
-                level       = default_level
+                level       = default_level,
+                colors      = self.get("colors/loggers")
             )
             return self.log
         return  self.loggers[name] 
@@ -679,7 +680,7 @@ def get_configs_matchs(string):
     return re.findall(r"\$config\(([^\$]+)\)",string)
 
 def check_value(value,found,paths,object_type,next_path):
-    parameters      = get_parameters(value)
+    parameters      = utils.get_parameters(value)
 
     if object_type == 'parameters':
         results     = [ x.replace('{{','').replace('}}','') for x in parameters]

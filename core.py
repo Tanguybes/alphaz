@@ -1,7 +1,6 @@
 import os, sys
 
-from alphaz.models.main.core import AlphaCore
-from alphaz.models.main.singleton import singleton
+from alphaz.models.main import AlphaCore, singleton
 
 @singleton
 class Core(AlphaCore):

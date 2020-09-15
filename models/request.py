@@ -2,6 +2,9 @@ import requests
 from alphaz.config.config import AlphaConfig
 from alphaz.utils.logger import AlphaLogger
 
+from core import core
+LOG = core.get_logger('http')
+
 class AlphaRequest():
     config: AlphaConfig = None
     host = None
@@ -10,9 +13,7 @@ class AlphaRequest():
         self.config = config
         self.host   = self.config.get('host')
 
-        if log is None:
-            logger_root = 'logs' if logger_root is None else logger_root
-            log      = AlphaLogger(type(self).__name__,type(self).__name__.lower(),root=logger_root)
+        self.log    = log or LOG
 
         super().__init__()
 

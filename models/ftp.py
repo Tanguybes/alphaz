@@ -1,6 +1,10 @@
 import pysftp, ftplib
 from ..utils.logger import AlphaLogger
 
+from core import core
+
+LOG = core.get_logger('ftp')
+
 class FtpFile():
     name = ""
     size = 0
@@ -34,7 +38,7 @@ class AlphaFtp():
         self.password   = password
         self.sftp       = sftp
 
-        self.log     = AlphaLogger('AlphaFtp','alpha_ftp') if log is None else log
+        self.log     = LOG if log is None else log
     
     def connect(self):
         if self.sftp:
