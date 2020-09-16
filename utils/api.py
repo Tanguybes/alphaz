@@ -101,6 +101,7 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
                 return render_template(api.html['page'],**api.html['parameters'])
             if api.mode == 'print':
                 return api.message
+
             if api.mode == 'file':
                 file_path, filename = api.file_to_send
                 if file_path is not None and filename is not None:

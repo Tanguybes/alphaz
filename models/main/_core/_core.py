@@ -54,7 +54,9 @@ class AlphaCore:
 
         self.api            = AlphaFlask(__name__,
             template_folder=self.root + os.sep + 'templates',
-            static_folder=self.root + os.sep + 'static')
+            static_folder=self.root + os.sep + 'templates',
+            root_path=self.root + os.sep + 'templates')
+
         self.ma = self.api.ma
             
         #self.config.api     = self.api

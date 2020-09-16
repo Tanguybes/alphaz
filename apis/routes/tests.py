@@ -12,11 +12,20 @@ log         = core.get_logger('api')
 
 category    = 'tests'
 
-@route('/tests',category=category,cache=True,timeout=10)
+@route('/tests',category=category,parameters=
+[
+    Parameter('category',ptype=str),
+    Parameter('group',ptype=str),
+    Parameter('name',ptype=str)
+])
 def get_tests():
-    for directory in core.config.get('directories/tests'):
-        tests = test_lib.get_tests_auto(directory)
-        api.set_data(tests)
+    tests = test_lib.get_tests_auto(
+        core.config.get('directories/tests'),
+        category=api.get('category'),
+        group=api.get('group'),
+        name=api.get('name')
+    )
+    api.set_data(tests)
 
 @route('/test',category=category,cache=True,timeout=100,
     parameters=[Parameter('value'),Parameter('options',options=['Y','N'])]

@@ -7,6 +7,8 @@ import datetime
 import pandas as pd
 import numpy as np
 
+from _collections_abc import dict_keys
+
 from flask import jsonify, request
 from flask.json import JSONEncoder
 
@@ -14,17 +16,7 @@ from flask_sqlalchemy.model import DefaultMeta
 
 from ...utils.decorators import overrides
 
-def datetime_to_str(o):
-    return str(o.strftime("%Y-%m-%d %H:%M:%S"))
-
-
-def object_to_panda(o):
-    return o.to_json(orient='index')
-
-
-def object_decode(o):
-    return o.decode('utf-8')
-
+from ...models.tests import TestCategories, TestCategory, TestGroup
 
 class AlphaJSONEncoder(JSONEncoder):
     rules = {}
@@ -32,13 +24,16 @@ class AlphaJSONEncoder(JSONEncoder):
     def __init__(self, *args, **kwargs):
         super(AlphaJSONEncoder, self).__init__(*args, **kwargs)
 
-        self.rules[np.int64]            = int
-        self.rules[datetime.datetime]   = datetime_to_str
-        self.rules[pd.DataFrame]        = object_to_panda
-        self.rules[bytes]               = object_decode
+        self.rules[np.int64] = int
+        self.rules[datetime.datetime] = lambda o: str(o.strftime("%Y-%m-%d %H:%M:%S"))
+        self.rules[pd.DataFrame] = lambda o: o.to_json(orient='index')
+        self.rules[bytes] = lambda o: o.decode('utf-8')
+        self.rules[dict_keys] = lambda o: list(o)
 
     def default(self, o): # pylint: disable=E0202
         try:
+            if hasattr(o,'to_json'):
+                return o.to_json()
             for key_type, fct in self.rules.items():
                 if isinstance(o, key_type):
                     returned_value = fct(o)

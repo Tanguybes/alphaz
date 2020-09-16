@@ -1,49 +1,60 @@
 import os, imp, sys, inspect
-from ..models.tests import TestGroups, TestGroup, AlphaTest, test
+from ..models.tests import TestGroup, AlphaTest, test, TestCategories
 import importlib
 from inspect import getmembers, isfunction, isclass
 from .py_lib import reload_modules
 
-def get_tests_auto(test_directory,rejects=[],name=None,group=None,import_path=None,log=None,verbose=False):
-    test_groups = TestGroups()
+from ..utils.logger import AlphaLogger
+from typing import List
 
-    if log: log.info('Loading tests in %s'%(os.getcwd() + os.sep + test_directory))   
+from core import core
+LOG = core.get_logger('test')
 
-    test_groups_directories = os.listdir(test_directory)
-    if len(test_groups_directories) == 0:
-        if log: log.error('No tests files !')
+def get_tests_auto(tests_modules:List[str],name:str=None,group:str=None,category:str=None,log:AlphaLogger=None,verbose:bool=False) -> TestCategories:
+    """Get the TestCategories class, containings all required tests
 
-    for path in test_groups_directories:
-        if not path in rejects and not '__' in path and '.py' in path:    
-            file_name           = path.replace('.py','')
-            if name is not None and file_name != name:
-                continue
-            if log is not None:
-                log.info('Get "%s" tests'%file_name)   
+    Args:
+        tests_modules (List[str]): list of test modules path
+        name (str, optional): the name of the test to select. Defaults to None.
+        group (str, optional): the name of the group to select. Defaults to None.
+        category (str, optional): the name of the category to select. Defaults to None.
+        log (AlphaLogger, optional): the logger. Defaults to None.
+        verbose (bool, optional): [description]. Defaults to False.
 
-            import_name         = "%s.%s"%(test_directory.replace('/','.'),file_name) if import_path is None else import_path + '.' + file_name
+    Returns:
+        TestCategories: [description]
+    """
+    if not log: log = LOG
 
-            module              = importlib.import_module(import_name)
-            importlib.reload(module)
-            
-            class_list = []
-            for o in getmembers(module):
-                is_class    = isclass(o[1])
-                if is_class:
-                    is_test = 'AlphaTest' in str(o[1].__bases__[0])
-                    if is_test:
-                        class_list.append(o)
+    test_categories = TestCategories()
 
-            #class_list      = [o for o in getmembers(module) if isclass(o[1]) and '_tests' in o[0].lower()]
+    for tests_module in tests_modules:
+        if log: log.info('Loading tests from %s'%(tests_module))   
 
-            for el in class_list:
-                test_group = TestGroup(file_name, el[0],el[1])
-                if group is None or group == test_group.name:
-                    if log is not None:
-                        log.info('Found function group %s'%test_group.name)   
-                    test_groups.set_test_group(test_group)
+        module              = importlib.import_module(tests_module)
+        importlib.reload(module)
+        
+        class_list = []
+        for o in getmembers(module):
+            is_class    = isclass(o[1])
+            if is_class:
+                is_test = 'AlphaTest' in str(o[1].__bases__[0])
+                if is_test:
+                    class_list.append(o)
 
-    return test_groups
+        #class_list      = [o for o in getmembers(module) if isclass(o[1]) and '_tests' in o[0].lower()]
+
+        for el in class_list:
+            test_group = TestGroup(el[0],el[1])
+
+            if category is not None and category != test_group.category: continue
+
+            if group is not None and group != test_group.name: continue
+
+            if log is not None and verbose: log.info('Found function group %s'%test_group.name)   
+            test_categories.add_test_group(test_group)
+
+    return test_categories
 
 def execute_all_tests_auto(directory,output=True,verbose=False,refresh=True,name=None,log=None):
     return operate_all_tests_auto(directory,output=output,verbose=verbose,refresh=refresh,name=name,log=log,
@@ -57,7 +68,7 @@ def operate_all_tests_auto(directory,output=True,verbose=False,refresh=True,name
     if refresh:
         reload_modules(os.getcwd(),verbose=False)
 
-    tests_groups = get_tests_auto(directory,group=group,import_path=import_path,log=log)
+    test_categories = get_tests_auto(directory,group=group,import_path=import_path,log=log)
 
     if action == 'execute':
         tests_groups.test_all(verbose=verbose)

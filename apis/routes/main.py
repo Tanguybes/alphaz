@@ -1,7 +1,8 @@
 import datetime
 
-from flask import request
+from flask import request, send_from_directory
 
+from ...libs import test_lib
 from ...utils.api import route, Parameter
 from ..main import get_routes_infos
 
@@ -9,6 +10,20 @@ from core import core
 api = core.api
 db  = core.db
 log = core.get_logger('api')
+
+@api.route('/assets/<path:path>')
+def send_js(path):
+    return send_from_directory('assets', filename=path)
+
+@api.route('/images/<path:path>')
+def send_images(path):
+    return send_from_directory('images', filename=path)
+
+@route('/page', parameters = [
+    Parameter('page',required=True,ptype=str)
+])
+def index():
+    api.set_html(api.get('page'))
 
 @route('/')
 def home():
@@ -30,4 +45,5 @@ def home():
         'compagny_website': config.get('parameters/compagny_website'),
         'statistics': debug,
         'dashboard':debug,
+        "tests":test_lib.get_tests_auto(core.config.get('directories/tests'))
     })
