@@ -13,22 +13,41 @@ class AlphaSsh():
         self.username = username
         self.password = password
         self.log = log
+        self.keys = keys
 
         self.ssh = paramiko.SSHClient()
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        if keys:
+
+    def connect(self):
+        if self.keys:
             self.ssh.connect(self.server, username=self.username, password=self.password)
         else:
             self.ssh.connect(self.server, username=self.username, password=self.password, look_for_keys=False)
-        self.scp = scp.SCPClient(self.ssh.get_transport())
+        connected = self.test()
+        if connected:
+            self.scp = scp.SCPClient(self.ssh.get_transport())
+        return connected
+
+    def __enter__(self):
+        self.connect()
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        self.disconnect()
+
+        if exc_type:
+            print(f'exc_type: {exc_type}')
+            print(f'exc_value: {exc_value}')
+            print(f'exc_traceback: {exc_traceback}')
 
     def disconnect(self):
         """Close ssh connection."""
-        self.ssh.close()
+        if self.test(): 
+            self.ssh.close()
         self.scp.close()  # Coming later
 
     def test(self):
-        return True
+        return self.ssh.get_transport() is not None and self.ssh.get_transport().is_active()
 
     def wait(self):
         ssh_stdin, ssh_stdout, ssh_stderr = self.ssh.exec_command('')
@@ -37,9 +56,11 @@ class AlphaSsh():
 
     def execute_cmd(self,cmd,decode=True):
         inputs, output, err = '', '', ''
-        ssh_stdin, ssh_stdout, ssh_stderr = self.ssh.exec_command(cmd)
+        ssh_stdin, ssh_stdout, ssh_stderr = self.ssh.exec_command(cmd, get_pty=True)
 
-        while not ssh_stdout.channel.exit_status_ready():
+        return ssh_stdout.read()
+
+        """while not ssh_stdout.channel.exit_status_ready():
             #Print data whena available
             if ssh_stdout.channel.recv_ready():
                 alldata =  ssh_stdout.channel.recv(1024)
@@ -47,7 +68,7 @@ class AlphaSsh():
                 while prevdata:
                         prevdata = ssh_stdout.channel.recv(1024)
                         alldata += prevdata
-                output += str(alldata)
+                output += str(alldata)"""
 
         """if ssh_stdin.readable():
             try:

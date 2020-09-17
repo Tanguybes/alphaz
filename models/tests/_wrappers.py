@@ -36,9 +36,11 @@ def test(save=False, description=None):
         def test_wrapper(*args,**kwargs):
             return func(*args, **kwargs)
 
-        print('exe',func)
-
-        test_wrapper.__name__ = func.__name__
+        if hasattr(func,'__name__'):
+            test_wrapper.__name__ = func.__name__
+        else:
+            pass
+        
         return test_wrapper
     return test_alpha_in
 

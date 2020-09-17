@@ -9,8 +9,8 @@ class TestGroup():
     tests       = {}
     verbose     = False
 
-    def __init__(self,raw_name,classObject):
-        self.name           = raw_name.replace('_Tests','').replace('_tests','')
+    def __init__(self,name,classObject):
+        self.name           = name.replace('_Tests','').replace('_tests','')
         self.classObject    = classObject
         self.tests          = {}
         self.category       = classObject.category

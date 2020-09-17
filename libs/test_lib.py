@@ -10,7 +10,15 @@ from typing import List
 from core import core
 LOG = core.get_logger('test')
 
-def get_tests_auto(tests_modules:List[str],name:str=None,group:str=None,category:str=None,log:AlphaLogger=None,verbose:bool=False) -> TestCategories:
+def get_tests_auto(
+        tests_modules:List[str],
+        name:str=None,
+        group:str=None,
+        category:str=None,
+        test:bool=False,
+        log:AlphaLogger=None,
+        verbose:bool=False
+    ) -> TestCategories:
     """Get the TestCategories class, containings all required tests
 
     Args:
@@ -42,8 +50,6 @@ def get_tests_auto(tests_modules:List[str],name:str=None,group:str=None,category
                 if is_test:
                     class_list.append(o)
 
-        #class_list      = [o for o in getmembers(module) if isclass(o[1]) and '_tests' in o[0].lower()]
-
         for el in class_list:
             test_group = TestGroup(el[0],el[1])
 
@@ -51,7 +57,11 @@ def get_tests_auto(tests_modules:List[str],name:str=None,group:str=None,category
 
             if group is not None and group != test_group.name: continue
 
-            if log is not None and verbose: log.info('Found function group %s'%test_group.name)   
+            if log is not None and verbose: log.info('Found function group %s'%test_group.name)
+
+            if test:
+                test_group.test_all()
+
             test_categories.add_test_group(test_group)
 
     return test_categories
