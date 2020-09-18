@@ -15,7 +15,7 @@ def get_tests_auto(
         name:str=None,
         group:str=None,
         category:str=None,
-        test:bool=False,
+        run:bool=False,
         log:AlphaLogger=None,
         verbose:bool=False
     ) -> TestCategories:
@@ -59,12 +59,15 @@ def get_tests_auto(
 
             if log is not None and verbose: log.info('Found function group %s'%test_group.name)
 
-            if test:
+            if run:
                 test_group.test_all()
+            else:
+                test_group.get_from_database()
 
             test_categories.add_test_group(test_group)
 
     return test_categories
+
 
 def execute_all_tests_auto(directory,output=True,verbose=False,refresh=True,name=None,log=None):
     return operate_all_tests_auto(directory,output=output,verbose=verbose,refresh=refresh,name=name,log=log,

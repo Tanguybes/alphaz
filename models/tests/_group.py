@@ -27,8 +27,12 @@ class TestGroup():
             if method_name == TEST_METHOD_NAME or TEST_METHOD_NAME in qual_name:
                 #print('>',method_name,method.__name__)
 
-                test_function                   = TestMethod(classObject,method_name,method)
+                test_function                   = TestMethod(classObject,method_name,method,self.category,self.name)
                 self.tests[test_function.name]  = test_function
+
+    def get_from_database(self):
+        for test in self.tests.values():
+            test.get_from_database()
 
     def test_all(self,verbose=False):
         self.classObject.verbose = verbose

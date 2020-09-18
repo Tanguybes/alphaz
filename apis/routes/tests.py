@@ -17,7 +17,7 @@ category    = 'tests'
     Parameter('category',ptype=str),
     Parameter('group',ptype=str),
     Parameter('name',ptype=str),
-    Parameter('test',ptype=bool)
+    Parameter('run',ptype=bool)
 ])
 def get_tests():
     tests = test_lib.get_tests_auto(
@@ -25,7 +25,7 @@ def get_tests():
         category=api.get('category'),
         group=api.get('group'),
         name=api.get('name'),
-        test=api.get('test')
+        run=api.get('run')
     )
     api.set_data(tests)
 

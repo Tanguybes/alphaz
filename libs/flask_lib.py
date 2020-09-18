@@ -10,6 +10,8 @@ from ..models.database.structure import AlphaDatabaseNew
 
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
+TABLES = {}
+
 def load_views(module:ModuleType) -> List[ModelView]:
     """[Load view from tables definitions module]
 
@@ -64,7 +66,7 @@ def get_definitions_modules(modules_list:List[ModuleType],log:AlphaLogger) -> Li
     Returns:
         List[ModuleType]: [description]
     """
-    from alphaz.models.database.models import AlphaModel
+    from alphaz.models.database.models import AlphaTable
 
     modules = []
 
@@ -83,19 +85,35 @@ def get_definitions_modules(modules_list:List[ModuleType],log:AlphaLogger) -> Li
                     log.error('Cannot load module %s.%s:\n   %s'%(module.__name__,sub_file_name,ex))
                     continue
                 
+                if not 'db' in sub_module.__dict__: continue
+                db = sub_module.__dict__['db']
+
+                if not db.name in TABLES:
+                    TABLES[db.name] = {}
+
                 found = False
                 for name, obj in sub_module.__dict__.items():
-                    if inspect.isclass(obj) and issubclass(obj,AlphaModel) and hasattr(obj,'__tablename__'):
+                    if inspect.isclass(obj) and issubclass(obj,AlphaTable) and hasattr(obj,'__tablename__'):
                         table = obj
                         found = True
+
+                        TABLES[db.name][obj.__tablename__] = obj
                 
                 if found:
                     modules.append(sub_module)
         else:
+            if not 'db' in module.__dict__: continue
+            db = module.__dict__['db']
+
+            if not db.name in TABLES:
+                TABLES[db.name] = {}
+
             for name, obj in module.__dict__.items():
-                if inspect.isclass(obj) and issubclass(obj,AlphaModel) and hasattr(obj,'__tablename__'):
+                if inspect.isclass(obj) and issubclass(obj,AlphaTable) and hasattr(obj,'__tablename__'):
                     table = obj
                     found = True
+
+                    TABLES[db.name][obj.__tablename__] = obj
             
             if found:
                 modules.append(module)

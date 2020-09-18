@@ -1,4 +1,6 @@
 from sqlalchemy import Table, Column, ForeignKey, Integer, String, Text, DateTime, UniqueConstraint
+from sqlalchemy.types import TypeDecorator
+
 from core import core
 
 db = core.get_database()
@@ -12,7 +14,7 @@ def repr(instance):
 class AlphaColumn(Column):
     show = True
 
-class AlphaModel(object):
+class AlphaTable(object):
     schema = None
 
     """@declared_attr
@@ -41,14 +43,36 @@ class AlphaModel(object):
         )
         return class_obj.schema
 
-class AlphaModelId(AlphaModel):
+class AlphaTableId(AlphaTable):
     id =  AlphaColumn(Integer, primary_key=True, autoincrement=True)
+
+class AlphaFloat(TypeDecorator):
+    impl = String
+
+    def process_literal_param(self, value, dialect):
+        return str(float(value)) if value is not None else None
+
+    process_bind_param = process_literal_param
+
+    def process_result_value(self, value, dialect):
+        return float(value) if value is not None else None
+
+class AlphaInteger(TypeDecorator):
+    impl = Integer
+
+    def process_literal_param(self, value, dialect):
+        return str(int(value)) if value is not None else None
+
+    process_bind_param = process_literal_param
+
+    def process_result_value(self, value, dialect):
+        return float(int) if value is not None else None
 
 """def set_alpha_tables(db):
     engine  = db.get_engine()
-    AlphaModel.prepare(engine)
+    AlphaTable.prepare(engine)
     #engine  = db.get_engine(bind="users")
-    #AlphaModel.prepare(engine, reflect=True)
+    #AlphaTable.prepare(engine, reflect=True)
     pass"""
 
 """

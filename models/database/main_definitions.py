@@ -4,7 +4,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.ext.declarative import declared_attr
 
-from .models import AlphaModel, AlphaModelId, AlphaColumn
+from .models import AlphaTable, AlphaTableId, AlphaColumn, AlphaFloat, AlphaInteger
 
 import datetime, inspect
 
@@ -13,7 +13,7 @@ from core import core
 db = core.get_database()
 ma = core.ma
 
-class Tests(db.Model,AlphaModelId):
+class Tests(db.Model,AlphaTableId):
     __tablename__ = 'tests'
 
     category  = AlphaColumn(String(50))
@@ -23,12 +23,12 @@ class Tests(db.Model,AlphaModelId):
     status = AlphaColumn(Integer)
     start_time          = AlphaColumn(DateTime)
     end_time          = AlphaColumn(DateTime)
-    elapsed  = AlphaColumn(String(50))
+    elapsed  = AlphaColumn(Float)
 
     update          = AlphaColumn(DateTime,default=datetime.datetime.utcnow(),
         onupdate=datetime.datetime.utcnow())
 
-class Request(db.Model,AlphaModel):
+class Request(db.Model,AlphaTable):
     __tablename__ = "request"
 
     index = AlphaColumn(Integer, primary_key=True, autoincrement=True)
@@ -46,14 +46,14 @@ class Request(db.Model,AlphaModel):
     platform = AlphaColumn(String(20))
     mimetype = AlphaColumn(String(30))
 
-class NewsLetter(db.Model,AlphaModelId):
+class NewsLetter(db.Model,AlphaTableId):
     name  = AlphaColumn(String(100))
     mail  = AlphaColumn(String(50))
 
     update          = AlphaColumn(DateTime,default=datetime.datetime.utcnow(),
         onupdate=datetime.datetime.utcnow())
 
-class Test(db.Model,AlphaModelId):
+class Test(db.Model,AlphaTableId):
     __tablename__ = 'test'
 
     name            = AlphaColumn(String(30))
@@ -63,7 +63,7 @@ class Test(db.Model,AlphaModelId):
     update          = AlphaColumn(DateTime,default=datetime.datetime.utcnow(),
         onupdate=datetime.datetime.utcnow())
 
-class User(db.Model,AlphaModelId):
+class User(db.Model,AlphaTableId):
     __tablename__ = 'user'
 
     username                    = AlphaColumn(String(30))
@@ -80,7 +80,7 @@ class User(db.Model,AlphaModelId):
     registration_token          = AlphaColumn(String(100))
     registration_code           = AlphaColumn(String(255))
 
-class Log(db.Model,AlphaModelId):
+class Log(db.Model,AlphaTableId):
     __tablename__   = 'log'
 
     type            = AlphaColumn(String(30))
@@ -89,7 +89,7 @@ class Log(db.Model,AlphaModelId):
     stack           = AlphaColumn(Text)
     date            = AlphaColumn(DateTime)
 
-class ProcesseLog(db.Model,AlphaModelId):
+class ProcesseLog(db.Model,AlphaTableId):
     __tablename__   = 'processe_log'
 
     uuid            = AlphaColumn(String(36))
@@ -98,7 +98,7 @@ class ProcesseLog(db.Model,AlphaModelId):
     status          = AlphaColumn(String(5))
     update_date     = AlphaColumn(DateTime)
 
-class UserSession(db.Model,AlphaModelId):
+class UserSession(db.Model,AlphaTableId):
     __tablename__   = 'user_session'
 
     user_id         = AlphaColumn(Integer)
@@ -106,7 +106,7 @@ class UserSession(db.Model,AlphaModelId):
     ip              = AlphaColumn(String(50))
     expire          = AlphaColumn(DateTime)
 
-class MailHistory(db.Model,AlphaModelId):
+class MailHistory(db.Model,AlphaTableId):
     __tablename__   = 'mail_history'
 
     uuid            = AlphaColumn(String(50))
@@ -115,7 +115,7 @@ class MailHistory(db.Model,AlphaModelId):
     parameters_full = AlphaColumn(String(500))
     date            = AlphaColumn(DateTime)
 
-class MailBlacklist(db.Model,AlphaModelId):
+class MailBlacklist(db.Model,AlphaTableId):
     __tablename__   = 'mail_blacklist'
     __table_args__  = (
         UniqueConstraint('mail', 'mail_type', name='unique_component_commit'),

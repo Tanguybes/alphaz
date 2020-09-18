@@ -103,6 +103,8 @@ class AlphaConfig():
 
             if 'configuration' in self.data_origin:
                 configuration = self.data_origin['configuration']
+            elif 'default_configuration' in self.data_origin:
+                configuration = self.data_origin['default_configuration']
             else:
                 self.error('Configuration need to be explicitely specified in configuration call or config file for %s file'%self.filepath)
 
@@ -242,7 +244,7 @@ class AlphaConfig():
         self.init_data()
 
         if self.core_configuration: 
-            self.info('Configuration %s initiated for user <%s%s>, ip %s%s and platform <%s%s>'%(self.filepath,user,'' if not user_configured else "*",current_ip,' ' if not ip_configured else "*",system_platform,'' if not platform_configured else "*" ))
+            self.info('Configuration %s initiated for user <%s%s>, %s%s ip and <%s%s> platform'%(self.filepath,user,'' if not user_configured else "*",current_ip,'' if not ip_configured else "*",system_platform,'' if not platform_configured else "*" ))
 
     def show(self):
         show(self.data)

@@ -120,15 +120,15 @@ class AlphaFlask(Flask):
             self.log.error('Cannot initiate statistics, db is None')
         self.statistics = Statistics(self, core.db, Request)
 
-        if core.config.configuration == 'local':
+        if self.conf.get('admin_databases'):
             self.init_admin_view()
 
         #Base.prepare(self.db.engine, reflect=True)
 
-        #set_alpha_tables(self.db)
-
     def init_admin_view(self):
         models_sources      = self.conf.get('models') or []
+
+        models_sources.append("alphaz.models.database.main_definitions")
         modules             = flask_lib.get_definitions_modules(models_sources,log=self.log)
 
         views               = list(itertools.chain(*[flask_lib.load_views(module=x) for x in modules]))

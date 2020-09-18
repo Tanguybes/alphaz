@@ -98,9 +98,11 @@ class AlphaCore:
             db_logger       = self.config.get_logger('main')
 
         self.db             = AlphaDatabaseNew(self.api,name="main",log=db_logger,config=db_cnx['main'])
-
         for name, cf in db_cnx.items():
-            self.databases[name] = AlphaDatabaseNew(self.api,name=name,log=db_logger,config=cf)
+            if name == 'main':
+                self.databases[name] = self.db
+            else:
+                self.databases[name] = AlphaDatabaseNew(self.api,name=name,log=db_logger,config=cf)
 
     def get_database(self,name=None) -> AlphaDatabaseNew:
         if self.api is None:
@@ -142,8 +144,9 @@ class AlphaCore:
     def init_databases(self,models_sources=[],databases=[],drop=False):
         if len([x for x in databases if x is not None]) == 0: return
 
+        models_sources.append("alphaz.models.database.main_definitions")
         modules             = flask_lib.get_definitions_modules(models_sources,log=self.log)
-        from alphaz.models.database import main_definitions
+        #from alphaz.models.database import main_definitions
 
         #if drop:
         #    self.db.drop_all()
@@ -226,7 +229,7 @@ class AlphaCore:
             self.get_entries(models_sources,file_path,ini)
 
     def get_entries(self,models_sources,file_path,configuration):
-        from alphaz.models.database.models import AlphaModel
+        from alphaz.models.database.models import AlphaTable
 
         for database, tables_config in configuration.items():
             db = database
@@ -246,7 +249,7 @@ class AlphaCore:
                     found = False
                     for model in models_sources:
                         for name, obj in model.__dict__.items():
-                            if inspect.isclass(obj) and issubclass(obj,AlphaModel) and hasattr(obj,'__tablename__') and table == obj.__tablename__:
+                            if inspect.isclass(obj) and issubclass(obj,AlphaTable) and hasattr(obj,'__tablename__') and table == obj.__tablename__:
                                 table = obj
                                 found = True
                         
@@ -262,7 +265,7 @@ class AlphaCore:
                                     continue
 
                                 for name, obj in sub_model.__dict__.items():
-                                    if inspect.isclass(obj) and issubclass(obj,AlphaModel) and hasattr(obj,'__tablename__') and table == obj.__tablename__:
+                                    if inspect.isclass(obj) and issubclass(obj,AlphaTable) and hasattr(obj,'__tablename__') and table == obj.__tablename__:
                                         table = obj
                                         found = True
 

@@ -1,9 +1,14 @@
-import datetime
+import datetime, re
 
 format_date     = "%Y-%m-%d %H:%M:%S"
 format_date2    = "%Y/%m/%d %H:%M:%S"
 format_date3    = "%d/%m/%Y %H:%M:%S"
 format_date_ws  = "%H:%M:%S.%f"
+
+def str_to_datetime_if_needed(date_string):
+    if re.findall(r'[0-9]+-[0-9]+-[0-9]+[T\s][0-9]+:[0-9]+:[0-9]+'):
+        return str_to_datetime(date_string)
+    return date_string
 
 def str_to_datetime(date_string):
     if date_string[2] == '/':

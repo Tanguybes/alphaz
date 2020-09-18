@@ -16,8 +16,6 @@ from flask_sqlalchemy.model import DefaultMeta
 
 from ...utils.decorators import overrides
 
-from ...models.tests import TestCategories, TestCategory, TestGroup
-
 class AlphaJSONEncoder(JSONEncoder):
     rules = {}
 
