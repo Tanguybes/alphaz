@@ -4,6 +4,7 @@ from ....utils.logger import AlphaLogger
 from ....config.config import AlphaConfig
 from ....libs import io_lib, flask_lib, database_lib
 from ....models import database as database_models
+from ....models.main._exception import EXCEPTIONS
 
 from ...api import AlphaFlask
 from ...database.structure import AlphaDatabaseNew
@@ -40,6 +41,15 @@ class AlphaCore:
         self.loggers        = self.config.loggers
 
         self.log            = self.config.get_logger('main')
+
+        exceptions          = self.config.get('exceptions')
+        if exceptions is not None:
+            for exception_group in exceptions:
+                for exception_name, exception_configuration in exception_group.items():
+                    if not exception_name in EXCEPTIONS:
+                        EXCEPTIONS[exception_name] = exception_configuration
+                    else:
+                        self.log.error('Duplicate exception name for %s'%exception_name)
 
     def error(self,message):
         if self.log: self.log.error(message)

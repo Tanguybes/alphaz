@@ -1,10 +1,16 @@
 import requests, json, re, os, pickle, pathlib, datetime
 from lxml.html import fromstring
+from ..models.main import AlphaFile
+
+import colorama
+from colorama import Fore, Back, Style
+colorama.init()
 
 def ensure_dir(file_path):
     directory = os.path.dirname(file_path)
     if directory != '' and not os.path.exists(directory):
         os.makedirs(directory)
+
 
 def ensure_file(filename):
     ensure_dir(filename)
@@ -14,9 +20,11 @@ def ensure_file(filename):
         with open(filename,"w") as f:
             f.write("")
 
+
 def myconverter(o):
     if isinstance(o, datetime.datetime):
         return o.__str__()
+
 
 def save_as_json(filename,data,verbose=False):
     ensure_file(filename)
@@ -28,6 +36,7 @@ def save_as_json(filename,data,verbose=False):
     with open(filename, 'w') as f:
         f.write(json_content)
         #json.dump(data, f)
+
 
 def read_json(file_path):
     original = {}
@@ -65,6 +74,7 @@ def read_json(file_path):
     converted = json.loads(text) # error stems from here
     return converted
 
+
 def get_proxies(nb=None):
     url         = 'https://free-proxy-list.net/'
     response    = requests.get(url)
@@ -78,6 +88,7 @@ def get_proxies(nb=None):
             proxy = ":".join([i.xpath('.//td[1]/text()')[0], i.xpath('.//td[2]/text()')[0]])
             proxies.add(proxy)
     return proxies
+
 
 def archive_object(object_to_save,filename:str, ext:str='dmp',verbose=False) -> None:
     """Archive a Python object as a dump file
@@ -96,6 +107,7 @@ def archive_object(object_to_save,filename:str, ext:str='dmp',verbose=False) -> 
     if verbose:
         print('Saved file %s'%filename)
         
+
 def unarchive_object(filename:str, ext:str='dmp'):
     """[Unarchive a Python object from a dump file]
 
@@ -115,9 +127,6 @@ def unarchive_object(filename:str, ext:str='dmp'):
             #log.trace_show()
     return object_to_get
 
-import colorama
-from colorama import Fore, Back, Style
-colorama.init()
 
 def print_dict(dictio,level=1):
     for key, value in dictio.items():
@@ -126,6 +135,7 @@ def print_dict(dictio,level=1):
             print_dict(value,level + 1)
         else:
             print("{} {:20} {}".format(level*'  ',key,value))
+
 
 def colored_term(text,front=None,back=None,bold=False):
     if front is not None and hasattr(Fore,front.upper()):
@@ -149,3 +159,32 @@ def proceed():
             return True
         else:
             answer = None
+
+
+def get_match(regex,txt):
+    matchs = re.findall(regex,txt)
+    return None if len(matchs) == 0 else matchs[0]
+
+
+def get_list_file(output):
+    files = []
+    for line in output.split('\\r\\n'):
+        if line.strip() == '': continue
+        
+        permission = get_match(r'[a-z-]{10}\.',line)
+        if permission is None: continue
+    
+        users       = get_match(r'[a-zA-Z]+\s[a-zA-Z]+\s[0-9]+',line)
+        owner, group, size = users.split()
+        date = get_match(r'[a-zA-Z]{3}\s[0-9\s]{1,2}\s[0-9\s]{1,2}:[0-9\s]{1,2}',line)
+        
+        name = line.split(date)[1]
+        
+        file_ = AlphaFile(name,
+            permission,
+            owner,
+            group,
+            size,
+            date)
+        files.append(file_)
+    return files

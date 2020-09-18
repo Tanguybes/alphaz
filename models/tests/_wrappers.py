@@ -31,7 +31,7 @@
         return test_call """
 
 TEST_METHOD_NAME = "test_alpha_in"
-def test(save=False, description=None):
+def test(save=False, description=None, stop=True):
     def test_alpha_in(func):
         def test_wrapper(*args,**kwargs):
             return func(*args, **kwargs)

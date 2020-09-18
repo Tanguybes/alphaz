@@ -12,7 +12,7 @@ import flask_monitoringdashboard
 
 from ...libs import mail_lib, flask_lib, io_lib
 from ...utils.logger import AlphaLogger
-from ...utils import AlphaException
+from ...models.main import AlphaException
 from ...config.config import AlphaConfig
 
 from . import _converters, _utils, _colorations
@@ -265,11 +265,14 @@ class AlphaFlask(Flask):
         self.message    = message
 
     def set_error(self,message):
+        description = message
         if type(message) == AlphaException:
-            message = message.name
-
-        self.returned['status']     = message
-        self.returned['error']      = 1
+            description = message.description 
+            message     = message.name
+            
+        self.returned['status']                 = message
+        self.returned['status_description']     = description
+        self.returned['error']                  = 1
 
     def set_status(self,status):
         self.returned['status'] = status

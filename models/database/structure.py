@@ -11,7 +11,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql.expression import or_, and_, all_
 from flask_sqlalchemy import SQLAlchemy
 
-from ...utils import AlphaException
+from ...models.main import AlphaException
 
 def get_compiled_query(query):
     return query.statement.compile(compile_kwargs={"literal_binds": True})

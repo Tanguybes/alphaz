@@ -1,20 +1,13 @@
 from flask import request, send_file, send_from_directory, safe_join, abort, url_for, render_template
 
 from ..models.database import main_definitions as defs
+from ..models.main import AlphaException
+from ..models.api import Parameter
 
 from core import core
 api = core.api
 db  = core.db
 log = core.get_logger('api')
-
-class Parameter():
-    def __init__(self,name,default=None,options=None,cacheable=True,required=False,ptype=str):
-        self.name       = name
-        self.default    = default
-        self.cacheable  = cacheable
-        self.options    = options
-        self.required   = required
-        self.type       = str(ptype).replace("<class '","").replace("'>","")
 
 # Specify the debug panels you want
 #api.config['DEBUG_TB_PANELS'] = [ 'flask_debugtoolbar.panels.versions.VersionDebugPanel', 'flask_debugtoolbar.panels.timer.TimerDebugPanel', 'flask_debugtoolbar.panels.headers.HeaderDebugPanel', 'flask_debugtoolbar.panels.request_vars.RequestVarsDebugPanel', 'flask_debugtoolbar.panels.template.TemplateDebugPanel', 'flask_debugtoolbar.panels.sqlalchemy.SQLAlchemyDebugPanel', 'flask_debugtoolbar.panels.logger.LoggingPanel', 'flask_debugtoolbar.panels.profiler.ProfilerDebugPanel', 'flask_debugtoolbar_lineprofilerpanel.panels.LineProfilerPanel' ]
@@ -58,15 +51,11 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
                 print('PARAMETERS',parameters)"""
 
             for parameter in parameters:
-                parameter.value         = request.args.get(parameter.name,parameter.default)
-                if parameter.value is None and dataPost is not None and parameter.name in dataPost:
-                    parameter.value     = dataPost[parameter.name]
-
-                if parameter.options is not None and parameter.value not in parameter.options:
-                    parameter.value = None
-                if parameter.required and parameter.value is None:
-                    missing = True
-                    api.error('Missing parameter %s'%parameter.name)
+                try:
+                    parameter.set_value()
+                except Exception as ex:
+                    api.set_error(ex)
+                    return api.get_return()
 
             token           = api.get_token()
             if logged and token is None:

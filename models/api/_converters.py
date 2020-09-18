@@ -29,6 +29,7 @@ class AlphaJSONEncoder(JSONEncoder):
         self.rules[pd.DataFrame] = lambda o: o.to_json(orient='index')
         self.rules[bytes] = lambda o: o.decode('utf-8')
         self.rules[dict_keys] = lambda o: list(o)
+        self.rules[datetime.timedelta] = lambda o: str(o)
 
     def default(self, o): # pylint: disable=E0202
         try:

@@ -76,7 +76,9 @@ class AlphaConfig():
             parentframe     = stack[1]
             module          = inspect.getmodule(parentframe[0])
             root            = os.path.abspath(module.__file__).replace(module.__file__,'')
-        self.root           = root        
+        self.root           = root
+        #self.add_tmp('root', self.root)
+
         # config file
         if filename is None:
             filename        = name.lower()
@@ -174,6 +176,10 @@ class AlphaConfig():
                 exit()
 
     def add_tmp(self,name,value):
+        if name in self.data_origin:
+            self.error('<%s> entry in configuration %s is reserved'%(name,self.filepath))
+            exit()
+
         self.tmp[name]          = value
         self.data_origin[name]  = value
 
@@ -192,8 +198,8 @@ class AlphaConfig():
             configurations = self.data_origin["configurations"]
             
             default_configuration = None
-            if "configuration" in self.data_origin:
-                default_configuration = self.data_origin['configuration']
+            if "default_configuration" in self.data_origin:
+                default_configuration = self.data_origin['default_configuration']
 
             if configuration is not None and configuration in configurations:
                 self.data_env = configurations[configuration]
@@ -235,7 +241,7 @@ class AlphaConfig():
 
         self.init_data()
 
-        if not self.sub_configuration: 
+        if self.core_configuration: 
             self.info('Configuration %s initiated for user <%s%s>, ip %s%s and platform <%s%s>'%(self.filepath,user,'' if not user_configured else "*",current_ip,' ' if not ip_configured else "*",system_platform,'' if not platform_configured else "*" ))
 
     def show(self):
@@ -268,6 +274,21 @@ class AlphaConfig():
     def is_path(self,parameters,data=None):
         return self.is_parameter_path(parameters,data=data)
 
+    def set_sub_configurations(self):
+        config = self.data
+        # get sub configurations
+        sub_configurations = {}
+        configs_values, paths = get_configs_from_config(config, path=None)
+        for i, values in enumerate(configs_values):
+            config_path = values[0]
+            if not config_path in sub_configurations:
+                name                            = config_path.split(os.sep)[-1]
+                sub_configurations[config_path] = AlphaConfig(name=name,filepath=config_path,log=self.log,configuration=self.configuration,logger_root=self.logger_root,origin=self)
+
+        # replace sub configurations
+        set_paths(config,paths,configs_values,sub_configurations,types='configs')
+        self.data = config
+
     def init_data(self):
         config          = copy.deepcopy(self.data_origin)
         config_env      = copy.deepcopy(self.data_env)
@@ -280,22 +301,20 @@ class AlphaConfig():
         utils.merge_configuration(config,config_user,replace=True)
         utils.merge_configuration(config,config_env,replace=True)
 
-        if not 'root' in config:
-            config['root'] = self.root
-
         if 'users' in config:
             del config['users']
 
         debug = False
 
-        self.data = self.replace_parameters(config)
+        self.replace_parameters(config)
+        self.set_sub_configurations()
 
         if "paths" in config:
             for path in config["paths"]:
                 sys.path.append(path)
 
-        self.sub_configuration = self.get('sub_configuration')
-        if self.sub_configuration: 
+        self.core_configuration = self.get('core_configuration',root=False)
+        if not self.core_configuration: 
             return
 
         # loggers
@@ -440,9 +459,9 @@ class AlphaConfig():
             return self.log
         return  self.loggers[name] 
 
-    def get(self,path=[]):
+    def get(self,path=[],root=True):
         value       = self.get_parameter_path(path)
-        if value is None:
+        if value is None and root:
             value   = self.get_value_from_main_config(path)
         return value
 
@@ -486,7 +505,7 @@ class AlphaConfig():
                 if value is not None:
                     return value   
         if force_exit:
-            self.error('No value is specified for %s'%parameter)
+            self.error('No value is specified for <%s> in %s'%(parameter,self.filepath))
             exit()
         return value            
 
@@ -500,9 +519,9 @@ class AlphaConfig():
             dict -- the input dict with parameters replace by their values
         """
 
-        parameters_values, paths = get_parameters_from_config(config, path=None)
+        parameters_name, paths = get_parameters_from_config(config, path=None)
         """
-            paths                                    parameters_values
+            paths                                    parameters_name
             tests / save_directory                   save_root
             files / google-taxonomy / file_path      sources & file_name
             ips / 62.210.244.105 / web / root        root
@@ -510,17 +529,14 @@ class AlphaConfig():
             sqllite_path                             root
             web / api_root                           root
         """
-        parameters = []
-        for i in range(len(parameters_values)):
-            parameters.extend(parameters_values[i])
+        parameters = list(set([x for sublist in parameters_name for x in sublist]))
 
-        parameters          = list(set(parameters))
         parameters_value    = {}
         for parameter in parameters:
             # ([3306, 3308], [['variables'], []])
             if '/' in parameter:
                 parameter = parameter.split('/')
-            values_paths          = search_it(config,parameter)
+            values_paths          = search_it(config, parameter)
 
             # take the first value if any
             if len(values_paths) != 0 and len(values_paths[0]) != 0:
@@ -530,6 +546,7 @@ class AlphaConfig():
 
                 lenghts = [len(x) for x in pths]
                 indexs  = np.where(lenghts == np.amin(lenghts))[0]
+                
                 if len(indexs) == 0:
                     value                       = self.get_value_from_main_config(parameter)
                 elif len(indexs) == 1:
@@ -551,30 +568,18 @@ class AlphaConfig():
         set_parameter_value(parameters_value,l)
 
         # Replace parameters values
-        set_paths(config,paths,parameters_values,parameters_value,types='parameters')
-
-        # get sub configurations
-        sub_configurations = {}
-        configs_values, paths = get_configs_from_config(config, path=None)
-        for i, values in enumerate(configs_values):
-            config_path = values[0]
-            if not config_path in sub_configurations:
-                name                            = config_path.split(os.sep)[-1]
-                sub_configurations[config_path] = AlphaConfig(name=name,filepath=config_path,log=self.log,configuration=self.configuration,logger_root=self.logger_root,origin=self)
-
-        # replace sub configurations
-        set_paths(config,paths,configs_values,sub_configurations,types='configs')
+        set_paths(config,paths,parameters_name,parameters_value,types='parameters')
 
         # check parameters
-        parameters_values, paths = get_parameters_from_config(config, path=None)
-        if len(parameters_values) != 0:
-            parameters = list(set([x[0] for x in parameters_values if len(x) != 0]))
+        parameters_name, paths = get_parameters_from_config(config, path=None)
+        if len(parameters_name) != 0:
+            parameters = list(set([x[0] for x in parameters_name if len(x) != 0]))
             for i in range(len(parameters)):
                 self.error('Missing parameter "%s" in configuration %s'%(parameters[i],self.filepath))
             if len(parameters) != 0:
                 exit()
 
-        return config
+        self.data = config
 
 def show(config,level=0):
     for key, cf in config.items():
@@ -608,7 +613,9 @@ def set_path(config,path,parameters,parameters_values,types=None):
         elif types == 'configs':
             matchs = get_configs_matchs(config[path[0]])
             if len(matchs) != 0 and matchs[0] in parameters_values:
-                config[path[0]]         = parameters_values[matchs[0]].data
+                sub_configuration       = parameters_values[matchs[0]]
+                replacement_data        = {x:y for x,y in sub_configuration.data.items() if x not in sub_configuration.tmp}
+                config[path[0]]         = replacement_data
             
         return
 

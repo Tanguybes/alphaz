@@ -1,6 +1,6 @@
 import paramiko, encodings, scp
 from .string_lib import universal_decode
-#class SshLog(SSHClient):
+from . import io_lib
 
 class AlphaSsh():
     server = None
@@ -54,46 +54,16 @@ class AlphaSsh():
         while not ssh_stdout.channel.exit_status_ready():
             pass
 
+    def list_files(self,directory):
+        output = self.execute_cmd('ls -l %s'%directory)
+        files = io_lib.get_list_file(output)
+        return files
+
     def execute_cmd(self,cmd,decode=True):
         inputs, output, err = '', '', ''
         ssh_stdin, ssh_stdout, ssh_stderr = self.ssh.exec_command(cmd, get_pty=True)
 
-        return ssh_stdout.read()
-
-        """while not ssh_stdout.channel.exit_status_ready():
-            #Print data whena available
-            if ssh_stdout.channel.recv_ready():
-                alldata =  ssh_stdout.channel.recv(1024)
-                prevdata = b"1"
-                while prevdata:
-                        prevdata = ssh_stdout.channel.recv(1024)
-                        alldata += prevdata
-                output += str(alldata)"""
-
-        """if ssh_stdin.readable():
-            try:
-                inputs = ssh_stdin.read()
-                pass
-            except Exception as ex:
-                print('Error:',ex)
-        if ssh_stdout.readable():
-            try:
-                output = ssh_stdout.read()
-                #print('2',output)
-            except Exception as ex:
-                print('Error:',ex)
-        if ssh_stderr.readable():
-            try:
-                err = ssh_stderr.read()
-                pass
-            except Exception as ex:
-                print('Error:',ex)"""
-
-        if decode:
-            inputs, output, err = universal_decode(inputs), universal_decode(output), universal_decode(err)
-            if inputs != '':    print('i:',inputs)
-            if err != '':       print('err:',err)
-        return output
+        return str(ssh_stdout.read())
 
     def execute_cmd_interactive(self,cmd,decode=True):
         inputs, output, err = '', '', ''

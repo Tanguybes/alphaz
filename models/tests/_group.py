@@ -3,10 +3,12 @@ import inspect
 from ._method import TestMethod
 from ._wrappers import TEST_METHOD_NAME
 
+from typing import Dict
+
 class TestGroup():
     name        = ""
     classObject = None
-    tests       = {}
+    tests       = Dict[str,TestMethod]
     verbose     = False
 
     def __init__(self,name,classObject):
@@ -17,7 +19,12 @@ class TestGroup():
 
         for method_name, method in classObject.__dict__.items():
             if '__' in method_name: continue
-            if inspect.isfunction(method) and method.__name__ == TEST_METHOD_NAME:
+            if not  inspect.isfunction(method): continue
+            if not hasattr(classObject,method.__name__): continue
+
+            method_name = method.__name__
+            qual_name = method.__qualname__
+            if method_name == TEST_METHOD_NAME or TEST_METHOD_NAME in qual_name:
                 #print('>',method_name,method.__name__)
 
                 test_function                   = TestMethod(classObject,method_name,method)
@@ -47,6 +54,6 @@ class TestGroup():
         return self.classObject.verbose
 
     def to_json(self):
-        return list(self.tests.keys())
+        return self.tests
 
 
