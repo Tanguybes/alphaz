@@ -11,6 +11,8 @@ from ...database.structure import AlphaDatabaseNew
 
 from . import _utils
 
+import alphaz
+
 class AlphaCore: 
     instance                = None
 
@@ -62,10 +64,11 @@ class AlphaCore:
 
         self.config.info('Configuring API from configuration %s ...'%self.config.config_file)
 
+        template_path = alphaz.__file__.replace('__init__.py','') + 'templates'
         self.api            = AlphaFlask(__name__,
-            template_folder=self.root + os.sep + 'templates',
-            static_folder=self.root + os.sep + 'templates',
-            root_path=self.root + os.sep + 'templates')
+            template_folder=template_path,
+            static_folder=template_path,
+            root_path=template_path)
 
         self.ma = self.api.ma
             

@@ -1,0 +1,205 @@
+<!DOCTYPE html> 
+
+<html class="sr js anime-ready" style lang=en>
+  <head>
+    <meta charset=utf-8>
+    <meta http-equiv=X-UA-Compatible content="IE=edge">
+    <meta name=viewport content="width=device-width, initial-scale=1">
+
+    <title>Alpha</title>
+
+    <link rel="stylesheet" href="/assets/home.css">
+    <link rel="icon" type="image/png" href="/assets/alpha.png" />
+    <script src="/assets/jquery.min.js"></script>
+  </head>
+
+  <body class="is-boxed has-animations" style=height:100%>
+    <div class=body-wrap>
+      <header class=site-header>
+      <div class=container>
+      <div class=site-header-inner>
+      <div class="brand header-brand">
+      <h1 class=m-0>
+      <a href=#>
+      <img class=header-logo-image src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMzIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IHgxPSI1MCUiIHkxPSIwJSIgeDI9IjUwJSIgeTI9IjEwMCUiIGlkPSJhIj48c3RvcCBzdG9wLWNvbG9yPSIjMDBCRkZCIiBvZmZzZXQ9IjAlIi8+PHN0b3Agc3RvcC1jb2xvcj0iIzAyNzBENyIgb2Zmc2V0PSIxMDAlIi8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgeDE9IjUwJSIgeTE9IjAlIiB4Mj0iNTAlIiB5Mj0iMTAwJSIgaWQ9ImIiPjxzdG9wIHN0b3AtY29sb3I9IiMxRjIzMkEiIHN0b3Atb3BhY2l0eT0iLjQ4IiBvZmZzZXQ9IjAlIi8+PHN0b3Agc3RvcC1jb2xvcj0iIzFGMjMyOSIgc3RvcC1vcGFjaXR5PSIwIiBvZmZzZXQ9IjEwMCUiLz48L2xpbmVhckdyYWRpZW50PjxsaW5lYXJHcmFkaWVudCB4MT0iODcuNjY1JSIgeTE9IjEwMy43MzklIiB4Mj0iLTMuMTY5JSIgeTI9IjM4LjgwNyUiIGlkPSJjIj48c3RvcCBzdG9wLWNvbG9yPSIjRkZGIiBzdG9wLW9wYWNpdHk9IjAiIG9mZnNldD0iMCUiLz48c3RvcCBzdG9wLWNvbG9yPSIjRkZGIiBzdG9wLW9wYWNpdHk9Ii42NCIgb2Zmc2V0PSIxMDAlIi8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgeDE9Ii0xNC4xMDQlIiB5MT0iMTExLjI2MiUiIHgyPSIxMDkuODcxJSIgeTI9IjI2LjM1NSUiIGlkPSJkIj48c3RvcCBzdG9wLWNvbG9yPSIjMDI3MEQ3IiBvZmZzZXQ9IjAlIi8+PHN0b3Agc3RvcC1jb2xvcj0iIzAyNzBENyIgc3RvcC1vcGFjaXR5PSIwIiBvZmZzZXQ9IjEwMCUiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGZpbGw9InVybCgjYSkiIHRyYW5zZm9ybT0icm90YXRlKDkwIDE0IDE2KSIgZD0iTTYgMmwtOCAxMy45OTlMNiAzMGgxNmw4LTE0LjAwMUwyMiAyeiIvPjxwYXRoIGZpbGw9InVybCgjYikiIGQ9Ik0xNCAwdjMyTDAgMjRWOHoiLz48cGF0aCBmaWxsPSJ1cmwoI2MpIiBkPSJNMjggMjRMMCA4bDE0LjAwMS04TDI4IDh6Ii8+PHBhdGggZmlsbC1vcGFjaXR5PSIuNDgiIGZpbGw9InVybCgjZCkiIHN0eWxlPSJtaXgtYmxlbmQtbW9kZTptdWx0aXBseSIgZD0iTTI4IDhMMCAyMy45NzhWOGwxNC4wMDEtOEwyOCA4eiIvPjwvZz48L3N2Zz4=" alt=Logo>
+      </a>
+      </h1>
+      </div>
+      </div>
+      </div>
+      </header>
+
+      <main>
+        <section class=hero>
+          <div class=container>
+            <div class=hero-inner>
+              <div class=hero-copy>
+                <h1 class="hero-title mt-0">{{title}}</h1>
+                <p class=hero-paragraph>{{description}}</p>
+                <div class=hero-cta>
+                  {% if statistics %}
+                    <a class="button button-secondary" href="/statistics" target="_blank">Statistics</a>
+                  {% endif %}
+                  {% if statistics %}
+                    <a class="button button-primary" href="/dashboard" target="_blank">Dashboard</a>
+                  {% endif %}
+                  {% if admin %}
+                  <a class=button href="/admin" target="_blank">Databases</a>
+                  {% endif %}
+                </div>
+                <br/>
+                <p class=hero-paragraph style="color:{{mode_color}}">{{ip}} - {{mode}} mode</p>
+
+              </div>
+              
+              <div class="hero-figure anime-element">
+                <svg class=placeholder width=528 height=396 viewBox="0 0 528 396">
+                <rect width=528 height=396 style=fill:transparent></rect>
+                </svg>
+
+                <div class="hero-figure-box hero-figure-box-01" data-rotation=45deg style="transform:rotate(45deg) scale(1);opacity:1"></div>
+                <div class="hero-figure-box hero-figure-box-02" data-rotation=-45deg style="transform:rotate(-45deg) scale(1);opacity:1"></div>
+                <div class="hero-figure-box hero-figure-box-03" data-rotation=0deg style="transform:rotate(0deg) scale(1);opacity:1"></div>
+                <div class="hero-figure-box hero-figure-box-04" data-rotation=-135deg style="transform:rotate(-135deg) scale(1);opacity:1"></div>
+                <div class="hero-figure-box hero-figure-box-05" style="transform:scaleX(1) scaleY(1) perspective(500px) rotateY(-15deg) rotateX(8deg) rotateZ(-1deg)"></div>
+                <div class="hero-figure-box hero-figure-box-06" style="transform:scaleX(1) scaleY(1) perspective(500px) rotateZ(20deg)"></div>
+                <div class="hero-figure-box hero-figure-box-07" style="transform:scaleX(1) scaleY(1) perspective(500px) rotateZ(20deg)"></div>
+                <div class="hero-figure-box hero-figure-box-08" data-rotation=-22deg style="transform:rotate(-22deg) scale(1);opacity:1"></div>
+                <div class="hero-figure-box hero-figure-box-09" data-rotation=-52deg style="transform:rotate(-52deg) scale(1);opacity:1"></div>
+                <div class="hero-figure-box hero-figure-box-10" data-rotation=-50deg style="transform:rotate(-50deg) scale(1);opacity:1"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="features section">
+          <div class=container>
+            <div class="features-inner section-inner has-bottom-divider">
+              <div class=features-wrap>
+
+              {% for category in routes.categories %}
+                <div class="feature text-center is-revealing" style=visibility:visible>
+                  <div class=feature-inner>
+                    <div class=feature-icon></div>
+
+                    <h3 class="feature-title mt-24">{{category}}</h3>
+
+                    <p class="text-sm mb-0"></p>
+
+                    <div class="feature-routes">
+                      {% for path in routes.categories_routes[category] %}
+                        <div class="feature-route">
+                          <a href="{{path}}" target="_blank">{{path}}</a>&nbsp;
+
+                          {% if routes.routes[path].arguments.admin %}
+                            <sub><img src="/assets/admin.png" class="route-property"/></sub>
+                          {% endif %}
+
+                          {% if routes.routes[path].arguments.logged %}
+                            <sub><img src="/assets/user.png" class="route-property"/></sub>
+                          {% endif %}
+                          
+                          {% if routes.routes[path].arguments.cache %}
+                            <sub><img src="/assets/save.png" class="route-property"/></sub>
+                            {% if routes.routes[path].arguments.timeout %}
+                              <sub class="timeout">{{routes.routes[path].arguments.timeout}}s</sub>
+                            {% endif %}
+                          {% endif %}
+
+                          <sup class="methods">{% for method in routes.routes[path].arguments.methods %} {{method}} {% endfor %}</sup>
+                        </div>
+
+                        <div class="parameters">
+                          {% for parameter in routes.routes[path].arguments.parameters %}
+                            <div class="parameter" {% if parameter.required %} style="color:#0270D7"{%endif %}>
+                              <div class="parameter-value">
+                                {{parameter.name}}{% if parameter.default %}<sub style="color:orange">={{parameter.default}}</sub>{% endif %}&nbsp;
+                                <sub style="color:green">{{parameter.type}}</sub>
+
+                                {% if (routes.routes[path].arguments.cache) and (parameter.cacheable) %}
+                                  <sub><img src="/assets/save.png" class="route-property"/></sub>
+                                {% endif %}                          
+                              </div>
+
+                              {% if parameter.options %}
+                                <div class="options">
+                                {% for option in parameter.options %}<span class="option"> {{option}}</span> {% endfor %}
+                                </div>
+                              {% endif %}
+
+                            </div>
+                          {% endfor %}
+                        </div>
+                      {% endfor %}
+                    </div>
+                  </div>  
+                </div>
+              {% endfor %}
+
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="cta section">
+          <div class=container>
+            <div class="cta-inner section-inner">
+              <h3 class="section-title mt-0">{{compagny}}</h3>
+              <div class=cta-cta>
+                <a class="button button-primary button-wide-mobile" href="{{compagny_website}}" target="_blank">WebSite</a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class=logo-background></div>
+
+      </main>
+
+      <footer class=site-footer>
+        <div class=container>
+          <div class=site-footer-inner>
+            <div class="brand footer-brand">
+              <a href=#><img class=header-logo-image src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMzIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IHgxPSI1MCUiIHkxPSIwJSIgeDI9IjUwJSIgeTI9IjEwMCUiIGlkPSJhIj48c3RvcCBzdG9wLWNvbG9yPSIjMDBCRkZCIiBvZmZzZXQ9IjAlIi8+PHN0b3Agc3RvcC1jb2xvcj0iIzAyNzBENyIgb2Zmc2V0PSIxMDAlIi8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgeDE9IjUwJSIgeTE9IjAlIiB4Mj0iNTAlIiB5Mj0iMTAwJSIgaWQ9ImIiPjxzdG9wIHN0b3AtY29sb3I9IiMxRjIzMkEiIHN0b3Atb3BhY2l0eT0iLjQ4IiBvZmZzZXQ9IjAlIi8+PHN0b3Agc3RvcC1jb2xvcj0iIzFGMjMyOSIgc3RvcC1vcGFjaXR5PSIwIiBvZmZzZXQ9IjEwMCUiLz48L2xpbmVhckdyYWRpZW50PjxsaW5lYXJHcmFkaWVudCB4MT0iODcuNjY1JSIgeTE9IjEwMy43MzklIiB4Mj0iLTMuMTY5JSIgeTI9IjM4LjgwNyUiIGlkPSJjIj48c3RvcCBzdG9wLWNvbG9yPSIjRkZGIiBzdG9wLW9wYWNpdHk9IjAiIG9mZnNldD0iMCUiLz48c3RvcCBzdG9wLWNvbG9yPSIjRkZGIiBzdG9wLW9wYWNpdHk9Ii42NCIgb2Zmc2V0PSIxMDAlIi8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgeDE9Ii0xNC4xMDQlIiB5MT0iMTExLjI2MiUiIHgyPSIxMDkuODcxJSIgeTI9IjI2LjM1NSUiIGlkPSJkIj48c3RvcCBzdG9wLWNvbG9yPSIjMDI3MEQ3IiBvZmZzZXQ9IjAlIi8+PHN0b3Agc3RvcC1jb2xvcj0iIzAyNzBENyIgc3RvcC1vcGFjaXR5PSIwIiBvZmZzZXQ9IjEwMCUiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGZpbGw9InVybCgjYSkiIHRyYW5zZm9ybT0icm90YXRlKDkwIDE0IDE2KSIgZD0iTTYgMmwtOCAxMy45OTlMNiAzMGgxNmw4LTE0LjAwMUwyMiAyeiIvPjxwYXRoIGZpbGw9InVybCgjYikiIGQ9Ik0xNCAwdjMyTDAgMjRWOHoiLz48cGF0aCBmaWxsPSJ1cmwoI2MpIiBkPSJNMjggMjRMMCA4bDE0LjAwMS04TDI4IDh6Ii8+PHBhdGggZmlsbC1vcGFjaXR5PSIuNDgiIGZpbGw9InVybCgjZCkiIHN0eWxlPSJtaXgtYmxlbmQtbW9kZTptdWx0aXBseSIgZD0iTTI4IDhMMCAyMy45NzhWOGwxNC4wMDEtOEwyOCA4eiIvPjwvZz48L3N2Zz4=" alt=Logo></a>
+            </div>
+
+            <ul class="footer-links list-reset">
+              <li>
+              <a href=#>Contact</a>
+              </li>
+              <li>
+              <a href=#>About us</a>
+              </li>
+              <li>
+              <a href=#>FAQ's</a>
+              </li>
+              <li>
+              <a href=#>Support</a>
+              </li>
+            </ul>
+
+            <ul class="footer-social-links list-reset">
+              <li>
+                <a href=#>
+                <span class=screen-reader-text>Help</span>
+
+                <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
+                <g class="layer">
+                <title>Layer 1</title>
+                <g id="layer1">
+                <path  fill=#0270D7 id="path4024" d="m10.02686,0.00001l-8.88982,4.971l0,9.94199l8.88982,4.971l8.88982,-4.971l0,-9.94199l-8.88982,-4.971zm-2.66694,4.32447l3.55593,0l1.77796,0l0,1.72404l0,2.29873l0,1.72404l-2.5336,0l0,1.72404l-1.61498,0l0,-1.72404l0,-1.72404l1.61498,0l0.75564,0l0,-2.29873l-3.55593,0l0,-1.72404zm1.18531,8.9363l2.37062,0l0,2.29873l-2.37062,0l0,-2.29873z"/>
+                </g>
+                </g>
+                </svg>
+
+                </a>
+              </li>
+            </ul>
+            <div class=footer-copyright>© {{year}} {{compagny}}, all rights reserved</div>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+  </body>
+</html>
