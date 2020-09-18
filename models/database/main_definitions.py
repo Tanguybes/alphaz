@@ -13,6 +13,21 @@ from core import core
 db = core.get_database()
 ma = core.ma
 
+class Tests(db.Model,AlphaModelId):
+    __tablename__ = 'tests'
+
+    category  = AlphaColumn(String(50))
+    group  = AlphaColumn(String(50))
+    name  = AlphaColumn(String(50))
+
+    status = AlphaColumn(Integer)
+    start_time          = AlphaColumn(DateTime)
+    end_time          = AlphaColumn(DateTime)
+    elapsed  = AlphaColumn(String(50))
+
+    update          = AlphaColumn(DateTime,default=datetime.datetime.utcnow(),
+        onupdate=datetime.datetime.utcnow())
+
 class Request(db.Model,AlphaModel):
     __tablename__ = "request"
 
