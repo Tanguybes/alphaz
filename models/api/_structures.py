@@ -71,8 +71,12 @@ class AlphaFlask(Flask):
 
         self.set_config('api',core.configuration)
 
-        for route in self.conf.get('routes'):
-            importlib.import_module(route)
+        routes = self.conf.get('routes')
+        if routes is None:
+            self.log.error('Missing <routes> parameters in api configuration')
+        else:
+            for route in routes:
+                importlib.import_module(route)
 
         self.db = core.db
 

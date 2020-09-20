@@ -70,12 +70,22 @@ def get_definitions_modules(modules_list:List[ModuleType],log:AlphaLogger) -> Li
 
     modules = []
 
-    for module in modules_list:
-        if type(module) == str:
-            module = importlib.import_module(module)
+    for module_r in modules_list:
+        module = importlib.import_module(module_r) if type(module_r) == str else module_r
+        
+        if not module:
+            log.error('Cannot load module <%s>'%module_r)
+            continue
 
-        if '__init__.py' in module.__file__:
-            sub_files   = glob.glob(module.__file__.replace('__init__','*'))
+        dir_ini = module.__file__ and '__init__.py' in module.__file__
+        dir_path = hasattr(module,'__path__') and module.__path__ and module.__path__._path and len(module.__path__._path) != 0
+
+        if dir_ini or dir_path:
+            if dir_ini:
+                sub_files   = glob.glob(module.__file__.replace('__init__','*'))
+            else:
+                sub_files   = glob.glob(module.__path__._path[0] + os.sep + '*')
+
             names       = [os.path.basename(x).replace('.py','') for x in sub_files if not '__init__' in x]
 
             for sub_file_name in names:

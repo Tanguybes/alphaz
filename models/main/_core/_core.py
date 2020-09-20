@@ -141,9 +141,10 @@ class AlphaCore:
                 print('Configuration need to be initialized')
                 exit()
 
-    def init_databases(self,models_sources=[],databases=[],drop=False):
+    def init_databases(self,databases=[],drop=False):
         if len([x for x in databases if x is not None]) == 0: return
 
+        models_sources = core.config.get('directories/database_models')
         models_sources.append("alphaz.models.database.main_definitions")
         modules             = flask_lib.get_definitions_modules(models_sources,log=self.log)
         #from alphaz.models.database import main_definitions
@@ -231,6 +232,8 @@ class AlphaCore:
     def get_entries(self,models_sources,file_path,configuration):
         from alphaz.models.database.models import AlphaTable
 
+        models_sources = [importlib.import_module(x) if type(x) == str else x for x in models_sources]
+
         for database, tables_config in configuration.items():
             db = database
             if type(database) == str:
@@ -240,47 +243,27 @@ class AlphaCore:
                     continue
 
             if type(tables_config) != dict: 
-                self.log.error('In file %s configuration of database %s must be of type <dict>'%(file_path,database))
+                self.log.error('In file %s configuration of database <%s> must be of type <dict>'%(file_path,database))
                 continue
 
             for table, config in tables_config.items():
                 table_name = table
-                if type(table) == str:
-                    found = False
-                    for model in models_sources:
-                        for name, obj in model.__dict__.items():
-                            if inspect.isclass(obj) and issubclass(obj,AlphaTable) and hasattr(obj,'__tablename__') and table == obj.__tablename__:
-                                table = obj
-                                found = True
-                        
-                        if not found and '__init__.py' in model.__file__:
-                            sub_files   = glob.glob(model.__file__.replace('__init__','*'))
-                            names       = [os.path.basename(x).replace('.py','') for x in sub_files if not '__init__' in x]
+                found = False
+                for schema, tables in flask_lib.TABLES.items():           
+                    if table in tables:
+                        found = True
+                        table = tables[table]
 
-                            for sub_file_name in names:
-                                try:
-                                    sub_model = importlib.import_module("%s.%s"%(model.__name__,sub_file_name))
-                                except:
-                                    self.log.error('In file %s configuration of database %s cannot import <%s> from <%s>'%(file_path,database,sub_file_name,model.__name__))
-                                    continue
-
-                                for name, obj in sub_model.__dict__.items():
-                                    if inspect.isclass(obj) and issubclass(obj,AlphaTable) and hasattr(obj,'__tablename__') and table == obj.__tablename__:
-                                        table = obj
-                                        found = True
-
-                    if not found:
-                        self.log.error('In file <%s> configuration of database <%s> the table <%s> is not found'%(file_path,database,table))
-                        continue
-                else:
-                    table_name = table.__tablename__
+                if not found:
+                    self.log.error('In file %s configuration of database <%s> the table <%s> is not found'%(file_path,database,table))
+                    continue
                 
                 if 'headers' in config and 'values' in config:
                     if type(config['values']) != list: 
-                        self.log.error('In file %s "values" key from table %s and database %s must be of type <list>'%(file_path,table_name,database))
+                        self.log.error('In file %s "values" key from table <%s> and database <%s> must be of type <list>'%(file_path,table_name,database))
                         continue
                     if type(config['headers']) != list: 
-                        self.log.error('In file %s "headers" key from table %s and database %s must be of type <list>'%(file_path,table_name,database))
+                        self.log.error('In file %s "headers" key from table <%s> and database <%s> must be of type <list>'%(file_path,table_name,database))
                         continue
 
                     headers_size = len(config['headers'])
@@ -288,14 +271,14 @@ class AlphaCore:
                     entries = []
                     for entry in config['values']:
                         if type(entry) != list:
-                            self.log.error('In file %s from table %s and database %s entry %s must be of type <list>'%(file_path,table_name,database,entry))
+                            self.log.error('In file %s from table <%s> and database <%s> entry <%s> must be of type <list>'%(file_path,table_name,database,entry))
                             continue
                         entries.append(entry)
 
-                    self.log.info('Adding %s entries from <list> for table %s in database %s from file %s'%(len(entries),table_name,database,file_path))
+                    self.log.info('Adding %s entries from <list> for table <%s> in database <%s> from file %s'%(len(entries),table_name,database,file_path))
                     database_lib.process_entries(models_sources,db,table,self.log,headers=config['headers'],values=entries)
 
                 if 'objects' in config:
                     entries = config['objects']
-                    self.log.info('Adding %s entries from <objects> for table %s in database %s from file %s'%(len(entries),table_name,database,file_path))
+                    self.log.info('Adding %s entries from <objects> for table <%s> in database <%s> from file %s'%(len(entries),table_name,database,file_path))
                     database_lib.process_entries(models_sources,db,table,self.log,values=entries)
