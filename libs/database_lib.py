@@ -7,7 +7,7 @@ def convert_value(value):
         return datetime.datetime.now()
     return value
 
-def process_entries(models_sources:list,db,table,log,values:list,headers:list=None):
+def process_entries(db,table,log,values:list,headers:list=None):
     if headers is not None:
         headers = [x.lower().replace(' ','_') if hasattr(x,'lower') else str(x).split('.')[1] for x in headers]
 

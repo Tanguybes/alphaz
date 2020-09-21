@@ -83,6 +83,6 @@ class AlphaSsh():
 
         if decode:
             inputs, output, err = universal_decode(inputs), universal_decode(output), universal_decode(err)
-            if inputs != '':    print('i:',inputs)
-            if err != '':       print('err:',err)
+            if inputs != '' and self.log:    self.log.info('inputs:',inputs)
+            if err != '' and self.log:       self.log.error('err:',err)
         return output

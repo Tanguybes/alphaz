@@ -65,11 +65,26 @@ class AlphaFlask(Flask):
 
         self.ma = Marshmallow(self)
 
+    def set_databases(self,db_cnx):
+        if 'main' in db_cnx:
+            uri = db_cnx['main']['cnx']
+            if ':///' in uri:
+                io_lib.ensure_file(uri.split(':///')[1])
+            db_type = db_cnx['main']['type']
+
+            self.config['SQLALCHEMY_DATABASE_URI'] = uri
+
+        for key, cf_db in db_cnx.items():
+            self.config['SQLALCHEMY_BINDS'] = {x:y['cnx'] for x,y in db_cnx.items() if x != 'main'}
+
+        #self.api.config['MYSQL_DATABASE_CHARSET']           = 'utf8mb4'
+        #self.api.config['QLALCHEMY_TRACK_MODIFICATIONS']    = True
+        #self.api.config['EXPLAIN_TEMPLATE_LOADING']         = True
+        self.config['UPLOAD_FOLDER']                    = self.root_path
+
+
     def init(self,encode_rules={}):
         from core import core
-        self.log: AlphaLogger    = core.get_logger('api')
-
-        self.set_config('api',core.configuration)
 
         routes = self.conf.get('routes')
         if routes is None:
@@ -78,9 +93,8 @@ class AlphaFlask(Flask):
             for route in routes:
                 importlib.import_module(route)
 
-        self.db = core.db
-
         # Flask configuration
+        # todo: check JWT_SECRET_KEY: mandatory
         confs = self.conf.get('config')
         if confs is not None:
             for key, value in confs.items():
@@ -130,12 +144,11 @@ class AlphaFlask(Flask):
         #Base.prepare(self.db.engine, reflect=True)
 
     def init_admin_view(self):
-        models_sources      = self.conf.get('models') or []
+        #models_sources      = self.conf.get('models') or []
+        #models_sources.append("alphaz.models.database.main_definitions")
+        #modules             = flask_lib.get_definitions_modules(models_sources,log=self.log)
 
-        models_sources.append("alphaz.models.database.main_definitions")
-        modules             = flask_lib.get_definitions_modules(models_sources,log=self.log)
-
-        views               = list(itertools.chain(*[flask_lib.load_views(module=x) for x in modules]))
+        views               = flask_lib.load_views()
         endpoints           = [x.endpoint for x in views]
 
         from ..database.views import views as alpha_views
@@ -221,8 +234,8 @@ class AlphaFlask(Flask):
 
     def get_cached(self,api_route,parameters=[]):
         key = self.get_key(api_route,parameters)
-        if self.verbose:
-            print('   GET cache for %s'%api_route)
+        if self.log:
+            self.log.info('   GET cache for %s'%api_route)
         if key in self.routes_values:
             self.returned, self.data = self.routes_values[key]
         else:
@@ -292,15 +305,17 @@ class AlphaFlask(Flask):
         self.returned['role']        = 'user'
         if user_data['role'] >= 9:
             self.returned['role']    = 'admin'
-        self.returned['token']       = jwt.encode({'username': user_data['username'], 'id': user_data['id'], 'time': str(datetime.datetime.now())}, api.config['JWT_SECRET_KEY'], algorithm='HS256').decode('utf-8')
+        self.returned['token']       = jwt.encode(
+            {
+                'username': user_data['username'], 
+                'id': user_data['id'], 
+                'time': str(datetime.datetime.now())
+            }, 
+            api.config['JWT_SECRET_KEY'], algorithm='HS256').decode('utf-8')
         self.returned['valid_until'] = datetime.datetime.now() + datetime.timedelta(days=7)
 
     def get_last_request_time(self):
         return None if self.current_route is None else self.current_route.lasttime
-
-    def debug_parameters(self):
-        if self.current_route is not None:
-            self.current_route.debugParameters()
 
     def get(self,name):
         if self.current_route is None:
@@ -323,8 +338,7 @@ class AlphaFlask(Flask):
     def keep(self,api_route,parameters=[]):
         route = self.get_route(api_route)
         if not route.cache:
-            if self.verbose:
-                print('Api %s not cacheable'%api_route)
+            if self.log: self.log.warning('Api %s not cacheable'%api_route)
             return False
         key             = self.get_key(api_route,parameters)
         return_cache    = key in self.routes_values.keys()
@@ -333,8 +347,8 @@ class AlphaFlask(Flask):
     def cache(self,api_route,parameters=[]):
         self.current_route.lasttime     = datetime.datetime.now()
         key                             = self.get_key(api_route,parameters)
-        if self.verbose:
-            print('   SET new cache for %s (last run = %s)'%(api_route,datetime.datetime.now()))
+        if self.log:
+            self.log.info('   SET new cache for %s (last run = %s)'%(api_route,datetime.datetime.now()))
 
         self.routes_values[key] = (self.returned, self.data)
         return self.routes_values[key]
@@ -358,10 +372,10 @@ class AlphaFlask(Flask):
         user_data   = None
         token       = self.get_token()
         if token is not None:
-            from ...utils.apis import api_users #todo: modify
+            from ...apis import users #todo: modify
             from core import core
             db = core.get_database('users')
-            user_data   = api_users.get_user_dataFromToken(self,db,token)
+            user_data   = users.get_user_dataFromToken(self,db,token)
         return user_data
 
     def get_token(self):
@@ -399,9 +413,6 @@ class AlphaFlask(Flask):
             lastrun     = self.get_last_request_time()
             nextrun     = lastrun + datetime.timedelta(minutes=timeout)
             is_time     = now > nextrun
-
-            if verbose:
-                print('Time: ',is_time, ' now=',now,', lastrun=',lastrun,' nextrun=',nextrun)
         return is_time
 
     def send_mail(self,mail_config,parameters_list,db,sender=None,close_cnx=True):
@@ -451,9 +462,6 @@ class AlphaFlask(Flask):
             _utils.merge_configuration(full_parameters, source_configuration=parameters,replace=True)
 
             full_parameters_list.append(full_parameters)
-            """for key, value in full_parameters.items():
-                print('     {:20} {}'.format(key,value))
-            exit()"""
         
         mail_lib.KEY_SIGNATURE = self.get_config('mails/key_signature'),
         valid = mail_lib.send_mail(
@@ -480,7 +488,3 @@ class Route:
         if name in self.parameters:
             return self.parameters[name]
         return None
-
-    def debugParameters(self):
-        for name, parameter in self.parameters.items():
-            print('    {:10} {:10} {:10}'.format(name,str(parameter.default),str(parameter.value)))

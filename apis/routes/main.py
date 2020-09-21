@@ -39,7 +39,7 @@ def home():
         'year':datetime.datetime.now().year,
         'users':0,
         'ip': request.environ['REMOTE_ADDR'],
-        'admin': debug,
+        'admin': config.get('admin_databases'),
         'routes': get_routes_infos(log=log),
         'compagny': config.get('parameters/compagny'),
         'compagny_website': config.get('parameters/compagny_website'),

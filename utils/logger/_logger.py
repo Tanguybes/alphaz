@@ -77,9 +77,6 @@ class AlphaLogger():
             fct_monitor = getattr(self.monitoring_logger,self.level.lower())
             fct_monitor(full_message.replace(self.name,monitor))
 
-        """if self.cmd_output and  _utils.get_level(self.level) >= self.level_show:
-            print('   ',full_message)"""
-
     def get_formatted_message(self,message,caller):
         msg = self.format_log
 

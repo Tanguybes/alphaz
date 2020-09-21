@@ -1,21 +1,21 @@
 import sys, imp, inspect, os, glob, copy
 from ..models.watcher import ModuleWatcher
 
-def reload_modules(root,verbose=True):
+def reload_modules(root,log=None):
     root = root.replace("\\","\\\\")
 
     modules = [ x for x in sys.modules.values()]
 
     for module in modules:
         if root in str(module) and not 'core' in str(module).lower():
-            if verbose:
-                print('   Reload %s'%module)
+            if log:
+                log.debug('   Reload %s'%module)
             try:
                 imp.reload(module)
             except:
                 pass
 
-def watch_modules(roots: [],verbose=True):
+def watch_modules(roots: [],log=None):
     mw      = ModuleWatcher()
     roots   = [root.replace("\\","\\\\") for root in roots]
 
@@ -23,16 +23,16 @@ def watch_modules(roots: [],verbose=True):
     for module in modules:
         for root in roots:
             if root in str(module) and not 'core' in str(module).lower():
-                if verbose:
-                    print('   Add %s to the watcher'%module)
+                if log:
+                    log.debug('Add <%s> to the watcher'%module)
                 mw.watch_module(str(module))
     mw.start_watching()
 
-def execute_cmd(cmd='',root=None):
+def execute_cmd(cmd='',root=None,log=None):
     current_folder = os.getcwd()
     if root is not None:
         os.chdir(root)
-    print('   Execute: ',cmd)
+    if log: log.info('Execute: <%s>'%cmd)
     os.system(cmd)
     os.chdir(current_folder) 
 

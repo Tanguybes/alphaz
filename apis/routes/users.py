@@ -1,4 +1,7 @@
+from flask import request
+
 from ...utils.api import route, Parameter
+from .. import users
 
 from core import core
 
@@ -19,7 +22,7 @@ def register():
     if api.get_logged_user() is not None:
         return api.set_error('logged')
 
-    api_users.try_register_user(
+    users.try_register_user(
         api,
         db,
         api.get('mail'), 
@@ -36,7 +39,7 @@ def register_validation():
     if api.get_logged_user() is not None:
         return api.set_error('logged')
 
-    api_users.confirm_user_registration(api,token   = api.get('tmp_token'),db=db)
+    users.confirm_user_registration(api,token   = api.get('tmp_token'),db=db)
 
 # LOGIN
 @route('/auth',category=category, methods = ['POST'],
@@ -45,7 +48,7 @@ def register_validation():
         Parameter('password',required=True)
     ])
 def login():
-    api_users.try_login(api, db, api.get('username'), api.get('password'), request.remote_addr)
+    users.try_login(api, db, api.get('username'), api.get('password'), request.remote_addr)
 
 @route('/password/lost',category=category, methods = ['POST'],
     parameters = [
@@ -61,7 +64,7 @@ def password_lost():
 
     if username is not None or mail is not None:
         username_or_mail    = username if mail is None else mail
-        api_users.ask_password_reset(api,username_or_mail,db=db) 
+        users.ask_password_reset(api,username_or_mail,db=db) 
     else:
         api.set_error('inputs')
 
@@ -75,14 +78,14 @@ def password_reset_validation():
     if api.get_logged_user() is not None:
         return api.set_error('logged')
 
-    api_users.confirm_user_password_reset(api,token=api.get('tmp_token'), password=api.get('password'), password_confirmation=api.get('password_confirmation'),db=db)
+    users.confirm_user_password_reset(api,token=api.get('tmp_token'), password=api.get('password'), password_confirmation=api.get('password_confirmation'),db=db)
 
 @route('/logout',category=category,cache=False,logged=False,methods = ['GET', 'POST'],
     parameters  = [],  parameters_names=[])
 def logout():
     token   = api.get_token()
 
-    api_users.logout(api,token,db=db)
+    users.logout(api,token,db=db)
 
 @route('/profile/password',category=category, logged=True, methods = ['POST'],
     parameters  = [
@@ -92,5 +95,5 @@ def logout():
 def reset_password():
     user_data               = api.get_logged_user()
 
-    api_users.try_reset_password(api,user_data, api.get('password'), api.get('password_confirmation'),db=db,log=api.log)
+    users.try_reset_password(api,user_data, api.get('password'), api.get('password_confirmation'),db=db,log=api.log)
     

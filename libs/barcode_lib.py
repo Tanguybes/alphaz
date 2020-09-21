@@ -58,7 +58,6 @@ def decode_code(value):
     try:
         # Lookup a barcode value and return product data
         api_response = api_instance.barcode_lookup_ean_lookup(value)
-        #print(api_response)
     except ApiException as e:
         #print("Exception when calling BarcodeLookupApi->barcode_lookup_ean_lookup: %s\n" % e)
         pass

@@ -13,7 +13,7 @@ log = core.get_logger('api')
 #api.config['DEBUG_TB_PANELS'] = [ 'flask_debugtoolbar.panels.versions.VersionDebugPanel', 'flask_debugtoolbar.panels.timer.TimerDebugPanel', 'flask_debugtoolbar.panels.headers.HeaderDebugPanel', 'flask_debugtoolbar.panels.request_vars.RequestVarsDebugPanel', 'flask_debugtoolbar.panels.template.TemplateDebugPanel', 'flask_debugtoolbar.panels.sqlalchemy.SQLAlchemyDebugPanel', 'flask_debugtoolbar.panels.logger.LoggingPanel', 'flask_debugtoolbar.panels.profiler.ProfilerDebugPanel', 'flask_debugtoolbar_lineprofilerpanel.panels.LineProfilerPanel' ]
 #toolbar = flask_debugtoolbar.DebugToolbarExtension(api)
 
-def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,logged=False,admin=False,timeout=None,category='main'):
+def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,logged=False,admin=False,timeout=None,category=None):
     if path[0] != '/': path = '/' + path
     def api_in(func):
         names = []
@@ -44,11 +44,11 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
                 api.format = api.dataGet['format'].lower()
 
             """if api.debug:
-                print('POST:',dataPost)
-                print('GET:',request.args)
-                print('JSON:',request.get_json())
-                print('VALUES:',request.values)
-                print('PARAMETERS',parameters)"""
+                log.debug('POST: %s'%dataPost)
+                log.debug('GET: %s'%request.args)
+                log.debug('JSON: %s'%request.get_json())
+                log.debug('VALUES: %s'%request.values)
+                log.debug('PARAMETERS: %s'%parameters)"""
 
             for parameter in parameters:
                 try:
@@ -59,16 +59,16 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
 
             token           = api.get_token()
             if logged and token is None:
-                print('   Empty token')
+                log.warning('Wrong permission: empty token')
                 api.access_denied()   
                 return api.get_return(return_status=401)
             elif logged and (api.user is None or len(api.user) == 0):
-                print('   Wrong user',api.user)
+                log.warning('Wrong permission: wrong user',api.user)
                 api.access_denied() 
                 return api.get_return(return_status=401)
 
             if admin and not api.check_is_admin():
-                print('   Not admin')
+                log.warning('Wrong permission: not an admin')
                 api.access_denied() 
                 return api.get_return(return_status=401)
 
@@ -117,7 +117,7 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
             "logged":logged,
             "admin":admin,
             "timeout":timeout,
-            "category":category.lower()
+            "category": func.__module__.split('.')[-1] if not category else category.lower()
         }
         return api_wrapper
     return api_in

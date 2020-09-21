@@ -72,40 +72,38 @@ class AlphaCore:
 
         self.ma = self.api.ma
             
-        #self.config.api     = self.api
+        # Cnx
         db_cnx              = self.config.db_cnx
+
         if db_cnx is None:
             self.error('Databases not configurated in config file')
 
-        if 'main' in db_cnx:
-            uri = db_cnx['main']['cnx']
-            if ':///' in uri:
-                io_lib.ensure_file(uri.split(':///')[1])
-            db_type = db_cnx['main']['type']
-
-            self.api.config['SQLALCHEMY_DATABASE_URI'] = uri
-        else:
+        if not 'main' in db_cnx:
             self.config.show()
             self.config.error('Missing <main> database configuration')
+            exit()
 
-        for key, cf_db in db_cnx.items():
-            self.api.config['SQLALCHEMY_BINDS'] = {x:y['cnx'] for x,y in db_cnx.items() if x != 'main'}
+        self.api.set_databases(db_cnx)
 
-        #self.api.config['MYSQL_DATABASE_CHARSET']           = 'utf8mb4'
-        #self.api.config['QLALCHEMY_TRACK_MODIFICATIONS']    = True
-        #self.api.config['EXPLAIN_TEMPLATE_LOADING']         = True
-        self.api.config['UPLOAD_FOLDER']                    = self.root + os.sep + 'templates'
-
+        # databases
         db_logger           = self.config.get_logger('database')
         if db_logger is None:
             db_logger       = self.config.get_logger('main')
 
-        self.db             = AlphaDatabaseNew(self.api,name="main",log=db_logger,config=db_cnx['main'])
         for name, cf in db_cnx.items():
-            if name == 'main':
-                self.databases[name] = self.db
-            else:
-                self.databases[name] = AlphaDatabaseNew(self.api,name=name,log=db_logger,config=cf)
+            log = self.config.get_logger(cf['logger']) if 'logger' in cf else db_logger
+            self.databases[name] = AlphaDatabaseNew(self.api,name=name,config=cf,log=log)
+        self.db = self.databases['main']
+
+        # configuration
+        self.api.log: AlphaLogger    = self.get_logger('api')
+        self.api.set_config('api',self.configuration)
+        self.api.db = self.db
+
+        models_sources = self.api.conf.get('database_models')
+        models_sources.append("alphaz.models.database.main_definitions")
+
+        modules             = flask_lib.get_definitions_modules(models_sources,log=self.log)
 
     def get_database(self,name=None) -> AlphaDatabaseNew:
         if self.api is None:
@@ -141,15 +139,20 @@ class AlphaCore:
         if self.config is None:
             self.set_configuration(None)
             if self.config is None:
-                print('Configuration need to be initialized')
+                print('ERROR: Configuration need to be initialized')
                 exit()
 
-    def init_databases(self,databases=[],drop=False):
-        if len([x for x in databases if x is not None]) == 0: return
+    def init_databases(self,databases=None,drop=False): # Todo: remove database ?
+        initialisation = self.api.conf.get('initialisation')
+        if not initialisation: return 
 
-        models_sources = core.config.get('directories/database_models')
-        models_sources.append("alphaz.models.database.main_definitions")
-        modules             = flask_lib.get_definitions_modules(models_sources,log=self.log)
+        all_schemas = 'all' in initialisation and initialisation['all']
+        all_drop    = 'drop' in initialisation and initialisation['drop']
+        if not all_schemas:
+            schemas = {x:y for x,y in initialisation.items() if x not in ['all','drop']}
+
+        #if len([x for x in databases if x is not None]) == 0: return
+
         #from alphaz.models.database import main_definitions
 
         #if drop:
@@ -162,23 +165,31 @@ class AlphaCore:
 
         initiated = []
         for database_name, cf in init_database_config.items():
-            if databases is not None and database_name not in databases: continue
+            if not all_schemas and database_name not in schemas: continue
+
             if type(cf) != dict: continue
 
             if 'main' in init_database_config and init_database_config['main'] == database_name:
-                print('Creating core database')
+                if all_drop:
+                    self.log.info('Drop <%s> database'%database_name)
+                    self.db.drop_all()
+                self.log.info('Creating database <main>')
                 for k,l in self.db.get_binds().items():
                     print('     {:30}  {}'.format(str(k),str(l)))
-
+                    
                 self.db.create_all()
                 self.db.commit()
 
             db = self.get_database(database_name)
 
-            self.log.info('Creating database %s'%database_name)
+            if all_drop:
+                self.log.info('Drop <%s> database'%database_name)
+                db.drop_all()
+
+            self.log.info('Creating database <%s>'%database_name)
 
             for k,l in db.get_binds().items():
-                print('     {:30}  {}'.format(str(k),str(l)))
+                print('     > {:30}  {}'.format(str(k),str(l)))
 
             db.create_all()
             db.commit()
@@ -194,7 +205,7 @@ class AlphaCore:
 
                 self.log.info('Initiating table %s from json files (%s): \n%s'%(database_name,json_ini,'\n'.join(['   - %s'%x for x in files])))
                 for file_path in files:
-                    self.process_databases_init(file_path,models_sources,file_type='json')
+                    self.process_databases_init(file_path,file_type='json')
 
             # python ini
             if 'init_database_dir_py' in cf:
@@ -205,9 +216,7 @@ class AlphaCore:
                 for file_path in files:
                     self.process_databases_init(file_path,models_sources)
 
-    def process_databases_init(self,file_path,models_sources,file_type='py'):
-        if not database_models in models_sources: models_sources.append(database_models)
-
+    def process_databases_init(self,file_path,file_type='py'):
         if file_type == "py":
             current_path    = os.getcwd()
             module_path     = file_path.replace(current_path,'').replace('/','.').replace('\\','.').replace('.py','')
@@ -223,19 +232,19 @@ class AlphaCore:
                     self.log.error('In file %s <ini> configuration must be of type <dict>'%(file_path))
                     return
 
-                self.get_entries(models_sources,file_path,ini)
+                self.get_entries(file_path,ini)
         elif file_type =='json':
             try:
                 ini = io_lib.read_json(file_path)
             except:
                 self.log.error('Cannot read file %s'%(file_path))
                 return
-            self.get_entries(models_sources,file_path,ini)
+            self.get_entries(file_path,ini)
 
-    def get_entries(self,models_sources,file_path,configuration):
+    def get_entries(self,file_path,configuration):
         from alphaz.models.database.models import AlphaTable
 
-        models_sources = [importlib.import_module(x) if type(x) == str else x for x in models_sources]
+        #models_sources = [importlib.import_module(x) if type(x) == str else x for x in models_sources]
 
         for database, tables_config in configuration.items():
             db = database
@@ -253,9 +262,9 @@ class AlphaCore:
                 table_name = table
                 found = False
                 for schema, tables in flask_lib.TABLES.items():           
-                    if table in tables:
+                    if table in tables['tables']:
                         found = True
-                        table = tables[table]
+                        table = tables['tables'][table]
 
                 if not found:
                     self.log.error('In file %s configuration of database <%s> the table <%s> is not found'%(file_path,database,table))
@@ -279,9 +288,9 @@ class AlphaCore:
                         entries.append(entry)
 
                     self.log.info('Adding %s entries from <list> for table <%s> in database <%s> from file %s'%(len(entries),table_name,database,file_path))
-                    database_lib.process_entries(models_sources,db,table,self.log,headers=config['headers'],values=entries)
+                    database_lib.process_entries(db,table,self.log,headers=config['headers'],values=entries)
 
                 if 'objects' in config:
                     entries = config['objects']
                     self.log.info('Adding %s entries from <objects> for table <%s> in database <%s> from file %s'%(len(entries),table_name,database,file_path))
-                    database_lib.process_entries(models_sources,db,table,self.log,values=entries)
+                    database_lib.process_entries(db,table,self.log,values=entries)

@@ -12,49 +12,6 @@ from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 TABLES = {}
 
-def load_views(module:ModuleType) -> List[ModelView]:
-    """[Load view from tables definitions module]
-
-    Args:
-        module (ModuleType): [description]
-
-    Returns:
-        List[ModelView]: [description]
-    """
-    db = module.db
-    
-    db_classes_names = [m[0] for m in inspect.getmembers(module, inspect.isclass) if m[1].__module__ == module.__name__]
-
-    view_config = {
-    }
-
-    views = []
-    db_classe_names = []
-    for db_classe_name in db_classes_names:
-        class_object = getattr(module,db_classe_name)
-        if db_classe_name in db_classe_names: continue
-        db_classe_names.append(db_classe_name)
-
-        if not db_classe_name in view_config:
-            if '__tablename__' in class_object.__dict__:
-                database_name   = "main" if not hasattr(class_object,"__bind_key__") else class_object.__bind_key__
-                name        = '%s:%s'%(database_name,class_object.__tablename__)
-                #if print('Add view %s for %s'%(class_object.__tablename__,class_object.__bind_key__))
-
-                attributes                  = [x for x,y in class_object.__dict__.items() if isinstance(y,InstrumentedAttribute)]
-
-                view = ModelView(
-                    class_object,
-                    db.session,
-                    name=class_object.__tablename__,
-                    category=database_name,
-                    endpoint=name)
-                view.column_list    = attributes
-                views.append(view)
-        else:
-            views.append(view_config[db_classe_name](class_object,db.session))
-    
-    return views
 
 def get_definitions_modules(modules_list:List[ModuleType],log:AlphaLogger) -> List[ModuleType]:
     """[Get database table definitions from parent or children module list]
@@ -99,7 +56,7 @@ def get_definitions_modules(modules_list:List[ModuleType],log:AlphaLogger) -> Li
                 db = sub_module.__dict__['db']
 
                 if not db.name in TABLES:
-                    TABLES[db.name] = {}
+                    TABLES[db.name] = {'db':db,'tables':{}}
 
                 found = False
                 for name, obj in sub_module.__dict__.items():
@@ -107,7 +64,7 @@ def get_definitions_modules(modules_list:List[ModuleType],log:AlphaLogger) -> Li
                         table = obj
                         found = True
 
-                        TABLES[db.name][obj.__tablename__] = obj
+                        TABLES[db.name]['tables'][obj.__tablename__] = obj
                 
                 if found:
                     modules.append(sub_module)
@@ -116,15 +73,47 @@ def get_definitions_modules(modules_list:List[ModuleType],log:AlphaLogger) -> Li
             db = module.__dict__['db']
 
             if not db.name in TABLES:
-                TABLES[db.name] = {}
+                TABLES[db.name] = {'db':db,'tables':{}}
 
             for name, obj in module.__dict__.items():
                 if inspect.isclass(obj) and issubclass(obj,AlphaTable) and hasattr(obj,'__tablename__'):
                     table = obj
                     found = True
 
-                    TABLES[db.name][obj.__tablename__] = obj
+                    TABLES[db.name]['tables'][obj.__tablename__] = obj
             
             if found:
                 modules.append(module)
     return modules
+
+class AlphaModelView(ModelView):
+    column_display_pk = True
+
+def load_views() -> List[ModelView]:
+    """[Load view from tables definitions module]
+
+    Args:
+        module (ModuleType): [description]
+
+    Returns:
+        List[ModelView]: [description]
+    """
+    views = []
+    
+    for schema, cf in TABLES.items():           
+        db, tables = cf['db'], cf['tables']
+
+        for table_name, class_object in tables.items():
+            attributes                  = [x for x,y in class_object.__dict__.items() if isinstance(y,InstrumentedAttribute)]
+
+            name        = '%s:%s'%(schema,class_object.__tablename__)
+            view = AlphaModelView(
+                class_object,
+                db.session,
+                name=class_object.__tablename__,
+                category=schema,
+                endpoint=name)
+
+            view.column_list    = attributes
+            views.append(view)
+    return views

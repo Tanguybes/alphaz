@@ -25,10 +25,10 @@ def get_table_and_database(schema:str,table:str):
         obj.__table__.drop()
         api.set_data("%s dropped"%table)"""
 
-    if not table in flask_lib.TABLES[schema]:
+    if not table in flask_lib.TABLES[schema]['tables']:
         raise AlphaException('cannot_find_table',parameters={'table':table})
 
-    table_object = flask_lib.TABLES[schema][table]
+    table_object = flask_lib.TABLES[schema]['tables'][table]
     
     """if not table in db.metadata.tables:
         raise AlphaException('cannot_find_table',parameters={'table':table})

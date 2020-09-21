@@ -26,17 +26,16 @@ def myconverter(o):
         return o.__str__()
 
 
-def save_as_json(filename,data,verbose=False):
+def save_as_json(filename,data,log=None):
     ensure_file(filename)
-    if verbose:
-        print('Write json file to %s'%filename)
+    if log:
+        log.info('Write json file to %s'%filename)
 
     # Writing JSON data
     json_content = json.dumps(data, default=myconverter).replace("NaN" , '"null"')
     with open(filename, 'w') as f:
         f.write(json_content)
         #json.dump(data, f)
-
 
 def read_json(file_path):
     original = {}
@@ -90,7 +89,7 @@ def get_proxies(nb=None):
     return proxies
 
 
-def archive_object(object_to_save,filename:str, ext:str='dmp',verbose=False) -> None:
+def archive_object(object_to_save,filename:str, ext:str='dmp',log=None) -> None:
     """Archive a Python object as a dump file
 
     Args:
@@ -104,8 +103,8 @@ def archive_object(object_to_save,filename:str, ext:str='dmp',verbose=False) -> 
         filename = filename + '.' + ext
     with open(filename, 'wb') as f:
         pickle.dump(object_to_save, f,protocol=pickle.HIGHEST_PROTOCOL)
-    if verbose:
-        print('Saved file %s'%filename)
+    if log:
+        log.info('Saved file %s'%filename)
         
 
 def unarchive_object(filename:str, ext:str='dmp'):

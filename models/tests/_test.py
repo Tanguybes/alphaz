@@ -1,4 +1,8 @@
+from core import core
+
 from ._save import AlphaSave
+
+log = core.get_logger('tests')
 
 class AlphaTest():
     category = ''
@@ -28,9 +32,7 @@ class AlphaTest():
         if equal:
             for i in range(len(a)):
                 if a[i] != b[i]: 
-                    #if self.verbose:
-                    #    print("   {:10} {:20} != {}".format(i,a[i],b[i]))
                     equal = False
         elif self.verbose:
-            print("Arrays size are not equal:",len(a),len(b))
+            log.warning("Arrays size are not equal: <%s> and <%s>"%(len(a),len(b)))
         return equal

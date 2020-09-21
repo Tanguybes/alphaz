@@ -6,7 +6,6 @@ oracle_path = 'C:\oracle\product\instantclient_19_5'
     
 def update_os():
     os.environ["PATH"] = oracle_path + "\;"+os.environ["PATH"]
-    #print(os.environ["PATH"])
     #os.environ["NLS_LANG"] = ".UTF8"
 
     #os.environ['ORACLE_HOME'] = oracle_path
@@ -32,8 +31,6 @@ class Connection():
         col_names = []
         for i in range(0, len(cursor.description)):
             col_names.append(cursor.description[i][0])
-
-        print(col_names)
             
         group = []
         for row in cursor:

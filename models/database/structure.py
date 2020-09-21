@@ -68,6 +68,7 @@ class AlphaDatabaseNew(SQLAlchemy):
         self.config     = config
         self.db_type    = config['type']
         self.log        = log
+        
 
         """if 'cnx' in config:
             self.engine = create_engine(config['cnx'])"""
@@ -85,7 +86,7 @@ class AlphaDatabaseNew(SQLAlchemy):
             self.engine.execute(query)
             return True
         except Exception as ex:
-            print('ex:',ex)
+            if self.log: self.log.error('ex:',ex)
             return False
 
     def drop(self,table_model):
@@ -153,7 +154,10 @@ class AlphaDatabaseNew(SQLAlchemy):
         values_update = self.get_values(model,values,{})
         return self.add(model,parameters=values_update,commit=commit,test=test)
 
-    def add(self,obj,parameters=None,commit=True,test=False,update=True):
+    def add_or_update(self,obj,parameters=None,commit=True,test=False,update=False):
+        return self.add(obj=obj,parameters=parameters,commit=commit,test=test,update=True)
+
+    def add(self,obj,parameters=None,commit=True,test=False,update=False):
         if test:
             self.log.info('Insert %s with values %s'%(obj,parameters))
             return None
@@ -174,8 +178,8 @@ class AlphaDatabaseNew(SQLAlchemy):
             try:
                 self.commit()
             except Exception as ex:
-                raise AlphaException('database_insert',message=str(ex))
-        return None
+                raise AlphaException('database_insert',description=str(ex))
+        return obj
 
     def commit(self):
         self.session.commit()
@@ -184,7 +188,7 @@ class AlphaDatabaseNew(SQLAlchemy):
         self.session.delete(obj)
         if commit: self.commit()
 
-    def delete(self,model,filters={},commit=True):
+    def delete(self,model,filters=None,commit=True):
         obj = self.select(model,filters=filters,first=True,json=False)
 
         if obj is not None:

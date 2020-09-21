@@ -38,8 +38,8 @@ class AlphaJSONEncoder(JSONEncoder):
                     returned_value = fct(o)
                     return returned_value
             iterable = iter(o)
-        except TypeError as err:
-            print('ERROR:',err)
+        except TypeError as ex:
+            print('Cannot convert %s: %s'%(o,ex))
         else:
             return list(iterable)
         return JSONEncoder.default(self, o=o)
@@ -77,6 +77,5 @@ def jsonify_data(data):
     else:
         result = data
         if hasattr(data,"schema"):
-            print('schema',data)
             result = jsonify_database_models(data)
     return result

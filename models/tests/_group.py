@@ -25,8 +25,6 @@ class TestGroup():
             method_name = method.__name__
             qual_name = method.__qualname__
             if method_name == TEST_METHOD_NAME or TEST_METHOD_NAME in qual_name:
-                #print('>',method_name,method.__name__)
-
                 test_function                   = TestMethod(classObject,method_name,method,self.category,self.name)
                 self.tests[test_function.name]  = test_function
 

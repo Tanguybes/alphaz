@@ -5,8 +5,6 @@ class Dataframe(AlphaTest):
     def __init__(self):
         super().__init__()
 
-        print('hey')
-
     def first_test(self):
         return True
 

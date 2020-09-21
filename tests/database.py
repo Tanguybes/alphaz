@@ -5,6 +5,8 @@ from alphaz.libs import date_lib
 import alphaz.models.database.main_definitions as defs
 from alphaz.models.database.main_definitions import Test
 
+log = core.get_logger('tests')
+
 class Dataframe(AlphaTest):
     connected      = False
 
@@ -23,7 +25,7 @@ class Dataframe(AlphaTest):
         self.connected  = self.db.test()
 
         if not self.connected:
-            print('not connected')
+            log.eror('not connected')
             exit()
             return
 

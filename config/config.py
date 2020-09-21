@@ -117,7 +117,7 @@ class AlphaConfig():
             self.load(configuration)
             self.check_required()
         else:
-            print('Config file %s does not exist !'%self.config_file)
+            self.error('Config file %s does not exist !'%self.config_file)
             exit()
 
     def info(self,message):
@@ -735,10 +735,6 @@ def get_object_from_config(nested,path=None,object_type='parameters'):
                 f, p = get_object_from_config(value, next_path,object_type)
                 found.extend(f)
                 paths.extend(p)
-    """if '{{project}}' in str(nested):
-        print('  >>>',str(nested))
-        print('   found',found)
-        print('   path',paths)"""
     return found, paths
 
 def get_parameters_from_config(nested, path=None):

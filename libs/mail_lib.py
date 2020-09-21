@@ -180,10 +180,6 @@ def update_mail_content(content,mail_url,parameters,parameters_to_specify,log):
         if MAIL_PARAMETERS_PATTERN%key in parameters_to_specify:
             parameters_to_keep[key] = value
 
-    print('Mail parameters:')
-    for key, value in parameters_to_keep.items():
-        print('   {:20} {}'.format(key,value))
-
     content                     = set_parameters(content,parameters_to_keep)
 
     parameters_not_specified    = list(set(get_mails_parameters(content)))
@@ -201,7 +197,10 @@ def update_mail_content(content,mail_url,parameters,parameters_to_specify,log):
 def get_mail_content_for_parameters(mail_path,mail_url,parameters_list,log):
     if not 'template' in mail_url:
         mail_url = 'template.html?mail-content=' + mail_url
-    print('Getting mail at %s/%s'%(mail_path,mail_url))
+
+    if log: 
+        log.debug('Getting mail at %s/%s'%(mail_path,mail_url))
+
     content                 = get_mail_content(mail_path,mail_url,log)
     if content is None:
         return []
@@ -212,10 +211,7 @@ def get_mail_content_for_parameters(mail_path,mail_url,parameters_list,log):
     mail_contents_list = []
     for parameters in parameters_list:        
         mail_contents_dict                      = {'content':None,'parameters':None,'valid':False}
-        out_content, valid, pars                    = update_mail_content(content,mail_url,parameters,parameters_to_specify,log)
-            
-        """for key, value in parameters.items():
-            print('    @ ',key,value)"""
+        out_content, valid, pars                = update_mail_content(content,mail_url,parameters,parameters_to_specify,log)
         
         mail_contents_dict['content']           = out_content
         mail_contents_dict['parameters']        = pars

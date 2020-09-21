@@ -84,8 +84,8 @@ class AlphaFtp():
                 if contain is None or contain in attr:
                     files.append(FtpFile(attr,None))
 
-        if len(files) == 0:
-            print('No files in directory')
+        if len(files) == 0 and self.log:
+            self.log.error('No files in directory %s'%directory)
         return files
 
     def upload(self,sourcepath,remotepath):
@@ -117,5 +117,5 @@ class AlphaFtp():
             ftp_file    = FtpFile(name)
             self.files.append(ftp_file)
             self.index += 1
-        except Exception as Ex:
-            print(Ex)
+        except Exception as ex:
+            if self.log: self.log.error(ex)

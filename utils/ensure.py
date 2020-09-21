@@ -61,11 +61,9 @@ screens = {
 }
 
 def error(message):
-    print(message)
     logger.error(message)
 
 def info(message):
-    print(message)
     logger.info(message)
 
 def get_cmd_output(cmd):

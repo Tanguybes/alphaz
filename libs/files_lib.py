@@ -31,7 +31,7 @@ def copy_files(root_source, root_dest, folders, verbose=False,action=False,infos
                 copy_files(root_source, root_dest, new_folders,verbose=verbose,action=action,infos=infos)
     return infos
 
-def copy_file(root_source, root_dest, folders, file_name,verbose=False,action=False,infos={}):
+def copy_file(root_source, root_dest, folders, file_name,log=None,action=False,infos={}):
     if not 'nb' in infos:
         infos['nb'] = 0
 
@@ -63,9 +63,9 @@ def copy_file(root_source, root_dest, folders, file_name,verbose=False,action=Fa
 
             if action_str is not None:
                 infos['nb'] += 1
-                if verbose:
-                    print('  {}  {:50} from {:40} to {}'.format(action_str,relative_path,root_source, root_dest))
+                if log:
+                    log.info('  {}  {:50} from {:40} to {}'.format(action_str,relative_path,root_source, root_dest))
 
     except Exception as ex:
-        print("ERROR:",ex)
+        if log: log.error(ex)
     return infos

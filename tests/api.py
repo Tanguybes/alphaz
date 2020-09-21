@@ -1,3 +1,4 @@
+from core import core
 
 from alphaz.utils.api import api
 from alphaz.models.tests import AlphaTest
@@ -6,9 +7,10 @@ import requests, os
 
 from alphaz.utils.api import api
 
+log = core.get_logger('tests')
+
 class API_tests(AlphaTest):
     def __init__(self):
-        print(os.getcwd())
         api.init(config_path='api')
         super().__init__()
 
@@ -21,7 +23,7 @@ class API_tests(AlphaTest):
             response    = requests.post(self.get_url(route), data=data)
             return str(response.text)
         except Exception as ex:
-            print("ERROR",ex)
+            log.error("ERROR",ex)
             return None
 
     def get(self,data,route):
@@ -29,7 +31,7 @@ class API_tests(AlphaTest):
             response    = requests.get(self.get_url(route), params=data)
             return str(response.text)
         except Exception as ex:
-            print("ERROR",ex)
+            log.error("ERROR",ex)
             return None
 
     def test_api_up(self):

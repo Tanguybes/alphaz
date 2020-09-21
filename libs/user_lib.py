@@ -11,7 +11,6 @@ def get_user_data_by_usernamePassword(db,username, password_attempt,log=None,clo
         valid           = secure_lib.compare_passwords(password_attempt,hash_saved)
 
         if valid:
-            print('1',user_id)
             return get_user_data_by_id(db, user_id,close_cnx=close_cnx)
     return None
 
@@ -24,7 +23,6 @@ def get_user_data_by_mailPassword(db,mail, password_attempt,log=None,close_cnx=T
         valid           = secure_lib.compare_passwords(password_attempt,hash_saved)
 
         if valid:
-            print('2',user_id)
             return get_user_data_by_id(db, user_id,close_cnx=close_cnx)
     return None
 
@@ -39,7 +37,6 @@ def get_user_data_FromLogin(db,login, password,log=None,close_cnx=True):
 
 def get_user_data(db, value, column, close_cnx=True,log=None):
     ''' Get the user role associated with given column'''
-    print('LA debug',defs.User.__dict__[column],value,type(defs.User.__dict__[column]),type(value))
     results  = db.select(defs.User,filters=[defs.User.__dict__[column]==value],json=True)
     if len(results) != 0:
         return results[0]

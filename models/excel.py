@@ -16,7 +16,6 @@ class AlphaExcel():
                 file_config   = self.config.get(['files',name])
                 file_path     = file_config['file_path']
                 
-        print(file_path)
         self.file_raw       = pd.ExcelFile(file_path)
 
         self.file_sheets    = {sheet_name: self.file_raw.parse(sheet_name) 

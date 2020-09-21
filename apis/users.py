@@ -1,7 +1,7 @@
 import datetime, jwt
-from ...libs import user_lib, sql_lib, secure_lib
+from ..libs import user_lib, sql_lib, secure_lib
 
-from ...models.database import main_definitions as defs
+from ..models.database import main_definitions as defs
 
 # Serve for registration
 def try_register_user(api,db,mail, username, password, password_confirmation,close_cnx=True):

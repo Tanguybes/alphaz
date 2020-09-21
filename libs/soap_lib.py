@@ -41,7 +41,7 @@ def get_wsdl_response(base,wsdl,method,parameters,use_cert=False,use_proxy=False
 
             for operation in operations:
                 methods[operation.name] = {}
-                #print("  input :", operation.input.signature())
+                # operation.input.signature()
                 if type(operation.input.body) != list:
                     methods[operation.name] = [operation.input.body.__dict__]
 

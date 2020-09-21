@@ -50,12 +50,8 @@ def save(func):
         get_return, get_name = False, False
         new_kwargs = {}
         args = list(args)
-        #print('must-have arguments are:')
-        """for i in args:
-            print(i)   """       
-        #print('optional arguments are:')
+    
         for kw in kwargs.keys():
-            #print( kw+'='+str( kwargs[kw] ) )
             if kw == "get_return":
                 get_return = True
             elif kw == "get_name":

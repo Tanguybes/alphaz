@@ -45,7 +45,6 @@ def on_clicked(icon, item):
     state = not item.checked
 
     if item.checked:
-        print('start api')
         api.start()
 
 def exitAlpha():

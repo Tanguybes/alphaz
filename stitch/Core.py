@@ -24,7 +24,6 @@ class Core:
         if name == 'firefox':
             Core.set_driver_name('geckodriver')
             driver_path     = Core.DRIVER_ROOT + os.sep + 'geckodriver'
-            print(driver_path,os.path.isfile(driver_path),os.path.isdir(driver_path))
             monExecutable   = FirefoxBinary(driver_path)
             driver = webdriver.Firefox(firefox_binary= monExecutable)
 

@@ -1,4 +1,5 @@
 from ...utils.api import route, Parameter
+from .. import mails
 
 from core import core
 
@@ -10,7 +11,7 @@ category    = "mails"
 
 @route('/mails/mailme',category=category,logged=False,cache=False)
 def mail_me():
-    api_mails.mail_me(api,db,close_cnx=True)
+    mails.mail_me(api,db,close_cnx=True)
 
 @route('/mails/stayintouch',category=category,logged=False,cache=False, 
     parameters = [
@@ -23,7 +24,7 @@ def mails_stay_in_touch():
     user_mail       = api.get('mail')
     name            = api.get('name')
 
-    api_mails.stay_in_touch(api,user_mail,name, token,db)
+    mails.stay_in_touch(api,user_mail,name, token,db)
 
 @route('/mails/newsletter',category=category,
     parameters = [
@@ -48,7 +49,7 @@ def mails_request_view():
     mail_type   = api.get('name')
     mail_id     = api.get('id')
 
-    api_mails.request_view(api,user_mail,token,mail_type,mail_id,db,close_cnx=True)
+    mails.request_view(api,user_mail,token,mail_type,mail_id,db,close_cnx=True)
 
 @route('/mails/unsubscribe',category=category,logged=False,cache=False, 
     parameters = [
@@ -61,4 +62,4 @@ def mails_unsubscribe():
     user_mail   = api.get('mail')
     mail_type   = api.get('type')
 
-    api_mails.request_unsubscribe(api,user_mail,token,mail_type,db,close_cnx=True)
+    mails.request_unsubscribe(api,user_mail,token,mail_type,db,close_cnx=True)

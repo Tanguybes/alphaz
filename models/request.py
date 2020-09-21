@@ -31,7 +31,7 @@ class AlphaRequest():
             response    = requests.post(self.get_url(route), data=data, verify=False)
             return str(response.text)
         except Exception as ex:
-            print("ERROR",ex)
+            if self.log: self.log.error(ex)
             return None
 
     def get(self,route,data={}):
@@ -39,5 +39,5 @@ class AlphaRequest():
             response    = requests.get(self.get_url(route), params=data, verify=False)
             return str(response.text)
         except Exception as ex:
-            print("ERROR",ex)
+            if self.log: self.log.error(ex)
             return None
