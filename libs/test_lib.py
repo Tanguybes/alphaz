@@ -8,7 +8,7 @@ from ..utils.logger import AlphaLogger
 from typing import List
 
 from core import core
-LOG = core.get_logger('test')
+LOG = core.get_logger('tests')
 
 def get_tests_auto(
         tests_modules:List[str],

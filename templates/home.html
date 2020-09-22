@@ -256,14 +256,15 @@
         </div>
       </footer>
     </div>
-
+    <div id="loading"></div>
   </body>
 </html>
 
 <script>
   function executeTest(category, group, test) {
-    console.log('Exec ' + category +'-',group,'-',test)
-
+    $(window).scrollTop(0);
+    setVisible('#loading', true);
+    
     parameters = "run=Y&category=" + category
     if (test != '') {
       parameters = parameters + "&grou=" + group
@@ -281,4 +282,22 @@
             }
          });
   }
+
+  function onReady(callback) {
+  var intervalId = window.setInterval(function() {
+    if (document.getElementsByTagName('body')[0] !== undefined) {
+      window.clearInterval(intervalId);
+      callback.call(this);
+    }
+  }, 1000);
+}
+
+function setVisible(selector, visible) {
+  document.querySelector(selector).style.display = visible ? 'block' : 'none';
+}
+
+onReady(function() {
+  setVisible('#loading', false);
+});
+
 </script>
