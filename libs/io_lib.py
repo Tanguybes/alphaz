@@ -38,6 +38,11 @@ def save_as_json(filename,data,log=None):
         #json.dump(data, f)
 
 def read_json(file_path):
+    data = {}
+    with open(file_path) as json_data_file:
+        data = json.load(json_data_file)
+    return data
+
     original = {}
 
     with open(file_path,'r') as f:

@@ -1,6 +1,6 @@
 from ...utils.api import route, Parameter
 
-from ...libs import logs_lib, flask_lib
+from ...libs import logs_lib, flask_lib, database_lib
 
 from ...models.main import AlphaException
 
@@ -67,3 +67,13 @@ def drop_table():
 
     table_object.__table__.drop()
     api.set_data("%s dropped"%table)"""
+
+@route('/database/init',
+parameters=[
+    Parameter('database',required=True),
+    Parameter('table',required=True),
+    Parameter('drop',ptype=bool)
+])
+def init_database():
+    log = core.get_logger('database')
+    database_lib.init_databases(api.get('database'),api.get('table'),drop=api.get('drop'),log=log)
