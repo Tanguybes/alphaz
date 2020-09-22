@@ -10,9 +10,7 @@ api         = core.api
 db          = core.db
 log         = core.get_logger('api')
 
-category    = 'tests'
-
-@route('/tests',category=category,parameters=
+@route('/tests',parameters=
 [
     Parameter('category',ptype=str),
     Parameter('group',ptype=str),
@@ -29,7 +27,7 @@ def get_tests():
     )
     api.set_data(tests)
 
-@route('/test',category=category,cache=True,timeout=100,
+@route('/test',cache=True,timeout=100,
     parameters=[Parameter('value'),Parameter('options',options=['Y','N'])]
 )
 def api_test():
@@ -38,11 +36,11 @@ def api_test():
         'options':api.get('options')
     })
     
-@route('/test/insert',category=category)
+@route('/test/insert',)
 def test_insert():
     api.set_data(tests.insert())
 
-@route('/test/html',category=category,
+@route('/test/html',
     parameters=[Parameter('message')]
 )
 def html_message():

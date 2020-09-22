@@ -55,8 +55,8 @@ def read_json(file_path):
             states.append((p, text[p:nxt]))
 
     # replace all weired characters in text
-    while text.find(',,') > -1:
-        text = text.replace(',,', ',null,')
+    while text.find(',') > -1:
+        text = text.replace(',', ',null,')
     while text.find('[,') > -1:
         text = text.replace('[,', '[null,')
 

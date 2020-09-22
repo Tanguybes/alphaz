@@ -100,7 +100,11 @@ class AlphaCore:
         self.api.set_config('api',self.configuration)
         self.api.db = self.db
 
-        models_sources = self.api.conf.get('database_models')
+        models_sources = self.api.conf.get('directories/database_models')
+        if not models_sources:
+            self.api.log.error('Missing <directories/database_models> entry in configuration %s'%self.api.conf.filepath)
+            exit()
+
         models_sources.append("alphaz.models.database.main_definitions")
 
         modules             = flask_lib.get_definitions_modules(models_sources,log=self.log)

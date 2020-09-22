@@ -10,8 +10,6 @@ api         = core.api
 db          = core.db
 log         = core.get_logger('api')
 
-category = 'database'
-
 def get_table_and_database(schema:str,table:str):
     db              = core.get_database(schema)
     if db is None:
@@ -36,11 +34,11 @@ def get_table_and_database(schema:str,table:str):
     table_object = db.metadata.tables[table]"""
     return table_object, db
 
-@route('/database/tables',category=category)
+@route('/database/tables')
 def liste_tables():
     api.set_data({x:list(y.metadata.tables.keys()) for x,y in core.databases.items()})
 
-@route('/database/create',category=category,
+@route('/database/create',
     parameters=[
         Parameter('schema',required=True),
         Parameter('table',required=True)
@@ -49,8 +47,9 @@ def liste_tables():
 def create_table():
     table_object, db    = get_table_and_database(api.get('schema'), api.get('table'))
     table_object.__table__.create(db.engine)
+    api.set_data('table %s created'%api.get('table'))
 
-@route('/database/drop',category=category,
+@route('/database/drop',
     parameters=[
         Parameter('schema',required=True),
         Parameter('table',required=True)
@@ -59,6 +58,7 @@ def create_table():
 def drop_table():
     table_object, db    = get_table_and_database(api.get('schema'), api.get('table'))
     table_object.__table__.drop(db.engine)
+    api.set_data('table %s dropped'%api.get('table'))
     
     """if not table in db.metadata.tables:
         raise AlphaException('cannot_find_table',parameters={'table':table})

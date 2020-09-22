@@ -10,9 +10,7 @@ api         = core.api
 db          = core.db
 log         = core.get_logger('api')
 
-category    = 'api'
-
-@route("/map",category=category)
+@route("/map",)
 def api_map():
     api.set_data(get_routes_infos(log=log))
 
@@ -22,7 +20,7 @@ def has_no_empty_params(rule):
     arguments   = rule.arguments if rule.arguments is not None else ()
     return len(defaults) >= len(arguments)
 
-@route("/routes",category=category,parameters=[
+@route("/routes",parameters=[
     Parameter('admin',default=False,ptype=bool)
 ])
 def site_map():

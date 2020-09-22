@@ -338,7 +338,6 @@ class AlphaFlask(Flask):
     def keep(self,api_route,parameters=[]):
         route = self.get_route(api_route)
         if not route.cache:
-            if self.log: self.log.warning('Api %s not cacheable'%api_route)
             return False
         key             = self.get_key(api_route,parameters)
         return_cache    = key in self.routes_values.keys()
@@ -347,9 +346,6 @@ class AlphaFlask(Flask):
     def cache(self,api_route,parameters=[]):
         self.current_route.lasttime     = datetime.datetime.now()
         key                             = self.get_key(api_route,parameters)
-        if self.log:
-            self.log.info('   SET new cache for %s (last run = %s)'%(api_route,datetime.datetime.now()))
-
         self.routes_values[key] = (self.returned, self.data)
         return self.routes_values[key]
 

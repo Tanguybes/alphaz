@@ -31,7 +31,7 @@ def home():
 
     debug =  core.config.configuration != 'prod'
 
-    api.set_html('home.html',parameters={
+    parameters = {
         'mode':core.config.configuration,
         'mode_color': '#e74c3c' if core.config.configuration == 'prod' else ('#0270D7' if core.config.configuration == 'dev' else '#2ecc71'),
         'title':config.get('templates/home/title'),
@@ -46,4 +46,5 @@ def home():
         'statistics': debug,
         'dashboard':debug,
         "tests":test_lib.get_tests_auto(core.config.get('directories/tests'))
-    })
+    }
+    api.set_html('home.html',parameters=parameters)

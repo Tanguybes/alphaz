@@ -3,14 +3,14 @@ import datetime, re
 from core import core
 from ..database.main_definitions import Tests
 
-class AlphaModel():
+class AlphaTable():
     def update_from(self,source):
         for key in self.__dict__.keys():
             if hasattr(source,key):
                 source_element = getattr(source,key)
                 self.__dict__[key] = source_element
 
-class TestMethod(AlphaModel):
+class TestMethod(AlphaTable):
     def __init__(self,classObject,name:str,method,category:str,group:str):
         self.name:str           = name
         self.method             = method

@@ -74,6 +74,8 @@
 
         <section class="features section">
           <div class=container>
+            <h1 class="hero-title mt-0">Routes</h1>
+
             <div class="features-inner section-inner has-bottom-divider">
               <div class=features-wrap>
 
@@ -141,6 +143,60 @@
           </div>
         </section>
 
+        <section class="features section">
+          <div class=container>
+            <h1 class="hero-title mt-0">Tests</h1>
+            
+            <div class="features-inner section-inner has-bottom-divider">
+              <div class=features-wrap>
+                {% for category in tests.categories %}
+                <div class="feature text-center is-revealing" style=visibility:visible>
+                  <div class=feature-inner>
+                    <div class=feature-icon></div>
+
+                      <h3 class="feature-title mt-24"><a class="button button-secondary" onclick="executeTest('{{category}}','','')" style="padding: 2px 2px 2px 2px;height: 20px;">Run</a>&nbsp;{{category}}</h3>
+
+                      <p class="text-sm mb-0"></p>
+
+                      <div class="feature-routes">
+                        {% for group in tests.categories[category].groups %}
+
+                          <h4><a class="button button-secondary" onclick="executeTest('{{category}}','{{group}}','')" style="padding: 2px 2px 2px 2px;height: 20px;">Run</a>&nbsp;{{group}}</h4>
+
+                          {% for test in tests.categories[category].groups[group].tests %}
+                            <hr/>
+                            <div class="feature-route">
+                              <a class="button button-secondary" onclick="executeTest('{{category}}','{{group}}','{{test}}')" style="padding: 2px 2px 2px 2px;height: 20px;">Run</a>&nbsp;
+
+                              <span {% if tests.categories[category].groups[group].tests[test].status %} style="color:green" {% else %} style="color:red" {%endif %}>{{test}}</span>
+                              
+                              {% if tests.categories[category].groups[group].tests[test].elapsed %}
+                                <sub style="color:orange">{{tests.categories[category].groups[group].tests[test].elapsed}}s</sub>
+                              {% endif %}
+                            </div>
+
+                            <br/>
+                            {% if tests.categories[category].groups[group].tests[test].start_time %}
+                              > {{tests.categories[category].groups[group].tests[test].start_time}}
+                            {% endif %}
+
+
+                          {% endfor %}
+
+                        {% endfor %}
+
+
+                      </div>
+
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section class="cta section">
           <div class=container>
             <div class="cta-inner section-inner">
@@ -203,3 +259,26 @@
 
   </body>
 </html>
+
+<script>
+  function executeTest(category, group, test) {
+    console.log('Exec ' + category +'-',group,'-',test)
+
+    parameters = "run=Y&category=" + category
+    if (test != '') {
+      parameters = parameters + "&grou=" + group
+    }
+    if (test != '') {
+      parameters = parameters + "&name=" + test
+    }
+
+    $.ajax({
+            type: "GET",
+            url: "/tests",
+            data: parameters,
+            success: function(data, status) {
+              location.reload();
+            }
+         });
+  }
+</script>

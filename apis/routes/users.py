@@ -9,9 +9,8 @@ api         = core.api
 db          = core.db
 log         = core.get_logger('api')
 
-category    = 'user'
 
-@route('/register',category=category, methods = ['POST'],
+@route('/register', methods = ['POST'],
     parameters = [
         Parameter('mail',required=True),
         Parameter('username',required=True),
@@ -30,7 +29,7 @@ def register():
         api.get('password'), 
         api.get('password_confirmation'))
 
-@route('/register/validation',category=category,methods = ['GET'],
+@route('/register/validation',methods = ['GET'],
     parameters  = [
         Parameter('tmp_token',required=True)
     ],
@@ -42,7 +41,7 @@ def register_validation():
     users.confirm_user_registration(api,token   = api.get('tmp_token'),db=db)
 
 # LOGIN
-@route('/auth',category=category, methods = ['POST'],
+@route('/auth', methods = ['POST'],
     parameters  = [
         Parameter('username',required=True),
         Parameter('password',required=True)
@@ -50,7 +49,7 @@ def register_validation():
 def login():
     users.try_login(api, db, api.get('username'), api.get('password'), request.remote_addr)
 
-@route('/password/lost',category=category, methods = ['POST'],
+@route('/password/lost', methods = ['POST'],
     parameters = [
         Parameter('username',required=False),
         Parameter('mail',required=False)
@@ -68,7 +67,7 @@ def password_lost():
     else:
         api.set_error('inputs')
 
-@route('/password/reset',category=category, methods = ['GET', 'POST'],
+@route('/password/reset', methods = ['GET', 'POST'],
     parameters  = [
         Parameter('tmp_token',required=True),
         Parameter('password',required=True),
@@ -80,14 +79,14 @@ def password_reset_validation():
 
     users.confirm_user_password_reset(api,token=api.get('tmp_token'), password=api.get('password'), password_confirmation=api.get('password_confirmation'),db=db)
 
-@route('/logout',category=category,cache=False,logged=False,methods = ['GET', 'POST'],
+@route('/logout',cache=False,logged=False,methods = ['GET', 'POST'],
     parameters  = [],  parameters_names=[])
 def logout():
     token   = api.get_token()
 
     users.logout(api,token,db=db)
 
-@route('/profile/password',category=category, logged=True, methods = ['POST'],
+@route('/profile/password', logged=True, methods = ['POST'],
     parameters  = [
         Parameter('password',required=True),
         Parameter('password_confirmation',required=True)

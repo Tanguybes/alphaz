@@ -100,9 +100,8 @@ class AlphaLogger():
                 msg = msg.replace(structure%parameter_name,'')
                 parameters_values.append(keys[parameter_name])
 
-        msg = msg.replace(structure%'message',str(message))
+        msg = msg.format(*parameters_values).replace(structure%'message',str(message))
 
-        msg = msg.format(*parameters_values)
         return msg
 
     def info(self,message,monitor=None,level=1):

@@ -27,6 +27,8 @@ def get_definitions_modules(modules_list:List[ModuleType],log:AlphaLogger) -> Li
 
     modules = []
 
+    loaded_modules = []
+
     for module_r in modules_list:
         module = importlib.import_module(module_r) if type(module_r) == str else module_r
         
@@ -35,21 +37,31 @@ def get_definitions_modules(modules_list:List[ModuleType],log:AlphaLogger) -> Li
             continue
 
         dir_ini = module.__file__ and '__init__.py' in module.__file__
-        dir_path = hasattr(module,'__path__') and module.__path__ and module.__path__._path and len(module.__path__._path) != 0
+        if dir_ini:
+            module_path = module.__file__.replace('__init__','*')
+
+        dir_path = hasattr(module,'__path__') and module.__path__
+        if dir_path and hasattr(module.__path__,'_path'):
+            dir_path    = module.__path__._path and len(module.__path__._path) != 0
+            module_path = module.__path__._path[0] + os.sep + '*'
+        elif dir_path:
+            dir_path    = len(module.__path__) != 0
+            module_path = module.__path__[0] + os.sep + '*'
 
         if dir_ini or dir_path:
-            if dir_ini:
-                sub_files   = glob.glob(module.__file__.replace('__init__','*'))
-            else:
-                sub_files   = glob.glob(module.__path__._path[0] + os.sep + '*')
+            sub_files   = glob.glob(module_path) if dir_ini else glob.glob(module_path)
 
             names       = [os.path.basename(x).replace('.py','') for x in sub_files if not '__init__' in x]
 
             for sub_file_name in names:
+                module_full_name = "%s.%s"%(module.__name__,sub_file_name)
+                if module_full_name in loaded_modules: continue
+
+                loaded_modules.append(module_full_name)
                 try:
-                    sub_module = importlib.import_module("%s.%s"%(module.__name__,sub_file_name))
+                    sub_module = importlib.import_module(module_full_name)
                 except Exception as ex:
-                    log.error('Cannot load module %s.%s:\n   %s'%(module.__name__,sub_file_name,ex))
+                    log.error('Cannot load module %s:\n   %s'%(module_full_name,ex))
                     continue
                 
                 if not 'db' in sub_module.__dict__: continue
@@ -84,6 +96,7 @@ def get_definitions_modules(modules_list:List[ModuleType],log:AlphaLogger) -> Li
             
             if found:
                 modules.append(module)
+
     return modules
 
 class AlphaModelView(ModelView):

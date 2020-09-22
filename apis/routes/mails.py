@@ -7,13 +7,11 @@ api         = core.api
 db          = core.db
 log         = core.get_logger('api')
 
-category    = "mails"
-
-@route('/mails/mailme',category=category,logged=False,cache=False)
+@route('/mails/mailme',logged=False,cache=False)
 def mail_me():
     mails.mail_me(api,db,close_cnx=True)
 
-@route('/mails/stayintouch',category=category,logged=False,cache=False, 
+@route('/mails/stayintouch',logged=False,cache=False, 
     parameters = [
         Parameter('token',required=True),
         Parameter('mail',required=True),
@@ -26,7 +24,7 @@ def mails_stay_in_touch():
 
     mails.stay_in_touch(api,user_mail,name, token,db)
 
-@route('/mails/newsletter',category=category,
+@route('/mails/newsletter',
     parameters = [
         Parameter('mail',required=True),
         Parameter('name',required=True)
@@ -36,7 +34,7 @@ def mail_newsletter():
     db.insert(defs.NewsLetter,values=api.dataGet)
     api.set_data('saved') 
 
-@route('/mails/requestview',category=category,logged=False,cache=False, 
+@route('/mails/requestview',logged=False,cache=False, 
     parameters = [
         Parameter('token',required=True),
         Parameter('mail',required=True),
@@ -51,7 +49,7 @@ def mails_request_view():
 
     mails.request_view(api,user_mail,token,mail_type,mail_id,db,close_cnx=True)
 
-@route('/mails/unsubscribe',category=category,logged=False,cache=False, 
+@route('/mails/unsubscribe',logged=False,cache=False, 
     parameters = [
         Parameter('token',required=True),
         Parameter('mail',required=True),

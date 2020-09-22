@@ -12,9 +12,7 @@ api         = core.api
 db          = core.db
 log         = core.get_logger('api')
 
-category    = "admin"
-
-@route('/admin/logs/clear',category=category, methods = ['GET'], admin=True,
+@route('/admin/logs/clear', methods = ['GET'], admin=True,
     parameters = [
 
     ])
@@ -23,7 +21,7 @@ def clear_logs():
     if not done:
         api.set_error('database')
 
-@route('/admin/logs',category=category, methods = ['POST', 'GET'],admin=True,
+@route('/admin/logs', methods = ['POST', 'GET'],admin=True,
     parameters = [
         Parameter('page',required=True,ptype=int),
         Parameter('startDate',required=True),
