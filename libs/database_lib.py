@@ -1,4 +1,5 @@
 import datetime, glob, os, importlib
+from typing import Dict
 
 from . import flask_lib, io_lib
 
@@ -166,3 +167,6 @@ def get_entries(database_name,table_name,file_path,configuration,log=None):
                 entries = config['objects']
                 if log: log.info('Adding %s entries from <objects> for table <%s> in database <%s> from file %s'%(len(entries),table_name,database,file_path))
                 process_entries(db,table,log=log,values=entries)
+
+def get_databases_tables_list() -> Dict[str,str]:
+    return {x:list(y.metadata.tables.keys()) for x,y in core.databases.items()}

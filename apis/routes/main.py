@@ -2,7 +2,7 @@ import datetime
 
 from flask import request, send_from_directory
 
-from ...libs import test_lib
+from ...libs import test_lib, database_lib
 from ...utils.api import route, Parameter
 from ..main import get_routes_infos
 
@@ -45,6 +45,7 @@ def home():
         'compagny_website': config.get('parameters/compagny_website'),
         'statistics': debug,
         'dashboard':debug,
-        "tests":test_lib.get_tests_auto(core.config.get('directories/tests'))
+        'tests':test_lib.get_tests_auto(core.config.get('directories/tests')),
+        'databases':database_lib.get_databases_tables_dict()
     }
     api.set_html('home.html',parameters=parameters)

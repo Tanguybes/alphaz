@@ -36,7 +36,7 @@ def get_table_and_database(schema:str,table:str):
 
 @route('/database/tables')
 def liste_tables():
-    api.set_data({x:list(y.metadata.tables.keys()) for x,y in core.databases.items()})
+    api.set_data(database_lib.get_databases_tables_dict())
 
 @route('/database/create',
     parameters=[
@@ -59,14 +59,6 @@ def drop_table():
     table_object, db    = get_table_and_database(api.get('schema'), api.get('table'))
     table_object.__table__.drop(db.engine)
     api.set_data('table %s dropped'%api.get('table'))
-    
-    """if not table in db.metadata.tables:
-        raise AlphaException('cannot_find_table',parameters={'table':table})
-
-    table_object = db.metadata.tables[table]
-
-    table_object.__table__.drop()
-    api.set_data("%s dropped"%table)"""
 
 @route('/database/init',
 parameters=[
