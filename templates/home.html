@@ -154,19 +154,19 @@
                   <div class=feature-inner>
                     <div class=feature-icon></div>
 
-                      <h3 class="feature-title mt-24"><a class="button button-secondary" onclick="executeTest('{{category}}','','')" style="padding: 2px 2px 2px 2px;height: 20px;">Run</a>&nbsp;{{category}}</h3>
+                      <h3 class="feature-title mt-24"><a class="button button-primary" onclick="executeTest('{{category}}','','')" style="padding: 2px 2px 2px 2px;height: 20px;">Run</a>&nbsp;{{category}}</h3>
 
                       <p class="text-sm mb-0"></p>
 
                       <div class="feature-routes">
                         {% for group in tests.categories[category].groups %}
 
-                          <h4><a class="button button-secondary" onclick="executeTest('{{category}}','{{group}}','')" style="padding: 2px 2px 2px 2px;height: 20px;">Run</a>&nbsp;{{group}}</h4>
+                          <h4><a class="button button-primary" onclick="executeTest('{{category}}','{{group}}','')" style="padding: 2px 2px 2px 2px;height: 20px;">Run</a>&nbsp;{{group}}</h4>
 
                           {% for test in tests.categories[category].groups[group].tests %}
                             <hr/>
                             <div class="feature-route">
-                              <a class="button button-secondary" onclick="executeTest('{{category}}','{{group}}','{{test}}')" style="padding: 2px 2px 2px 2px;height: 20px;">Run</a>&nbsp;
+                              <a class="button button-primary" onclick="executeTest('{{category}}','{{group}}','{{test}}')" style="padding: 2px 2px 2px 2px;height: 20px;">Run</a>&nbsp;
 
                               <span {% if tests.categories[category].groups[group].tests[test].status %} style="color:green" {% else %} style="color:red" {%endif %}>{{test}}</span>
                               
@@ -256,14 +256,15 @@
         </div>
       </footer>
     </div>
-
+    <div id="loading"></div>
   </body>
 </html>
 
 <script>
   function executeTest(category, group, test) {
-    console.log('Exec ' + category +'-',group,'-',test)
-
+    $(window).scrollTop(0);
+    setVisible('#loading', true);
+    
     parameters = "run=Y&category=" + category
     if (test != '') {
       parameters = parameters + "&grou=" + group
@@ -281,4 +282,22 @@
             }
          });
   }
+
+  function onReady(callback) {
+  var intervalId = window.setInterval(function() {
+    if (document.getElementsByTagName('body')[0] !== undefined) {
+      window.clearInterval(intervalId);
+      callback.call(this);
+    }
+  }, 1000);
+}
+
+function setVisible(selector, visible) {
+  document.querySelector(selector).style.display = visible ? 'block' : 'none';
+}
+
+onReady(function() {
+  setVisible('#loading', false);
+});
+
 </script>
