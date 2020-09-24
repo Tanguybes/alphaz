@@ -82,7 +82,10 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
             else:
                 api.init_return()
                 if not missing:
-                    func(*args, **kwargs)
+                    try:
+                        func(*args, **kwargs)
+                    except Exception as ex:
+                        api.set_error(ex)
                 else:
                     api.set_error('inputs')
                 api.cache(path,parameters)

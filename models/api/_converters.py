@@ -56,8 +56,9 @@ def jsonify_database_models(model: DefaultMeta,first=False):
         [type]: [description]
     """
     schema          = model.get_schema()
-    structures      = schema(many=True) if not first else schema()
-    results_json    = structures.dump([model])
+
+    structures      = schema() #schema(many=True) if not first else 
+    results_json    = structures.dump(model)
     return results_json
 
 
