@@ -154,6 +154,10 @@ class AlphaDatabaseNew(SQLAlchemy):
         values_update = self.get_values(model,values,{})
         return self.add(model,parameters=values_update,commit=commit,test=test)
 
+    def insert_or_update(self,model,values={},commit=True,test=False):
+        values_update = self.get_values(model,values,{})
+        return self.add(model,parameters=values_update,commit=commit,test=test,update=True)
+
     def add_or_update(self,obj,parameters=None,commit=True,test=False,update=False):
         return self.add(obj=obj,parameters=parameters,commit=commit,test=test,update=True)
 

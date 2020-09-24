@@ -1002,8 +1002,8 @@ main {
     margin-left:15px;
     display:flex;
     flex-direction: column;
-    color: orange;
-    font-size:0.7em;
+	font-size:0.7em;
+	margin-top: 5px;
 }
 
 .option {

@@ -30,7 +30,6 @@ class AlphaFlask(Flask):
         log.disabled        = no_log
 
         self.pid            = None
-        self.format         = 'json'
         self.html           = {'page':None,'parameters':None}
 
         self.user           = None
@@ -241,7 +240,7 @@ class AlphaFlask(Flask):
         else:
             self.set_error('No cache')
 
-    def get_return(self,forceData=False, return_status=None):
+    def get_return(self,forceData=False, return_status=None,format_='json'):
         self.returned['data'] = {}
         
         if self.data is not None:
@@ -250,8 +249,8 @@ class AlphaFlask(Flask):
     
         self.returned['data'] = _converters.jsonify_data(self.returned['data'])
 
-        if self.format == 'xml':
-            xml_output = dicttoxml(self.returned)                                              
+        if 'xml' in format_:
+            xml_output = dicttoxml(self.returned,attr_type=not 'no_type' in format_)                                              
             response = make_response(xml_output)                                           
             response.headers['Content-Type'] = 'text/xml; charset=utf-8'            
             return response

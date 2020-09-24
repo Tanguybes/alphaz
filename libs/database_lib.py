@@ -168,5 +168,6 @@ def get_entries(database_name,table_name,file_path,configuration,log=None):
                 if log: log.info('Adding %s entries from <objects> for table <%s> in database <%s> from file %s'%(len(entries),table_name,database,file_path))
                 process_entries(db,table,log=log,values=entries)
 
-def get_databases_tables_list() -> Dict[str,str]:
+def get_databases_tables_dict() -> Dict[str,str]:
+    from core import core
     return {x:list(y.metadata.tables.keys()) for x,y in core.databases.items()}

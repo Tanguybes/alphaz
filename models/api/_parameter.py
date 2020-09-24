@@ -30,7 +30,9 @@ class Parameter():
             self.value          = dataPost[self.name]
 
         if self.options is not None and self.value not in self.options:
-            self.value = None
+            raise AlphaException('api_wrong_value_parameter',parameters=
+                {'parameter':self.name,'options':str(self.options),'value':self.value}
+            )
 
         if self.required and self.value is None:
             missing = True
@@ -41,9 +43,11 @@ class Parameter():
             if str_value == 'y': value = True
             elif str_value == 'true': value = True
             elif str_value == 't': value = True
+            elif str_value == '1': value = True
             elif str_value == 'n': value = False
             elif str_value == 'false': value = False
             elif str_value == 'f': value = False
+            elif str_value == '0': value = False
             else: 
                 raise AlphaException('api_wrong_parameter_value',parameters={'parameter':self.name})
             self.value = value

@@ -40,8 +40,9 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
             dataPost                = request.get_json()
             api.dataPost            = {} if dataPost is None else {x:y for x,y in dataPost.items()}
 
+            format_ = 'json'
             if 'format' in api.dataGet:
-                api.format = api.dataGet['format'].lower()
+                format_ = api.dataGet['format'].lower()
 
             """if api.debug:
                 log.debug('POST: %s'%dataPost)
@@ -55,22 +56,22 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
                     parameter.set_value()
                 except Exception as ex:
                     api.set_error(ex)
-                    return api.get_return()
+                    return api.get_return(format_=format_)
 
             token           = api.get_token()
             if logged and token is None:
                 log.warning('Wrong permission: empty token')
                 api.access_denied()   
-                return api.get_return(return_status=401)
+                return api.get_return(return_status=401,format_=format_)
             elif logged and (api.user is None or len(api.user) == 0):
                 log.warning('Wrong permission: wrong user',api.user)
                 api.access_denied() 
-                return api.get_return(return_status=401)
+                return api.get_return(return_status=401,format_=format_)
 
             if admin and not api.check_is_admin():
                 log.warning('Wrong permission: not an admin')
                 api.access_denied() 
-                return api.get_return(return_status=401)
+                return api.get_return(return_status=401,format_=format_)
 
             api.configure_route(path,parameters=parameters,cache=cache)
             reset_cache = request.args.get('reset_cache', None) is not None or api.is_time(timeout)
@@ -102,7 +103,7 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
                 else:
                     api.set_error('missing_file')
 
-            return api.get_return()
+            return api.get_return(format_=format_)
         api_wrapper.__name__ = func.__name__
 
         if cache:
