@@ -85,6 +85,8 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
                     try:
                         func(*args, **kwargs)
                     except Exception as ex:
+                        if 'error_format' in api.dataGet and api.dataGet['error_format'].lower() == "exception":
+                            raise ex
                         api.set_error(ex)
                 else:
                     api.set_error('inputs')
