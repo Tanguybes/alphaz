@@ -281,6 +281,7 @@ class AlphaFlask(Flask):
         self.message    = message
 
     def set_error(self,message):
+        self.mode       = 'data'
         description = message
         if type(message) == AlphaException:
             description = message.description 
