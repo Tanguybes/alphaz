@@ -1,7 +1,6 @@
 import os, datetime, inspect, sys, re
 import logging
 from logging.handlers import TimedRotatingFileHandler
-from alphaz.models.main import singleton
 from alphaz.libs import io_lib
 
 import platform 
@@ -123,7 +122,6 @@ class AlphaLogger():
         current_date        = datetime.datetime.now()
         self.date_str       = current_date.strftime(self.date_format)
 
-@singleton
 class AlphaMonitorLogger(AlphaLogger):
     format_log              = "$(message)"
 
