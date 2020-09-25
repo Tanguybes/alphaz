@@ -112,7 +112,7 @@ class AlphaCore:
     def get_database(self,name=None) -> AlphaDatabaseNew:
         if self.api is None:
             # required for database cnx
-            self.prepare_api()
+            self.prepare_api(self.configuration)
 
         if name is None or name == 'main':
             return self.db
