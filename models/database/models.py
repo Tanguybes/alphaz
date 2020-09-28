@@ -3,7 +3,6 @@ from sqlalchemy.types import TypeDecorator
 
 from core import core
 
-db = core.get_database()
 ma = core.ma
 
 def repr(instance):

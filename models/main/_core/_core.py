@@ -32,6 +32,8 @@ class AlphaCore:
         self.configuration: str     = None
 
     def set_configuration(self,configuration_name):
+        if self.config is not None: return
+
         self.config         = AlphaConfig('config',root=self.root,configuration=configuration_name)
         self.configuration  = self.config.configuration
 
