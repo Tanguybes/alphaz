@@ -3,8 +3,9 @@ from sqlalchemy import Table, Column, ForeignKey, Integer, String, Text, DateTim
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy.orm import relationship, backref
 
-from .models import AlphaTable, AlphaTableId, AlphaColumn, AlphaFloat, AlphaInteger
+from .models import AlphaTable, AlphaTableId, AlphaColumn, AlphaFloat, AlphaInteger, AlphaTableIdUpdateDate
 
 import datetime, inspect
 
@@ -13,7 +14,21 @@ from core import core
 db = core.get_database()
 ma = core.ma
 
-class Tests(db.Model,AlphaTableId):
+class Notification(db.Model,AlphaTableIdUpdateDate):
+    __tablename__ = "notification"
+
+    user = AlphaColumn(Integer, ForeignKey('user.id'),
+        nullable=False)
+    userObj = relationship('User',
+        backref=backref(__tablename__ + "s", lazy=True,  cascade="all, delete-orphan"))
+
+    user_from = AlphaColumn(Integer,nullable=False)
+
+    element_type = AlphaColumn(String(20))
+    element_action = AlphaColumn(String(20))
+    element_id = AlphaColumn(Integer)
+
+class Tests(db.Model,AlphaTableIdUpdateDate):
     __tablename__ = 'tests'
 
     category  = AlphaColumn(String(50))
@@ -24,9 +39,6 @@ class Tests(db.Model,AlphaTableId):
     start_time          = AlphaColumn(DateTime)
     end_time          = AlphaColumn(DateTime)
     elapsed  = AlphaColumn(Float)
-
-    update          = AlphaColumn(DateTime,default=datetime.datetime.utcnow(),
-        onupdate=datetime.datetime.utcnow())
 
 class Request(db.Model,AlphaTable):
     __tablename__ = "request"
@@ -46,22 +58,17 @@ class Request(db.Model,AlphaTable):
     platform = AlphaColumn(String(20))
     mimetype = AlphaColumn(String(30))
 
-class NewsLetter(db.Model,AlphaTableId):
+class NewsLetter(db.Model,AlphaTableIdUpdateDate):
     name  = AlphaColumn(String(100))
     mail  = AlphaColumn(String(50))
 
-    update          = AlphaColumn(DateTime,default=datetime.datetime.utcnow(),
-        onupdate=datetime.datetime.utcnow())
-
-class Test(db.Model,AlphaTableId):
+class Test(db.Model,AlphaTableIdUpdateDate):
     __tablename__ = 'test'
 
     name            = AlphaColumn(String(30))
     text            = AlphaColumn(String(300))
     number          = AlphaColumn(Integer)
     date            = AlphaColumn(DateTime)
-    update          = AlphaColumn(DateTime,default=datetime.datetime.utcnow(),
-        onupdate=datetime.datetime.utcnow())
 
 class User(db.Model,AlphaTableId):
     __tablename__ = 'user'
@@ -80,23 +87,21 @@ class User(db.Model,AlphaTableId):
     registration_token          = AlphaColumn(String(100))
     registration_code           = AlphaColumn(String(255))
 
-class Log(db.Model,AlphaTableId):
+class Log(db.Model,AlphaTableIdUpdateDate):
     __tablename__   = 'log'
 
     type            = AlphaColumn(String(30))
     origin          = AlphaColumn(String(30))
     message         = AlphaColumn(Text)
     stack           = AlphaColumn(Text)
-    date            = AlphaColumn(DateTime)
 
-class ProcesseLog(db.Model,AlphaTableId):
+class ProcesseLog(db.Model,AlphaTableIdUpdateDate):
     __tablename__   = 'processe_log'
 
     uuid            = AlphaColumn(String(36))
     name            = AlphaColumn(String(20))
     parameters      = AlphaColumn(String(100))
     status          = AlphaColumn(String(5))
-    update_date     = AlphaColumn(DateTime)
 
 class UserSession(db.Model,AlphaTableId):
     __tablename__   = 'user_session'
@@ -106,7 +111,7 @@ class UserSession(db.Model,AlphaTableId):
     ip              = AlphaColumn(String(50))
     expire          = AlphaColumn(DateTime)
 
-class MailHistory(db.Model,AlphaTableId):
+class MailHistory(db.Model,AlphaTableIdUpdateDate):
     __tablename__   = 'mail_history'
 
     uuid            = AlphaColumn(String(50))

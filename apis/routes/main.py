@@ -25,6 +25,21 @@ def send_images(path):
 def index():
     api.set_html(api.get('page'))
 
+@route('/profil/pic',logged=True)
+def get_profil_pic():
+    api.get_file('/home/oz/data/images/users/',api.get_logged_user()['id'])
+
+@route('/files/upload',logged=True,methods=['POST'])
+def upload_file():
+    from flask import request
+    uploaded_file = request.files['file']
+    ext = uploaded_file.filename.split('.')[1]
+    # str(filename) + '.' +
+    filename = str(    api.get_logged_user()['id']) + '.' + ext
+
+    
+    api.set_file('/home/oz/oz/front/src/assets/images',filename)
+
 @route('/')
 def home():
     config = api.conf

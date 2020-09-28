@@ -130,8 +130,7 @@ def get_entries(database_name,table_name,file_path,configuration,log=None):
             continue
 
         for table, config in tables_config.items():
-            table_name = table
-            if table_name != table_name: continue
+            if table != table_name: continue
 
             found = False
             for schema, tables in flask_lib.TABLES.items():           

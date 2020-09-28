@@ -14,7 +14,12 @@ from flask_sqlalchemy import SQLAlchemy
 from ...models.main import AlphaException
 
 def get_compiled_query(query):
-    return query.statement.compile(compile_kwargs={"literal_binds": True})
+    if hasattr(query,'statement'):
+        full_query_str = query.statement.compile(compile_kwargs={"literal_binds": True})
+    else:
+        full_query_str = str(query)
+    full_query_str = full_query_str if not hasattr('full_query_str','string') else full_query_str.string
+    return full_query_str
 
 class Row(MutableMapping):
     """A dictionary that applies an arbitrary key-altering
@@ -214,10 +219,13 @@ class AlphaDatabaseNew(SQLAlchemy):
                 query = get_filter(query,filters,model)
         return query 
 
-    def select(self,model,filters=None,first=False,json=False,distinct=None,unique=None,count=False,order_by=None,limit=None):
+    def select(self,model,filters=None,first=False,json=False,distinct=None,unique=None,count=False,order_by=None,limit=None,columns=None):
         #model_name = inspect.getmro(model)[0].__name__
 
         query     = self.get_filtered_query(model,filters=filters)
+
+        if distinct is not None:
+            query = query.distinct(distinct)
 
         if order_by is not None:
             query = query.order_by(order_by)
@@ -225,19 +233,19 @@ class AlphaDatabaseNew(SQLAlchemy):
         if limit is not None:
             query = query.limit(limit)
 
-        if distinct is not None:
-            query = query.distinct(distinct)
-
         if count:
             results = query.count()
             self.query_str = get_compiled_query(query)
             return results
             
+        if columns is not None:
+            query = query.with_entities(*columns)
+
         try:
-            if unique is None:
-                results = query.all() if not first else query.first()
-            else:
+            if unique:
                 results = query.all(unique)  if not first else query.first(unique)
+            else:
+                results = query.all() if not first else query.first()
         except Exception as ex:
             self.log.error('non valid query "%s" \n%s'%(get_compiled_query(query),str(ex)))
             results = []
@@ -253,7 +261,7 @@ class AlphaDatabaseNew(SQLAlchemy):
             results_json    = structures.dump(results)
         else:
             self.log.error('Missing schema for model <%s>'%str(model.__name__))
-        self.query_str = get_compiled_query(query)
+        self.query_str      = get_compiled_query(query)
         return results_json
 
     def update(self,model,values={},filters={}):
