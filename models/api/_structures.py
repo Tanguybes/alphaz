@@ -57,7 +57,8 @@ class AlphaFlask(Flask):
         self.admin_db       = None
         self.ma             = None
 
-        self.file_to_send   = (None, None)
+        self.file_to_get   = (None, None)
+        self.file_to_set    = (None, None)
 
         # need to put it here to avoid warnings
         self.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True #TODO modify
@@ -224,8 +225,12 @@ class AlphaFlask(Flask):
         self.data       = data
 
     def set_file(self,directory, filename):
-        self.mode       = 'file'
-        self.file_to_send       = (directory, filename)
+        self.mode       = 'set_file'
+        self.file_to_set       = (directory, filename)
+
+    def get_file(self,directory, filename,attached=False):
+        self.mode       = 'get_file' if not attached else 'get_file_attached'
+        self.file_to_get       = (directory, filename)
 
     def set_html(self,page,parameters={}):
         self.mode = 'html'
@@ -273,7 +278,8 @@ class AlphaFlask(Flask):
 
     def init_return(self):
         returned = {'token_status' : 'success', 'status' : 'success', 'error':0}
-        self.file_to_send = (None, None)
+        self.file_to_get = (None, None)
+        self.file_to_set = (None, None)
         self.returned, self.data = returned, {}
 
     def print(self,message):
