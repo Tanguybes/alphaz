@@ -98,8 +98,6 @@ def confirm_user_registration(api,token,db):
         user = db.select(defs.User,filters={
             'id': user_data['id']
         },first=True,json=False)
-        #            'role':0,
-        #    'registration_token':'consumed'
         if user is None:
             return api.set_error('error')
         user.role = 0
@@ -107,9 +105,6 @@ def confirm_user_registration(api,token,db):
         db.commit()
         
         valid = True
-        #query   = "UPDATE user SET role = 0, registration_token = 'consumed' WHERE id = %s"
-        #values  = (user_data['id'],)
-        #valid   = db.execute_query(query,values,close_cnx=True)
         if not valid:
             return api.set_error('error')   
 

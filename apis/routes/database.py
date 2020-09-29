@@ -69,3 +69,18 @@ parameters=[
 def init_database():
     log = core.get_logger('database')
     database_lib.init_databases(api.get('database'),api.get('table'),drop=api.get('drop'),log=log)
+
+@route('/database/init/all',
+parameters=[
+    Parameter('database',required=True),
+    Parameter('drop',ptype=bool)
+])
+def init_all_database():
+    log = core.get_logger('database')
+
+    databases = database_lib.get_databases_tables_dict()
+    if not api.get('database') in databases:
+        raise AlphaException('missing_database',parameters={'database':api.get('database')})
+
+    for table in databases[api.get('database')]:
+        database_lib.init_databases(api.get('database'),table,drop=api.get('drop'),log=log)

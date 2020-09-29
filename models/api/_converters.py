@@ -13,6 +13,7 @@ from flask import jsonify, request
 from flask.json import JSONEncoder
 
 from flask_sqlalchemy.model import DefaultMeta
+from sqlalchemy.exc import OperationalError
 
 from ...utils.decorators import overrides
 
@@ -28,6 +29,12 @@ class AlphaJSONEncoder(JSONEncoder):
         self.rules[bytes] = lambda o: o.decode('utf-8')
         self.rules[dict_keys] = lambda o: list(o)
         self.rules[datetime.timedelta] = lambda o: str(o)
+        #self.rules[NameError] = lambda o:str(o)
+        #self.rules[ValueError] = lambda o:str(o)
+        #self.rules[TypeError] = lambda o:str(o)
+        #self.rules[AttributeError] = lambda o:str(o)
+        #self.rules[OperationalError] = lambda o:str(o)
+        self.rules[type] = lambda o:str(o)
 
     def default(self, o): # pylint: disable=E0202
         try:

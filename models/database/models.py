@@ -1,9 +1,9 @@
+import datetime
 from sqlalchemy import Table, Column, ForeignKey, Integer, String, Text, DateTime, UniqueConstraint
 from sqlalchemy.types import TypeDecorator
 
 from core import core
 
-db = core.get_database()
 ma = core.ma
 
 def repr(instance):
@@ -45,6 +45,10 @@ class AlphaTable(object):
 
 class AlphaTableId(AlphaTable):
     id =  AlphaColumn(Integer, primary_key=True, autoincrement=True)
+
+class AlphaTableIdUpdateDate(AlphaTableId):
+    update_date  = AlphaColumn(DateTime,default=datetime.datetime.utcnow(),
+        onupdate=datetime.datetime.utcnow())
 
 class AlphaFloat(TypeDecorator):
     impl = String

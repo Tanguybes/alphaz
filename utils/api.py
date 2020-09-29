@@ -1,3 +1,5 @@
+import os
+
 from flask import request, send_file, send_from_directory, safe_join, abort, url_for, render_template
 
 from ..models.database import main_definitions as defs
@@ -87,7 +89,10 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
                     except Exception as ex:
                         if 'error_format' in api.dataGet and api.dataGet['error_format'].lower() == "exception":
                             raise ex
-                        api.set_error(ex)
+                        if 'alpha' in str(type(ex)).lower():
+                            api.set_error(ex)
+                        else:
+                            raise ex
                 else:
                     api.set_error('inputs')
                 api.cache(path,parameters)
@@ -97,12 +102,12 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
             if api.mode == 'print':
                 return api.message
 
-            if api.mode == 'file':
-                file_path, filename = api.file_to_send
+            if 'get_file' in api.mode:
+                file_path, filename = api.file_to_get
                 if file_path is not None and filename is not None:
                     api.info('Sending file %s from %s'%(filename,file_path))
                     try:
-                        return send_from_directory(file_path, filename=filename, as_attachment=True)
+                        return send_from_directory(file_path, filename=filename, as_attachment='attached' in api.mode)
                     except FileNotFoundError:
                         abort(404)
                 else:
