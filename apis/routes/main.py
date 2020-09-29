@@ -25,6 +25,10 @@ def send_images(path):
 def index():
     api.set_html(api.get('page'))
 
+@route('status')
+def status():
+    api.set_data(True)
+
 @route('/')
 def home():
     config = api.conf
