@@ -34,11 +34,11 @@ def get_table_and_database(schema:str,table:str):
     table_object = db.metadata.tables[table]"""
     return table_object, db
 
-@route('/database/tables')
+@route('/database/tables',admin=True)
 def liste_tables():
     api.set_data(database_lib.get_databases_tables_dict())
 
-@route('/database/create',
+@route('/database/create',admin=True,
     parameters=[
         Parameter('schema',required=True),
         Parameter('table',required=True)
@@ -49,7 +49,7 @@ def create_table():
     table_object.__table__.create(db.engine)
     api.set_data('table %s created'%api.get('table'))
 
-@route('/database/drop',
+@route('/database/drop',admin=True,
     parameters=[
         Parameter('schema',required=True),
         Parameter('table',required=True)
@@ -60,7 +60,7 @@ def drop_table():
     table_object.__table__.drop(db.engine)
     api.set_data('table %s dropped'%api.get('table'))
 
-@route('/database/init',
+@route('/database/init', admin=True,
 parameters=[
     Parameter('database',required=True),
     Parameter('table',required=True),
@@ -70,7 +70,7 @@ def init_database():
     log = core.get_logger('database')
     database_lib.init_databases(api.get('database'),api.get('table'),drop=api.get('drop'),log=log)
 
-@route('/database/init/all',
+@route('/database/init/all', admin=True,
 parameters=[
     Parameter('database',required=True),
     Parameter('drop',ptype=bool)

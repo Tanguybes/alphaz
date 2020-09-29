@@ -7,7 +7,8 @@ from flask_mail import Mail
 from flask_marshmallow import Marshmallow
 from flask_statistics import Statistics
 from flask_debugtoolbar import DebugToolbarExtension
-from flask_admin import Admin    
+from flask_admin import Admin
+
 import flask_monitoringdashboard
 
 from ...libs import mail_lib, flask_lib, io_lib
@@ -402,11 +403,16 @@ class AlphaFlask(Flask):
         return token
 
     def check_is_admin(self):
+        admin = False
         user_data = self.get_logged_user()
         if user_data is not None:
             if user_data['role'] >= 9:
-                return True
-        return False
+                admin = True
+        if not admin:
+            ip = request.remote_addr
+            if self.conf.get('admins') and ip in self.conf.get('admins'):
+                admin = True
+        return admin
 
     def is_time(self,timeout, verbose=False):
         is_time = False
