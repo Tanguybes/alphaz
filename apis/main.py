@@ -15,7 +15,7 @@ def get_routes_infos(log:AlphaLogger=None) -> dict:
     modules = {}
     routes = {}
 
-    if log: log.info('Getting %s routes from loaded modules'%('alphaz' if not all else "all"))
+    if log: log.debug('Getting %s routes from loaded modules'%('alphaz' if not all else "all"))
 
     routes_dict = {}
     categories = []

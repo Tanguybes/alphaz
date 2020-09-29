@@ -27,7 +27,7 @@ class AlphaFlask(Flask):
 
         # Get werkzueg logger
         log = logging.getLogger('werkzeug')
-        log.addFilter(_colorations.WerkzeugColorFilter())
+        log.addFilter(_colorations.WerkzeugColorFilter()) #TODO: set in configuration
         log.disabled        = no_log
 
         self.pid            = None
@@ -82,7 +82,6 @@ class AlphaFlask(Flask):
         #self.api.config['QLALCHEMY_TRACK_MODIFICATIONS']    = True
         #self.api.config['EXPLAIN_TEMPLATE_LOADING']         = True
         self.config['UPLOAD_FOLDER']                    = self.root_path
-
 
     def init(self,encode_rules={}):
         from core import core
@@ -206,6 +205,9 @@ class AlphaFlask(Flask):
         self.config_path    = config_path
         self.configuration  = configuration
         self.conf           = AlphaConfig(filepath=config_path,configuration=configuration,root=root,log=self.log) # root=os.path.dirname(os.path.realpath(__file__))
+
+        if self.conf.get('routes_no_log'):
+            _colorations.WerkzeugColorFilter.routes_exceptions = self.conf.get('routes_no_log')
 
     def get_database(self,name):
         return self.conf.get_database(name)
