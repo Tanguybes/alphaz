@@ -75,7 +75,13 @@ class AlphaConfig():
             stack           = inspect.stack()
             parentframe     = stack[1]
             module          = inspect.getmodule(parentframe[0])
-            root            = os.path.abspath(module.__file__).replace(module.__file__,'')
+            filename_frame  = parentframe.filename
+            current_path    = os.getcwd()
+            root            = current_path
+            """if type(filename_frame) == str:
+                root        = filename_frame.replace(os.path.basename(filename_frame),'')[:-1]
+            else:
+                root        = os.path.abspath(module.__file__).replace(module.__file__,'')"""
         self.root           = root
         #self.add_tmp('root', self.root)
 

@@ -1,5 +1,4 @@
 import pysftp, ftplib
-from ..utils.logger import AlphaLogger
 
 from core import core
 
