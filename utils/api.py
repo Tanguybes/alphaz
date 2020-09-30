@@ -29,13 +29,12 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
 
         @api.route(path, methods = methods, endpoint=func.__name__)
         def api_wrapper(*args,**kwargs):
-            api.dataGet = {} if request.args is None else {x:y for x,y in request.args.items()}
+            api.reset()
+            if request.args:
+                api.dataGet = {x:y for x,y in request.args.items()}
 
             if logged:
                 api.user            = api.get_logged_user()
-
-            """if len(request.path.strip()) > 1:
-                api.info('{:4} {}'.format(request.method,request.path))"""
 
             missing = False
 

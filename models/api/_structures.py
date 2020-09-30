@@ -66,6 +66,11 @@ class AlphaFlask(Flask):
 
         self.ma = Marshmallow(self)
 
+    def reset(self):
+        self.data = {}
+        self.returned = {}
+        self.dataGet = {}
+
     def set_databases(self,db_cnx):
         if 'main' in db_cnx:
             uri = db_cnx['main']['cnx']
