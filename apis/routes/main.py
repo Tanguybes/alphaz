@@ -43,6 +43,10 @@ def upload_file():
     print('uploaded file to',file_path)
     api.set_file(file_path,filename)
 
+@route('status')
+def status():
+    api.set_data(True)
+    
 @route('/')
 def home():
     config = api.conf

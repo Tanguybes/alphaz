@@ -37,7 +37,7 @@ def get_tests_auto(
     test_categories = TestCategories()
 
     for tests_module in tests_modules:
-        if log: log.info('Loading tests from %s'%(tests_module))   
+        if log: log.debug('Loading tests from %s'%(tests_module))   
 
         module              = importlib.import_module(tests_module)
         importlib.reload(module)

@@ -74,7 +74,7 @@ class AlphaLogger():
         fct(full_message)
         if monitor is not None:
             fct_monitor = getattr(self.monitoring_logger,self.level.lower())
-            fct_monitor(full_message.replace(self.name,monitor))
+            fct_monitor(message=full_message.replace(message,"[%s] %s"%(monitor,message)))
 
     def get_formatted_message(self,message,caller):
         msg = self.format_log
@@ -123,7 +123,7 @@ class AlphaLogger():
         self.date_str       = current_date.strftime(self.date_format)
 
 class AlphaMonitorLogger(AlphaLogger):
-    format_log              = "$(message)"
+    format_log              = "$message"
 
 """
 @singleton

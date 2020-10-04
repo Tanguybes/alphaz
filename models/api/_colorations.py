@@ -10,6 +10,7 @@ class WerkzeugColorFilter:
         'PUT': 'blue',
         'DELETE': 'red',
     }
+    routes_exceptions = []
 
     def filter(self, record):
         match = self.P_REQUEST_LOG.match(record.msg)
@@ -18,8 +19,14 @@ class WerkzeugColorFilter:
                 ip, date, request_line, status_code, size = match.groups()
                 method = request_line.split(' ')[0]  # key 0 always exists
                 route = request_line.split()[1]
-                if route.strip() == '/' or '/static' in route:
+
+                if route.strip() == '/':
                     return False
+
+                for pattern in WerkzeugColorFilter.routes_exceptions:
+                    match = re.match(pattern, route )
+                    if match: 
+                        return False
 
                 fmt = self.method_colors.get(method.upper(), 'white')
                 request_line = io_lib.colored_term(request_line,fmt)

@@ -7,7 +7,8 @@ from flask_mail import Mail
 from flask_marshmallow import Marshmallow
 from flask_statistics import Statistics
 from flask_debugtoolbar import DebugToolbarExtension
-from flask_admin import Admin    
+from flask_admin import Admin
+
 import flask_monitoringdashboard
 
 from ...libs import mail_lib, flask_lib, io_lib
@@ -26,7 +27,7 @@ class AlphaFlask(Flask):
 
         # Get werkzueg logger
         log = logging.getLogger('werkzeug')
-        log.addFilter(_colorations.WerkzeugColorFilter())
+        log.addFilter(_colorations.WerkzeugColorFilter()) #TODO: set in configuration
         log.disabled        = no_log
 
         self.pid            = None
@@ -65,6 +66,11 @@ class AlphaFlask(Flask):
 
         self.ma = Marshmallow(self)
 
+    def reset(self):
+        self.data = {}
+        self.returned = {}
+        self.dataGet = {}
+
     def set_databases(self,db_cnx):
         if 'main' in db_cnx:
             uri = db_cnx['main']['cnx']
@@ -81,7 +87,6 @@ class AlphaFlask(Flask):
         #self.api.config['QLALCHEMY_TRACK_MODIFICATIONS']    = True
         #self.api.config['EXPLAIN_TEMPLATE_LOADING']         = True
         self.config['UPLOAD_FOLDER']                    = self.root_path
-
 
     def init(self,encode_rules={}):
         from core import core
@@ -205,6 +210,9 @@ class AlphaFlask(Flask):
         self.config_path    = config_path
         self.configuration  = configuration
         self.conf           = AlphaConfig(filepath=config_path,configuration=configuration,root=root,log=self.log) # root=os.path.dirname(os.path.realpath(__file__))
+
+        if self.conf.get('routes_no_log'):
+            _colorations.WerkzeugColorFilter.routes_exceptions = self.conf.get('routes_no_log')
 
     def get_database(self,name):
         return self.conf.get_database(name)
@@ -402,11 +410,16 @@ class AlphaFlask(Flask):
         return token
 
     def check_is_admin(self):
+        admin = False
         user_data = self.get_logged_user()
         if user_data is not None:
             if user_data['role'] >= 9:
-                return True
-        return False
+                admin = True
+        if not admin:
+            ip = request.remote_addr
+            if self.conf.get('admins') and ip in self.conf.get('admins'):
+                admin = True
+        return admin
 
     def is_time(self,timeout, verbose=False):
         is_time = False
