@@ -240,6 +240,7 @@ class AlphaDatabaseNew(SQLAlchemy):
             
         if columns is not None:
             query = query.with_entities(*columns)
+            #TODO: get column if string
 
         try:
             if unique:

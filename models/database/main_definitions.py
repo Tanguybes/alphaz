@@ -24,7 +24,7 @@ class Notification(db.Model,AlphaTableIdUpdateDate):
 
     user_from = AlphaColumn(Integer,nullable=False)
 
-    element_type = AlphaColumn(String(20))
+    element_type = AlphaColumn(String(30))
     element_action = AlphaColumn(String(20))
     element_id = AlphaColumn(Integer)
 

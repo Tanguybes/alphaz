@@ -6,7 +6,7 @@ def secure_password(password):
     return password_hashed
 
 def compare_passwords(password,hash_saved):
-    valid = checkpw(password.encode(),hash_saved.encode())
+    valid = checkpw(str(password).encode(),str(hash_saved).encode())
     return valid
 
 def get_token():

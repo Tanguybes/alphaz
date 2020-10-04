@@ -30,9 +30,9 @@ def process_entries(db,table,log,values:list,headers:list=None):
 
 def init_databases(database_name,table_name,drop=False,log=None):
     from core import core
-    if core.configuration != 'local':
+    """if core.configuration != 'local':
         if log: log.error('Configuration must be <local>')
-        return
+        return"""
 
     if not database_name in flask_lib.TABLES:
         raise AlphaException('cannot_find_schema',parameters={'schema':database_name})

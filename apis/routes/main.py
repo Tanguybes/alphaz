@@ -27,7 +27,9 @@ def index():
 
 @route('/profil/pic',logged=True)
 def get_profil_pic():
-    api.get_file('/home/oz/data/images/users/',api.get_logged_user()['id'])
+    file_path = core.config.get('directories/images')
+    print('profil pic',file_path)
+    api.get_file(file_path,api.get_logged_user()['id'])
 
 @route('/files/upload',logged=True,methods=['POST'])
 def upload_file():
@@ -37,8 +39,9 @@ def upload_file():
     # str(filename) + '.' +
     filename = str(    api.get_logged_user()['id']) + '.' + ext
 
-    
-    api.set_file('/home/oz/oz/front/src/assets/images',filename)
+    file_path = core.config.get('directories/images')
+    print('uploaded file to',file_path)
+    api.set_file(file_path,filename)
 
 @route('/')
 def home():
