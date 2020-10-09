@@ -253,7 +253,7 @@ class AlphaFlask(Flask):
         else:
             self.set_error('No cache')
 
-    def get_return(self,forceData=False, return_status=None,format_='json'):
+    def get_return(self,forceData=False, return_status=None):
         self.returned['data'] = {}
         
         if self.data is not None:
@@ -261,6 +261,15 @@ class AlphaFlask(Flask):
             self.returned['data'] = self.data
     
         self.returned['data'] = _converters.jsonify_data(self.returned['data'])
+
+        format_ = 'json'
+        if 'format' in self.dataGet:
+            format_ = self.dataGet['format'].lower()
+
+        """if 'output' in self.dataGet:
+            data = {}
+            data['columns'] = self.returned['data']
+            data."""
 
         if 'xml' in format_:
             xml_output = dicttoxml(self.returned,attr_type=not 'no_type' in format_)                                              
