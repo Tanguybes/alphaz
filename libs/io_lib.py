@@ -128,7 +128,6 @@ def unarchive_object(filename:str, ext:str='dmp'):
     if os.path.exists(filename):
         with open(filename, 'rb') as f:
             object_to_get     = pickle.load(f)
-            #log.trace_show()
     return object_to_get
 
 

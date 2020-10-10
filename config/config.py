@@ -322,17 +322,17 @@ class AlphaConfig():
                 sys.path.append(path)
 
         self.core_configuration = self.get('core_configuration',root=False)
-        if not self.core_configuration: 
+        if not self.core_configuration:
             return
 
         # loggers
         self.logger_root = self.get("directories/logs")
         if self.logger_root is None:
-          self.error('Missing "directories/logs" entry in configuration file %s'%self.config_file)
-          exit()
+            self.error('Missing "directories/logs" entry in configuration file %s'%self.config_file)
+            exit()
 
         colors = self.get("colors/loggers")
-        
+
         # log
         if self.log is None:
             log_filename        = "alpha" #type(self).__name__.lower()
@@ -350,9 +350,10 @@ class AlphaConfig():
                         root        = root if root is not None else self.logger_root,
                         cmd_output  = logger_config.get("cmd_output") or True,
                         level       = logger_config.get("level"),
-                        colors      = colors
+                        colors      = colors,
+                        database    = logger_config.get("database")
                     )
-            
+
         main_logger_name = "main"
         if not main_logger_name in self.loggers:
             self.log = AlphaLogger(
@@ -362,7 +363,7 @@ class AlphaConfig():
                 colors=colors
             )
             self.loggers[main_logger_name] = self.log
-        
+
         if 'databases' in config:
             self.configure_databases(config["databases"])
 
@@ -414,7 +415,7 @@ class AlphaConfig():
                     content_dict[name]['value'] = cf_db[content_dict[name]['name']]
                 elif content_dict[name]['required']:
                     self.error('Missing %s parameter'%name)
-                
+
                 if 'default' in content_dict[name]:
                     content_dict[name]['value'] = content_dict[name]['default']
                 elif name == 'log':
@@ -423,7 +424,7 @@ class AlphaConfig():
                     else:
                         self.warning('Wrong logger configuration for database %s'%db_name)
                         content_dict[name]['value'] = self.log
-            
+
             fct_kwargs  = {x:y['value'] for x,y in content_dict.items()}
 
             new         = "new" in cf_db and cf_db['new']
@@ -453,6 +454,14 @@ class AlphaConfig():
         for db_name in self.databases:
             if self.databases[db_name].log is None:
                 self.databases[db_name].log = self.log
+
+        # Set logger dabatase
+        for logger_name, log in self.loggers.items():
+            if log.database_name:
+                if not log.database_name in self.databases:
+                    self.log.error('Missing database <%s> configuration for logger <%s>'%(log.database_name,logger_name))
+                    continue
+                log.database = self.databases[log.database_name]
 
     def get_logger(self,name,default_level='INFO'):
         if name not in self.loggers:

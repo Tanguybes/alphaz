@@ -248,8 +248,9 @@ class AlphaDatabaseNew(SQLAlchemy):
             else:
                 results = query.all() if not first else query.first()
         except Exception as ex:
-            self.log.error('non valid query "%s" \n%s'%(get_compiled_query(query),str(ex)))
-            results = []
+            #self.log.error('non valid query "%s" \n%s'%(get_compiled_query(query),str(ex)))
+            raise ex
+            #raise AlphaException('non_valid_query',get_compiled_query(query),str(ex)))
 
         if not json:
             self.query_str = get_compiled_query(query)

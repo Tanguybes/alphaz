@@ -37,11 +37,16 @@ def get_tests_auto(
     test_categories = TestCategories()
 
     for tests_module in tests_modules:
-        if log: log.debug('Loading tests from %s'%(tests_module))   
+        if log: log.debug('Loading tests from %s'%(tests_module))
 
-        module              = importlib.import_module(tests_module)
+        try:
+            module              = importlib.import_module(tests_module)
+        except Exception as ex:
+            log.error('Cannot load test <%s>'%tests_module)
+            continue
+
         importlib.reload(module)
-        
+
         class_list = []
         for o in getmembers(module):
             is_class    = isclass(o[1])

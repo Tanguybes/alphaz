@@ -11,7 +11,7 @@ from flask_admin import Admin
 
 import flask_monitoringdashboard
 
-from ...libs import mail_lib, flask_lib, io_lib
+from ...libs import mail_lib, flask_lib, io_lib, database_lib
 from ...utils.logger import AlphaLogger
 from ...models.main import AlphaException
 from ...config.config import AlphaConfig
@@ -97,6 +97,14 @@ class AlphaFlask(Flask):
         else:
             for route in routes:
                 importlib.import_module(route)
+
+        # check request
+        db              = core.get_database('main')
+        table_object    = database_lib.get_table(db,'main', 'request')
+        try:
+            obj = db.select(table_object,first=True)
+        except:
+            table_object.__table__.create(db.engine)
 
         # Flask configuration
         # todo: check JWT_SECRET_KEY: mandatory

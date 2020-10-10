@@ -14,6 +14,26 @@ from core import core
 db = core.get_database()
 ma = core.ma
 
+class Processes(db.Model,AlphaTableIdUpdateDate):
+    __tablename__ = "processes"
+
+    uuid = AlphaColumn(String(36))
+    name = AlphaColumn(String(20))
+    parameters = AlphaColumn(String(20))
+    status = AlphaColumn(String(5))
+
+    __table_args__  = (
+        UniqueConstraint('name', 'parameters', name='processes_constraint'),
+    )
+
+class Logs(db.Model,AlphaTableIdUpdateDate):
+    __tablename__ = "logs"
+
+    type_ = AlphaColumn(String(30))
+    origin = AlphaColumn(String(30))
+    message = AlphaColumn(Text)
+    stack = AlphaColumn(Text)
+
 class Notification(db.Model,AlphaTableIdUpdateDate):
     __tablename__ = "notification"
 
