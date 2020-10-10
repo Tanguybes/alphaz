@@ -51,6 +51,13 @@ class AlphaJSONEncoder(JSONEncoder):
             return list(iterable)
         return JSONEncoder.default(self, o=o)
 
+        """results_json = {}
+        if hasattr(model,"schema"):
+            schema          = model.get_schema()
+            structures      = schema(many=True) if not first else schema()
+            results_json    = structures.dump(results)
+        else:
+            self.log.error('Missing schema for model <%s>'%str(model.__name__))"""
 
 def jsonify_database_models(model: DefaultMeta,first=False):
     """Convert a database model structure to json
@@ -65,7 +72,7 @@ def jsonify_database_models(model: DefaultMeta,first=False):
     schema          = model.get_schema()
 
     structures      = schema() #schema(many=True) if not first else 
-    results_json    = structures.dump(model)
+    results_json    = structures.dump(model) # ? wtf why does it works 
     return results_json
 
 
@@ -86,4 +93,7 @@ def jsonify_data(data):
         result = data
         if hasattr(data,"schema"):
             result = jsonify_database_models(data)
+        elif hasattr(data,'_fields'):
+            result = {x:data[i] for i,x in enumerate(data._fields)}
+            
     return result

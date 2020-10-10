@@ -237,14 +237,13 @@ class AlphaDatabaseNew(SQLAlchemy):
             results = query.count()
             self.query_str = get_compiled_query(query)
             return results
-            
+        
+        if unique: 
+            columns = [unique]
         if columns is not None:
             query = query.with_entities(*columns)
 
         try:
-            if unique:
-                results = query.all(unique)  if not first else query.first(unique)
-            else:
                 results = query.all() if not first else query.first()
         except Exception as ex:
             self.log.error('non valid query "%s" \n%s'%(get_compiled_query(query),str(ex)))
@@ -262,6 +261,9 @@ class AlphaDatabaseNew(SQLAlchemy):
         else:
             self.log.error('Missing schema for model <%s>'%str(model.__name__))
         self.query_str      = get_compiled_query(query)
+
+        if unique:
+            return [list(x.values())[0] for x in results_json]
         return results_json
 
     def update(self,model,values={},filters={}):
