@@ -9,17 +9,21 @@ from flask_statistics import Statistics
 from flask_debugtoolbar import DebugToolbarExtension
 from flask_admin import Admin
 
+from gevent.pywsgi import WSGIServer
+from werkzeug.debug import DebuggedApplication
+
 import flask_monitoringdashboard
 
-from ...libs import mail_lib, flask_lib, io_lib, database_lib
+from ...libs import mail_lib, flask_lib, io_lib, database_lib, api_lib
 from ...utils.logger import AlphaLogger
 from ...models.main import AlphaException
 from ...config.config import AlphaConfig
 
+from ...utils.time import tic, tac
+
 from . import _converters, _utils, _colorations
 
 SEPARATOR = '::'
-
 class AlphaFlask(Flask):
 
     def __init__(self,*args,no_log:bool=False,**kwargs):
@@ -98,13 +102,18 @@ class AlphaFlask(Flask):
             for route in routes:
                 importlib.import_module(route)
 
+        api_lib.get_routes_infos(log=self.log)
+
         # check request
-        db              = core.get_database('main')
-        table_object    = database_lib.get_table(db,'main', 'request')
+        # ! freeze - dont know why
+        """db              = core.get_database('main')
+        request_model    = database_lib.get_table(db,'main', 'request')
         try:
-            obj = db.select(table_object,first=True)
+            self.log.debug('Check <request> table')
+            obj = db.exist(request_model)
         except:
-            table_object.__table__.create(db.engine)
+            self.log.info('Creating <request> table')
+            request_model.__table__.create(db.engine)"""
 
         # Flask configuration
         # todo: check JWT_SECRET_KEY: mandatory
@@ -139,20 +148,27 @@ class AlphaFlask(Flask):
         else:
             self.log.error('Mail configuration is not defined ("mails/mail_server" parameter)') 
 
-        toolbar = DebugToolbarExtension(self)
+        toolbar = self.conf.get('toolbar')
+        if toolbar:
+            toolbar = DebugToolbarExtension(self)
 
         #config_dashboard = os.path.join(self.root,'apis','config.cfg')
 
         #flask_monitoringdashboard.config.init_from(file=config_dashboard)
-        flask_monitoringdashboard.bind(self)
+        monitoring = self.conf.get('monitoring')
+        if monitoring:
+            flask_monitoringdashboard.bind(self)
 
-        from ..database.main_definitions import Request
-        if core.db is None:
-            self.log.error('Cannot initiate statistics, db is None')
-        self.statistics = Statistics(self, core.db, Request)
+        statistics = self.conf.get('statistics')
+        if statistics:
+            from ..database.main_definitions import Request
+            if core.db is None:
+                self.log.error('Cannot initiate statistics, db is None')
+            self.statistics = Statistics(self, core.db, Request)
 
         if self.conf.get('admin_databases'):
             self.init_admin_view()
+
 
         #Base.prepare(self.db.engine, reflect=True)
 
@@ -189,6 +205,7 @@ class AlphaFlask(Flask):
         port        = self.conf.get('port')
         threaded    = self.conf.get('threaded')
         self.debug  = self.conf.get('debug')
+        mode        = self.conf.get('mode')
 
         if self.debug:
             sys.dont_write_bytecode = True
@@ -196,7 +213,13 @@ class AlphaFlask(Flask):
         self.log.info('Run api on host %s port %s %s'%(host,port,'DEBUG MODE' if self.debug else ''))
 
         #try:
-        self.run(host=host,port=port,debug=self.debug,threaded=threaded,ssl_context=ssl_context)
+        if mode == "wsgi":
+            application = DebuggedApplication(self, True)
+            server = WSGIServer(('localhost', port), application)
+            server.serve_forever()
+        else:
+            self.run(host=host,port=port,debug=self.debug,threaded=threaded,ssl_context=ssl_context)
+
         #except SystemExit:
         #    self.info('API stopped')
 
@@ -447,7 +470,7 @@ class AlphaFlask(Flask):
             is_time     = now > nextrun
         return is_time
 
-    def send_mail(self,mail_config,parameters_list,db,sender=None,close_cnx=True):
+    def send_mail(self,mail_config,parameters_list,db,sender=None):
         # Configuration
         main_mail_config    = self.get_config(['mails'])
         config              = self.get_config(['mails',"configurations",mail_config])
@@ -502,8 +525,7 @@ class AlphaFlask(Flask):
             parameters_list = full_parameters_list,
             sender          = sender,
             db              = db,
-            log             = self.log,
-            close_cnx       = close_cnx
+            log             = self.log
         )
         if not valid:
             self.set_error('mail_error')

@@ -1,8 +1,7 @@
 from flask import url_for
 
 from ...utils.api import route, Parameter
-
-from ..main import get_routes_infos
+from ...libs import api_lib
 
 from core import core
 
@@ -12,7 +11,7 @@ log         = core.get_logger('api')
 
 @route("/map",)
 def api_map():
-    api.set_data(get_routes_infos(log=log))
+    api.set_data(api_lib.get_routes_infos(log=log))
 
 
 def has_no_empty_params(rule):

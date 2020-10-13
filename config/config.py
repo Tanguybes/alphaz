@@ -9,7 +9,6 @@ from . import utils
 
 from ..libs import converter_lib, sql_lib, io_lib
 from ..utils.logger import AlphaLogger
-from ..models.database.structure import AlphaDatabase
 
 PAREMETER_PATTERN = '{{%s}}'
 
@@ -427,27 +426,18 @@ class AlphaConfig():
 
             fct_kwargs  = {x:y['value'] for x,y in content_dict.items()}
 
-            new         = "new" in cf_db and cf_db['new']
+            if db_type == 'mysql':
+                user,password,host,port,name = cf_db['user'], cf_db['password'], cf_db['host'], cf_db['port'], cf_db['name']
+                cnx_str        = 'mysql+pymysql://%s:%s@%s:%s/%s'%(user,password,host,port,name)
+            elif db_type == 'oracle':
+                user,password,host,port,name = cf_db['user'], cf_db['password'], cf_db['host'], cf_db['port'], cf_db['sid']
+                cnx_str        = 'oracle://%s:%s@%s:%s/%s'%(user,password,host,port,name)
+            elif db_type == "sqlite":
+                cnx_str        = 'sqlite:///' + cf_db['path']
 
-            if not new:
-                self.databases[db_name] = AlphaDatabase(**fct_kwargs)
-                if not self.databases[db_name].test():
-                    self.error('Cannot connect to "%s":\n\n%s'%(db_name,"\n".join(["%s:%s"%(x,y) for x,y in content_dict.items()]) ) )
-                else:
-                    self.info('Database connection to "%s" is valid'%db_name)
-            else:
-                if db_type == 'mysql':
-                    user,password,host,port,name = cf_db['user'], cf_db['password'], cf_db['host'], cf_db['port'], cf_db['name']
-                    cnx_str        = 'mysql+pymysql://%s:%s@%s:%s/%s'%(user,password,host,port,name)
-                elif db_type == 'oracle':
-                    user,password,host,port,name = cf_db['user'], cf_db['password'], cf_db['host'], cf_db['port'], cf_db['sid']
-                    cnx_str        = 'oracle://%s:%s@%s:%s/%s'%(user,password,host,port,name)
-                elif db_type == "sqlite":
-                    cnx_str        = 'sqlite:///' + cf_db['path']
-
-                if cnx_str is not None:
-                    cf_db['cnx']    = cnx_str
-                    db_cnx[db_name] = cf_db
+            if cnx_str is not None:
+                cf_db['cnx']    = cnx_str
+                db_cnx[db_name] = cf_db
 
         self.db_cnx = db_cnx
 

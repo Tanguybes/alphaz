@@ -6,7 +6,7 @@ from flask import Markup
 from ..utils import *
 
 from ..utils.logger import AlphaLogger
-from ..models.database.structure import AlphaDatabaseNew
+from ..models.database.structure import AlphaDatabase
 
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 

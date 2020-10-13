@@ -220,15 +220,15 @@ def get_mail_content_for_parameters(mail_path,mail_url,parameters_list,log):
         mail_contents_list.append(mail_contents_dict)
     return mail_contents_list
 
-def send_mail(mail_path,mail_type,parameters_list,sender,db,log,close_cnx=True):
+def send_mail(mail_path,mail_type,parameters_list,sender,db,log):
     mail_contents_list = get_mail_content_for_parameters(mail_path,mail_type,parameters_list,log)
 
     for config in mail_contents_list:        
-        if is_mail_already_send(db,mail_type,config['parameters'],close_cnx=False,log=log):
+        if is_mail_already_send(db,mail_type,config['parameters'],log=log):
             log.error('Mail already sent %s'%config)
             return False
 
-        if is_blacklisted(db,config['raw_parameters']['mail'],mail_type,close_cnx=False):
+        if is_blacklisted(db,config['raw_parameters']['mail'],mail_type):
             log.error('Mail adress <%s> blacklisted %s'%config['raw_parameters']['mail'])
             return False
 
@@ -242,19 +242,16 @@ def send_mail(mail_path,mail_type,parameters_list,sender,db,log,close_cnx=True):
 
         # insert in history
         mail_type   = get_mail_type(mail_type)
-        set_mail_history(db,mail_type,config['raw_parameters']['uuid'],config['parameters'],close_cnx=False,log=log)
+        set_mail_history(db,mail_type,config['raw_parameters']['uuid'],config['parameters'],log=log)
         log.info('Sending mail to %s'%config['raw_parameters']['mail'])
-    try:
-        if close_cnx:db.close() #TODO: delete
-    except:   pass
     return True
 
-def set_mail_history(db, mail_type,uuidValue,parameters,close_cnx=True,log=None):
+def set_mail_history(db, mail_type,uuidValue,parameters,log=None):
     mail_type           = get_mail_type(mail_type)
     unique_parameters   = get_unique_parameters(parameters)
     query   = "INSERT INTO mail_history (uuid, mail_type, parameters, parameters_full) VALUES (%s,%s,%s,%s)"
     values  = (uuidValue,mail_type,json.dumps(unique_parameters),json.dumps(parameters))
-    return db.execute_query(query,values,close_cnx=close_cnx)
+    return db.execute_query(query,values)
 
 def get_unique_parameters(parameter):
     unique_parameters = {}
@@ -263,7 +260,7 @@ def get_unique_parameters(parameter):
             unique_parameters[key] = value
     return unique_parameters
 
-def is_mail_already_send(db,mail_type,parameters, close_cnx=True,log=None):
+def is_mail_already_send(db,mail_type,parameters,log=None):
     from ..models.database import main_definitions as defs
     mail_type           = get_mail_type(mail_type)
     unique_parameters   = get_unique_parameters(parameters)
@@ -274,7 +271,7 @@ def is_mail_already_send(db,mail_type,parameters, close_cnx=True,log=None):
     ],json=True)
     return len(results) != 0
 
-def is_blacklisted(db,user_mail,mail_type,close_cnx=True,log=None):
+def is_blacklisted(db,user_mail,mail_type,log=None):
     from ..models.database import main_definitions as defs
     mail_type   = get_mail_type(mail_type)
     results             = db.select(defs.MailBlacklist,filters=[

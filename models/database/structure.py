@@ -59,24 +59,25 @@ class Row(MutableMapping):
     def keys(self):
         return list(super().keys())
 
-class AlphaDatabaseNew(SQLAlchemy):
-    log     = None
-    db_type = None
-    config  = None
-    query_str = None
+class AlphaDatabaseCore(SQLAlchemy):
+    def __init__(self,*args,name=None,log=None,config=None,timeout=None,**kwargs):
+        timeout = 5
+        engine_options = {}
+        if timeout is not None:
+            engine_options={ 'connect_args': { 'connect_timeout': 5 }, 'pool_recycle':5} # TODO: modify
+            """
+                                 'pool_size' : 10,
+                                 'pool_recycle':120,
+                                 'pool_pre_ping': True
+            """
 
-    def __init__(self,*args,name=None,log=None,config=None,**kwargs):
-        super().__init__(*args,**kwargs)
+        super().__init__(*args,engine_options=engine_options,**kwargs)
 
         self.name       = name
 
         self.config     = config
         self.db_type    = config['type']
-        self.log        = log
-        
-
-        """if 'cnx' in config:
-            self.engine = create_engine(config['cnx'])"""
+        self.log        = log 
 
     def test(self):
         """[Test the connection]
@@ -94,10 +95,24 @@ class AlphaDatabaseNew(SQLAlchemy):
             if self.log: self.log.error('ex:',ex)
             return False
 
+    def _get_filtered_query(self,model,filters=None,likes=None,sup=None):
+        query     = model.query
+
+        if filters is not None:
+            if type(filters) == list:
+                query = get_filter_conditions(query,filters)
+            else:
+                query = get_filter(query,filters,model)
+        return query 
+
+class AlphaDatabase(AlphaDatabaseCore):
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+
     def drop(self,table_model):
         table_model.__table__.drop(self.engine)
 
-    def execute_query(self,query,values=None,close_cnx=True):
+    def execute_query(self,query,values=None):
         if self.db_type == 'sqlite':
             query = query.replace('%s','?')
 
@@ -114,7 +129,10 @@ class AlphaDatabaseNew(SQLAlchemy):
             self.log.error(err)
             return False
 
-    def get_query_results(self,query,values=None,unique=False,close_cnx=True,log=None):
+    def get(self,query,values=None,unique=False,log=None):
+        return self.get_query_results(query,values=None,unique=False,log=None)
+
+    def get_query_results(self,query,values=None,unique=False,log=None):
         session = self.get_engine(self.app, self.name)
 
         if self.db_type == 'sqlite':
@@ -207,28 +225,37 @@ class AlphaDatabaseNew(SQLAlchemy):
             return True
         return False
 
-    def get_filtered_query(self,model,filters=None,likes=None,sup=None):
-        query     = model.query
+    def exist(self,model):
+        try:
+            instance = self.session.query(model).first()
+            return True
+        except:
+            return False
 
-        if filters is not None:
-            if type(filters) == list:
-                 #for filter in filters:
-                 #   query = get_filter(query,filter)
-                 query = get_filter_conditions(query,filters)
-            else:
-                query = get_filter(query,filters,model)
-        return query 
-
-    def select(self,model,filters=None,first=False,json=False,distinct=None,unique=None,count=False,order_by=None,limit=None,columns=None):
+    def select(self,model,
+            filters=None,
+            first=False,
+            json=False,
+            distinct=None,
+            unique=None,
+            count=False,
+            order_by=None,
+            group_by=None,
+            limit=None,
+            columns=None
+        ):
         #model_name = inspect.getmro(model)[0].__name__
 
-        query     = self.get_filtered_query(model,filters=filters)
+        query     = self._get_filtered_query(model,filters=filters)
 
         if distinct is not None:
-            query = query.distinct(distinct)
+            query = query.distinct(distinct) if type(distinct) != tuple else query.distinct(*distinct)
+
+        if group_by is not None:
+            query = query.group_by(group_by) if type(group_by) != tuple else query.group_by(*group_by)
 
         if order_by is not None:
-            query = query.order_by(order_by)
+            query = query.order_by(order_by) if type(order_by) != tuple else query.order_by(*order_by)
 
         if limit is not None:
             query = query.limit(limit)
@@ -269,7 +296,7 @@ class AlphaDatabaseNew(SQLAlchemy):
         return results_json
 
     def update(self,model,values={},filters={}):
-        query           = self.get_filtered_query(model,filters=filters)
+        query           = self._get_filtered_query(model,filters=filters)
         values_update   = self.get_values(model,values,filters)
         query.update(values_update)
 
@@ -284,10 +311,6 @@ class AlphaDatabaseNew(SQLAlchemy):
                 values_update[model.__dict__[key]] = value
                     
         return values_update
-
-"""class AlphaDatabaseFlask(SQLAlchemy,AlphaDatabaseNew):
-    def __init__(self,*args,log=None,config=None,**kwargs):
-        super().__init__(*args,**kwargs)"""
 
 def get_filter_conditions(query,filters,verbose=True):
     equals, ins, likes, sups, infs, sups_st, infs_st = {}, {}, {}, {}, {}, {}, {}
@@ -370,153 +393,3 @@ def get_filter(query,filters,model,verbose=True):
     for key, value in ins.items():
         query     = query.filter(key.in_(value))
     return query
-
-class AlphaDatabase():
-    cnx             = None
-    database_type   = None
-    cursor          = None
-    path            = None
-    cnx_str         = None
-
-    def __init__(self,user,password,host,name=None,port=None,sid=None,database_type='mysql',log=None,path=None):
-        self.log            = log
-        self.database_type  = database_type
-        self.user           = user
-        self.password       = password
-        self.host           = host
-        self.name           = name
-        self.port           = port
-        self.sid            = sid
-        self.path           = path
-
-    def test(self):
-        query   = "SHOW TABLES;"
-        cnx     = self.get_cnx()
-        if cnx is None:
-            return False
-        results = self.get_query_results(query)
-        return len(results) != 0
-
-    def get_cnx(self):
-        cnx = None
-        if self.database_type == 'mysql':
-            try:
-                if self.port is not None:
-                    self.log.debug('Connecting to host=%s, database=%s, user=%s, port=%s'%(self.host,self.name,self.user,self.port))
-                    cnx         = mysql.connector.connect(user=self.user, password=self.password, host=self.host, database=self.name,port=self.port)
-                else:
-                    cnx         = mysql.connector.connect(user=self.user, password=self.password, host=self.host, database=self.name)        
-                cnx.set_converter_class(NumpyMySQLConverter)
-            except Exception as ex:
-                if self.log is not None:
-                    self.log.error(str(ex))
-        elif self.database_type == 'oracle':
-            cnx = Connection(self.host, self.port, self.sid,self.user,self.password)
-        else:
-            if self.log is not None:
-                self.log.error('Database type not recognized')
-        self.cnx = cnx
-        return self.cnx
-
-    def get(self,query,values,unique=False,close_cnx=True):
-        return self.get_query_results(query,values,unique=unique,close_cnx=close_cnx)
-
-    def get_query_results(self,query,values=None,unique=False,close_cnx=True,log=None):
-        if log is None: log = self.log
-
-        self.get_cnx()
-        self.cursor = self.cnx.cursor(dictionary=not unique)
-
-        rows    = []
-        try:
-            self.cursor.execute(query, values)        
-            columns = self.cursor.description
-            results = self.cursor.fetchall()
-                
-            #rows = [{columns[index][0]:column for index, column in enumerate(value)} for value in results]
-
-            if not unique:
-                rows = [Row(x) for x in results]
-            else:
-                rows = [value[0] for value in results]
-
-            self.cursor.close()
-
-            if close_cnx:
-                self.cnx.close()
-        except mysql.connector.Error as err:
-            stack           = inspect.stack()
-            parentframe     = stack[1]
-            module          = inspect.getmodule(parentframe[0])
-            root            = os.path.abspath(module.__file__).replace(module.__file__,'')
-            error_message = 'In file {} line {}:\n {} \n\n {}'.format(parentframe.filename,parentframe.lineno,'\n'.join(parentframe.code_context),err)
-            if self.log is not None:
-                self.log.error(error_message)
-            #print(parentframe.frame)
-            #function    = parentframe.function
-            #index       = parentframe.index
-        return rows
-
-    def execute(self,query,values=None,close_cnx=True,log=None):
-        return self.execute_query(query,values,close_cnx,log)
-
-    def execute_query(self,query,values=None,close_cnx=True,log=None):
-        if log is None: log = self.log
-
-        # redirect to get if select
-        select = query.strip().upper()[:6] == 'SELECT'
-        if select:
-            return self.get(query,values,unique=False,close_cnx=True)
-
-        self.get_cnx()
-        try:
-            self.cursor = self.cnx.cursor()
-
-            self.cursor.execute(query, values)
-            self.cnx.commit()
-            self.cursor.close()
-            if close_cnx:
-                self.cnx.close()
-            return True
-        except mysql.connector.Error as err:
-            if log is not None:
-                log.error(err)
-            return False
-
-    def delete(self,table:str,parameters: dict,close_cnx=True,log=None):
-        query  = "delete from " + table
-        query += " where " + ' and '.join(["`"+key+"` = %s" for key in parameters.keys()])
-        return self.execute(query,values=list(parameters.values()),close_cnx=close_cnx,log=log)
-
-    def insert(self,table:str , parameters: dict,update=False,close_cnx=True,log=None):
-        query  = "insert into `" + table + "` (%s) "% ','.join(["`%s`"%x for x in parameters.keys()])
-        query += " values (%s) " % ','.join(["%s" for x in parameters.values()])
-
-        if update:
-            query += " on duplicate key update "
-            query += ",".join(["`%s`=values(`%s`)"%(x,x) for x in parameters.keys()])
-        return self.execute(query,values=list(parameters.values()),close_cnx=close_cnx,log=log)
-
-    def select(self,table:str, columns,unique=False):
-        if unique and len(columns) != 1:
-            if self.log is not None:
-                self.log.error('Cannot select one row only because you asked more: selecting all')
-                unique = False
-
-        query = "select " + ','.join(['`%s`'%x for x in columns]) + " from " + table
-        return self.get(query, values=None,unique=unique)
-        
-    def execute_many_query(self,query,values,close_cnx=True,log=None):
-        if log is None: log = self.log
-
-        self.get_cnx()
-        self.cursor = self.cnx.cursor()
-
-        self.cursor.executemany(query, values)
-        self.cnx.commit()
-        self.cursor.close()
-        if close_cnx:
-            self.cnx.close()
-
-    def close(self):
-        self.cnx.close()

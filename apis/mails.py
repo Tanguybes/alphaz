@@ -1,13 +1,13 @@
 import json
 from ...libs import user_lib, sql_lib, secure_lib, mail_lib
 
-def stay_in_touch(api,user_mail,name,token,db,close_cnx=True):
+def stay_in_touch(api,user_mail,name,token,db):
     status        = None
     valid_token   = mail_lib.is_mail_token_valid(user_mail, token)
     if not valid_token:
         api.set_error('invalid_token')
 
-    status                  = user_lib.is_valid_mail(db,user_mail,close_cnx=True)
+    status                  = user_lib.is_valid_mail(db,user_mail)
     if not status:
         return api.set_error('invalid_mail')
 
@@ -16,16 +16,16 @@ def stay_in_touch(api,user_mail,name,token,db,close_cnx=True):
     api.send_mail(
         mail_config     = 'stay_in_touch',
         parameters_list = [parameters],
-        db=db,log=api.log,close_cnx=close_cnx
+        db=db,log=api.log
     )
 
-def mail_me(api,db,close_cnx=True):
+def mail_me(api,db):
     parameters          = {'mail':"durand.aurele@gmail.com",'name':'Aurele'}
 
     api.send_mail(
         mail_config     = 'mail',
         parameters_list = [parameters],
-        db=db,close_cnx=close_cnx
+        db=db
     )
 
 def unstring_value(value):
@@ -41,7 +41,7 @@ def str_parameters_to_dict(parameters_str):
     parameters = json.loads(parameters_str)
     return parameters
 
-def request_view(api,user_mail,token,mail_type,mail_id,db,close_cnx=True):
+def request_view(api,user_mail,token,mail_type,mail_id,db):
     mail_type   = mail_lib.get_mail_type(mail_type)
     parameters  = None
     mail_token  = mail_lib.get_mail_token(user_mail)
@@ -52,7 +52,7 @@ def request_view(api,user_mail,token,mail_type,mail_id,db,close_cnx=True):
     
     query       = "SELECT * from mails_history where mail_type = %s and uuid = %s"
     values      = (mail_type,mail_id)
-    results     = db.get_query_results(query,values,unique=False,close_cnx=close_cnx)
+    results     = db.get_query_results(query,values,unique=False)
     valid       = len(results) != 0
     if not valid:
         return api.set_error('no_mail')
@@ -69,7 +69,7 @@ def request_view(api,user_mail,token,mail_type,mail_id,db,close_cnx=True):
     else:
         api.set_data(mail_contents_list[0]['content'])
 
-def request_unsubscribe(api,user_mail, token, mail_type,db,close_cnx=True):
+def request_unsubscribe(api,user_mail, token, mail_type,db):
     mail_type   = mail_lib.get_mail_type(mail_type)
     mail_token  = mail_lib.get_mail_token(user_mail)
     valid       = mail_token == token
@@ -79,7 +79,7 @@ def request_unsubscribe(api,user_mail, token, mail_type,db,close_cnx=True):
 
     query   = "INSERT INTO mail_blacklist (mail,mail_type) VALUES (%s,%s)"
     values  = (user_mail,mail_type)
-    valid   = db.execute_query(query,values,close_cnx=close_cnx)
+    valid   = db.execute_query(query,values)
 
     if not valid:
         return api.set_error('fail')

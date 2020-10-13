@@ -2,9 +2,9 @@ import datetime
 
 from flask import request, send_from_directory
 
-from ...libs import test_lib, database_lib
+from ...libs import test_lib, database_lib, api_lib
 from ...utils.api import route, Parameter
-from ..main import get_routes_infos
+from ...utils.time import tic, tac
 
 from core import core
 api = core.api
@@ -62,7 +62,7 @@ def home():
         'users':0,
         'ip': request.environ['REMOTE_ADDR'],
         'admin': config.get('admin_databases'),
-        'routes': get_routes_infos(log=log),
+        'routes': api_lib.get_routes_infos(log=log),
         'compagny': config.get('parameters/compagny'),
         'compagny_website': config.get('parameters/compagny_website'),
         'statistics': debug,

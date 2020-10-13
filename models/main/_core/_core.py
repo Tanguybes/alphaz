@@ -7,7 +7,7 @@ from ....models import database as database_models
 from ....models.main._exception import EXCEPTIONS
 
 from ...api import AlphaFlask
-from ...database.structure import AlphaDatabaseNew
+from ...database.structure import AlphaDatabase
 
 from . import _utils
 
@@ -94,7 +94,7 @@ class AlphaCore:
 
         for name, cf in db_cnx.items():
             log = self.config.get_logger(cf['logger']) if 'logger' in cf else db_logger
-            self.databases[name] = AlphaDatabaseNew(self.api,name=name,config=cf,log=log)
+            self.databases[name] = AlphaDatabase(self.api,name=name,config=cf,log=log)
         self.db = self.databases['main']
 
         # configuration
@@ -111,7 +111,7 @@ class AlphaCore:
 
         modules             = flask_lib.get_definitions_modules(models_sources,log=self.log)
 
-    def get_database(self,name=None) -> AlphaDatabaseNew:
+    def get_database(self,name=None) -> AlphaDatabase:
         if self.api is None:
             # required for database cnx
             self.prepare_api(self.configuration)

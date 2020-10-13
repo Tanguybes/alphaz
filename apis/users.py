@@ -4,9 +4,9 @@ from ..libs import user_lib, sql_lib, secure_lib
 from ..models.database import main_definitions as defs
 
 # Serve for registration
-def try_register_user(api,db,mail, username, password, password_confirmation,close_cnx=True):
-    userByMail          = user_lib.get_user_data_by_mail(db,mail,close_cnx=False)
-    userByUsername      = user_lib.get_user_data_by_username(db,username,close_cnx=False)
+def try_register_user(api,db,mail, username, password, password_confirmation):
+    userByMail          = user_lib.get_user_data_by_mail(db,mail)
+    userByUsername      = user_lib.get_user_data_by_username(db,username)
 
     if 'id' in userByMail or 'id' in userByUsername:
         if ('id' in userByMail and userByMail['role'] < 0) or ('id' in userByUsername and userByUsername['role'] < 0):
@@ -39,8 +39,7 @@ def try_register_user(api,db,mail, username, password, password_confirmation,clo
     sent = api.send_mail(
         mail_config     = 'registration',
         parameters_list = [parameters],
-        db              = db,
-        close_cnx       = close_cnx
+        db              = db
     )
 
     if sent:
@@ -51,9 +50,9 @@ def try_register_user(api,db,mail, username, password, password_confirmation,clo
         api.set_error('sending')
     #sender      = CoreW.CONSTANTS['email-registration']
 
-def ask_password_reset(api,username_or_mail,db,close_cnx=True):
-    user_by_mail        = user_lib.get_user_data_by_mail(db,username_or_mail,close_cnx=False)
-    user_by_username    = user_lib.get_user_data_by_username(db,username_or_mail,close_cnx=False)
+def ask_password_reset(api,username_or_mail,db):
+    user_by_mail        = user_lib.get_user_data_by_mail(db,username_or_mail)
+    user_by_username    = user_lib.get_user_data_by_username(db,username_or_mail)
 
     if len(user_by_mail.keys()) == 0 and len(user_by_username.keys()) == 0:
         return api.set_error('unknown_inputs')
@@ -69,7 +68,7 @@ def ask_password_reset(api,username_or_mail,db,close_cnx=True):
     query       = "UPDATE user SET password_reset_token = %s, password_reset_token_expire = UTC_TIMESTAMP() + INTERVAL 20 MINUTE WHERE id = %s;"
     values      = (token, user_data['id'],)
 
-    if not db.execute_query(query,values,close_cnx=False,log=None):
+    if not db.execute_query(query,values,log=None):
         return api.set_error('sql_error')    
 
     # MAIL
@@ -82,13 +81,13 @@ def ask_password_reset(api,username_or_mail,db,close_cnx=True):
     mail_sent = api.send_mail(
         mail_config     = 'password_reset',
         parameters_list = [parameters],
-        db=db,close_cnx=close_cnx
+        db=db
     )  
 
 def confirm_user_registration(api,token,db):
     if 'consumed' in token:
         return api.set_error('invalid_token') 
-    user_data = user_lib.get_user_data_by_registration_token(db,token,close_cnx=False)
+    user_data = user_lib.get_user_data_by_registration_token(db,token)
 
     if len(user_data) == 0:
         api.set_error('not_found')
@@ -110,7 +109,7 @@ def confirm_user_registration(api,token,db):
 
 # Serve for web logins
 def try_login(api,db,login, password, ip):
-    user_data = user_lib.get_user_data_FromLogin(db,login, password,close_cnx=False)
+    user_data = user_lib.get_user_data_FromLogin(db,login, password)
     if user_data is not None:
         if user_data['role'] >= 0:
             # Generate token
@@ -144,13 +143,13 @@ def confirm_user_password_reset(api,token, password, password_confirmation,db):
     if 'consumed' in token:
         return api.set_error('consumed_token') 
 
-    user_data = user_lib.get_user_data_by_password_reset_token(db,token, close_cnx=False)
+    user_data = user_lib.get_user_data_by_password_reset_token(db,token)
     if not 'id' in user_data:
         return api.set_error('invalid_token') 
     
-    try_reset_password(api,user_data, password, password_confirmation,db=db,close_cnx=True)
+    try_reset_password(api,user_data, password, password_confirmation,db=db)
 
-def try_reset_password(api,user_data, password, password_confirmation,db,log=None,close_cnx=True):
+def try_reset_password(api,user_data, password, password_confirmation,db,log=None):
     if password != password_confirmation:
         return api.set_error('password_missmatch') 
 
@@ -162,18 +161,18 @@ def try_reset_password(api,user_data, password, password_confirmation,db,log=Non
     # Reset password
     query   = "UPDATE user SET password = %s, password_reset_token = 'consumed' WHERE id = %s;"
     values  = (password_hashed, user_data['id'],)
-    valid   = db.execute_query(query,values,close_cnx=False)
+    valid   = db.execute_query(query,values)
     if not valid:
         api.set_error('reset_error') 
     
     # Reset all sessions as password changed
     query   = "DELETE FROM user_session WHERE user_id = %s;"
     values  = (user_data['id'],)
-    valid   = db.execute_query(query,values,close_cnx=close_cnx)
+    valid   = db.execute_query(query,values)
     if not valid:
         api.set_error('clean_error')
 
-def logout(api,token,db,log=None,close_cnx=True):
+def logout(api,token,db,log=None):
     valid = db.delete(defs.UserSession,filters={'token': token})
 
     """
@@ -198,8 +197,8 @@ def get_user_dataFromToken(api,db,token):
         return user_lib.get_user_data_by_id(db, user_id)
     return None
 
-def try_subscribe_user(api,mail, nb_days, target_role,db,close_cnx=True):
-    userByMail          = user_lib.get_user_data_by_mail(db,mail,close_cnx=False)
+def try_subscribe_user(api,mail, nb_days, target_role,db):
+    userByMail          = user_lib.get_user_data_by_mail(db,mail)
     user_data = None
     if 'id' in userByMail:
         if 'id' in userByMail:
@@ -209,7 +208,7 @@ def try_subscribe_user(api,mail, nb_days, target_role,db,close_cnx=True):
         # Reset password
         query  = "UPDATE user SET role = %s, expire = %s WHERE id = %s;"
         values = (target_role, expired_date, user_data['id'],)
-        valid  = db.execute_query(query,values,close_cnx=close_cnx)
+        valid  = db.execute_query(query,values)
         if not valid:
             api.set_error('update_error')
     api.set_error('unknow_user')

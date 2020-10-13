@@ -1,5 +1,3 @@
-import os
-
 from flask import request, send_file, send_from_directory, safe_join, abort, url_for, render_template
 
 from ..models.database import main_definitions as defs
@@ -29,6 +27,8 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
 
         @api.route(path, methods = methods, endpoint=func.__name__)
         def api_wrapper(*args,**kwargs):
+            log.debug('get api route {:10} with method <{}>'.format(path,func.__name__))
+
             api.reset()
             if request.args:
                 api.dataGet = {x:y for x,y in request.args.items()}
@@ -48,6 +48,7 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
                 log.debug('VALUES: %s'%request.values)
                 log.debug('PARAMETERS: %s'%parameters)"""
 
+            # Check parameters
             for parameter in parameters:
                 try:
                     parameter.set_value()
@@ -55,6 +56,7 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
                     api.set_error(ex)
                     return api.get_return()
 
+            # check permissions
             token           = api.get_token()
             if logged and token is None:
                 log.warning('Wrong permission: empty token')

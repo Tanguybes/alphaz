@@ -9,7 +9,7 @@ log         = core.get_logger('api')
 
 @route('/mails/mailme',logged=False,cache=False)
 def mail_me():
-    mails.mail_me(api,db,close_cnx=True)
+    mails.mail_me(api,db)
 
 @route('/mails/stayintouch',logged=False,cache=False, 
     parameters = [
@@ -47,7 +47,7 @@ def mails_request_view():
     mail_type   = api.get('name')
     mail_id     = api.get('id')
 
-    mails.request_view(api,user_mail,token,mail_type,mail_id,db,close_cnx=True)
+    mails.request_view(api,user_mail,token,mail_type,mail_id,db)
 
 @route('/mails/unsubscribe',logged=False,cache=False, 
     parameters = [
@@ -60,4 +60,4 @@ def mails_unsubscribe():
     user_mail   = api.get('mail')
     mail_type   = api.get('type')
 
-    mails.request_unsubscribe(api,user_mail,token,mail_type,db,close_cnx=True)
+    mails.request_unsubscribe(api,user_mail,token,mail_type,db)
