@@ -61,7 +61,9 @@ class Row(MutableMapping):
 
 class AlphaDatabaseCore(SQLAlchemy):
     def __init__(self,*args,name=None,log=None,config=None,timeout=None,**kwargs):
-        timeout = 5
+        self.db_type    = config['type']
+
+        timeout = 5 if self.db_type != 'oracle' else None
         engine_options = {}
         if timeout is not None:
             engine_options={ 'connect_args': { 'connect_timeout': 5 }, 'pool_recycle':5} # TODO: modify
@@ -76,7 +78,6 @@ class AlphaDatabaseCore(SQLAlchemy):
         self.name       = name
 
         self.config     = config
-        self.db_type    = config['type']
         self.log        = log 
 
     def test(self):
