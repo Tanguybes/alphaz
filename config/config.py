@@ -12,6 +12,8 @@ from ..utils.logger import AlphaLogger
 
 PAREMETER_PATTERN = '{{%s}}'
 
+CONFIGURATIONS = {}
+
 def ensure_path(dict_object,paths=[],value=None):
     if len(paths) == 0: 
         return
@@ -29,6 +31,11 @@ class AlphaConfig():
     reserved    =  ['user']
 
     def __init__(self,name='config',filepath=None,root=None,filename=None,log=None,configuration=None,logger_root=None,data=None,origin=None):
+        key = "%s - %s"%(name,filepath)
+        if key in CONFIGURATIONS:
+            if log: log.error('Cannot reload configuration %s'%key)
+            exit()
+
         self.origin         = origin
         self.tmp            = {}
 
@@ -96,9 +103,10 @@ class AlphaConfig():
 
         #self.info('Set configuration %s'%self.config_file) # TODO: check
                         
-        if data is None:
+        """if data is None:
             self.set_configuration(configuration)
-        else:
+        else:"""
+        if data:
             self.data_origin  = data
             self.data         = data
 
@@ -454,16 +462,24 @@ class AlphaConfig():
                 log.database = self.databases[log.database_name]
 
     def get_logger(self,name='main',default_level='INFO'):
+        if not 'main' in self.loggers:
+            self.loggers['main'] = AlphaLogger(
+                name,
+                filename    = 'main',
+                root        = self.logger_root,
+                level       = default_level,
+                colors      = self.get("colors/loggers")
+            )
         if name not in self.loggers:
             self.warning('%s is not configured as a logger'%name)
-            log = AlphaLogger(
+            """log = AlphaLogger(
                 name,
                 filename    = name,
                 root        = self.logger_root,
                 level       = default_level,
                 colors      = self.get("colors/loggers")
-            )
-            return self.log
+            )"""
+            return self.loggers['main']
         return  self.loggers[name] 
 
     def get(self,path=[],root=True):

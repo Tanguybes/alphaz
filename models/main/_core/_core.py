@@ -30,12 +30,15 @@ class AlphaCore:
         self.initiated: bool        = False
         self.databases: dict        = {}
         self.configuration: str     = None
+        self.configuration_name: str = None
 
     def set_configuration(self,configuration_name):
         if self.config is not None: return
 
         self.config         = AlphaConfig('config',root=self.root,configuration=configuration_name)
+        self.config.set_configuration(configuration_name)
         self.configuration  = self.config.configuration
+        self.configuration_name = configuration_name
 
         # SET ENVIRONMENT VARIABLES
         _utils.set_environment_variables(self.config.get('environment'))
@@ -78,7 +81,8 @@ class AlphaCore:
         db_cnx              = self.config.db_cnx
 
         if db_cnx is None:
-            self.error('Databases not configurated in config file')
+            self.error('Databases are not configurated in config file %s'%self.config.filepath)
+            exit()
 
         if not 'main' in db_cnx:
             self.config.show()
