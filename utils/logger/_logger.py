@@ -65,7 +65,7 @@ class AlphaLogger():
         self.level_show = _utils.get_level(level)
         self.logger.setLevel(self.level_show)
 
-    def _log(self,message:str,caller,level:str='info',monitor:str=None,save=False):
+    def _log(self,message:str,caller,level:str='info',monitor:str=None,save=False,ex:Exception=None):
         """
                 frame       = inspect.stack()[1]
         module      = inspect.getmodule(frame[0])
@@ -85,6 +85,10 @@ class AlphaLogger():
         self.level                  = level.upper()
 
         full_message                = self.get_formatted_message(message,caller)
+
+        if ex is not None:
+            text            = traceback.format_exc()
+            full_message    += "/n" + text
 
         fct = getattr(self.logger,self.level.lower())
         fct(full_message)
@@ -122,20 +126,20 @@ class AlphaLogger():
 
         return msg
 
-    def info(self,message,monitor=None,level=1,save=False):
-        self._log(message,inspect.getframeinfo(inspect.stack()[level][0]),'info',monitor=monitor,save=save)
+    def info(self,message,monitor=None,level=1,save=False,ex:Exception=None):
+        self._log(message,inspect.getframeinfo(inspect.stack()[level][0]),'info',monitor=monitor,save=save,ex=ex)
 
-    def warning(self,message,monitor=None,level=1,save=False):
-        self._log(message,inspect.getframeinfo(inspect.stack()[level][0]),'warning',monitor=monitor,save=save)
+    def warning(self,message,monitor=None,level=1,save=False,ex:Exception=None):
+        self._log(message,inspect.getframeinfo(inspect.stack()[level][0]),'warning',monitor=monitor,save=save,ex=ex)
 
-    def error(self,message,monitor=None,level=1,save=False):
-        self._log(message,inspect.getframeinfo(inspect.stack()[level][0]),'error',monitor=monitor,save=save)
+    def error(self,message,monitor=None,level=1,save=False,ex:Exception=None):
+        self._log(message,inspect.getframeinfo(inspect.stack()[level][0]),'error',monitor=monitor,save=save,ex=ex)
 
-    def debug(self,message,monitor=None,level=1,save=False):
-        self._log(message,inspect.getframeinfo(inspect.stack()[level][0]),'debug',monitor=monitor,save=save)
+    def debug(self,message,monitor=None,level=1,save=False,ex:Exception=None):
+        self._log(message,inspect.getframeinfo(inspect.stack()[level][0]),'debug',monitor=monitor,save=save,ex=ex)
 
-    def critical(self,message, monitor=None,level=1,save=False):
-        self._log(message,inspect.getframeinfo(inspect.stack()[level][0]),'critical',monitor=monitor,save=save)
+    def critical(self,message, monitor=None,level=1,save=False,ex:Exception=None):
+        self._log(message,inspect.getframeinfo(inspect.stack()[level][0]),'critical',monitor=monitor,save=save,ex=ex)
 
     def set_current_date(self):
         current_date        = datetime.datetime.now()

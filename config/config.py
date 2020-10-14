@@ -43,7 +43,7 @@ class AlphaConfig():
         self.exist       = False
         self.valid       = True
         self.loaded         = False
-        self.configuration:str = None
+        self.configuration:str = configuration
 
         self.logger_root = None
 
@@ -453,7 +453,7 @@ class AlphaConfig():
                     continue
                 log.database = self.databases[log.database_name]
 
-    def get_logger(self,name,default_level='INFO'):
+    def get_logger(self,name='main',default_level='INFO'):
         if name not in self.loggers:
             self.warning('%s is not configured as a logger'%name)
             log = AlphaLogger(

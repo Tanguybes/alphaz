@@ -8,11 +8,6 @@ from PIL import Image, ImageDraw
 import sys
 import pandas as pd
 
-def test():
-    from libs.test_lib import execute_all_tests_auto
-    execute_all_tests_auto('tests/autos')
-
-test()
 exit()
 
 """

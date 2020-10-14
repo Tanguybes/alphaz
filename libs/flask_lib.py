@@ -51,7 +51,7 @@ def get_definitions_modules(modules_list:List[ModuleType],log:AlphaLogger) -> Li
         if dir_ini or dir_path:
             sub_files   = glob.glob(module_path) if dir_ini else glob.glob(module_path)
 
-            names       = [os.path.basename(x).replace('.py','') for x in sub_files if not '__init__' in x]
+            names       = [os.path.basename(x).replace('.py','') for x in sub_files if not '__init__' in x and '.py' in x]
 
             for sub_file_name in names:
                 module_full_name = "%s.%s"%(module.__name__,sub_file_name)
@@ -61,7 +61,7 @@ def get_definitions_modules(modules_list:List[ModuleType],log:AlphaLogger) -> Li
                 try:
                     sub_module = importlib.import_module(module_full_name)
                 except Exception as ex:
-                    log.error('Cannot load module %s:\n   %s'%(module_full_name,ex))
+                    log.error('Cannot load module %s'%(module_full_name),ex=ex)
                     continue
                 
                 if not 'db' in sub_module.__dict__: continue
