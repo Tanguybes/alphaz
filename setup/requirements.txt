@@ -1,6 +1,6 @@
 flask
 flask_mail
-mysql.connector
+mysql-connector-python
 cx_Oracle
 pysocks
 numpy
@@ -13,6 +13,10 @@ configparser
 pymysql
 marshmallow-sqlalchemy
 flask_marshmallow
-flas_sqlalchemy
+flask_sqlalchemy
 flask_admin
+flask_statistics
+flask_monitoringdashboard
 dicttoxml
+colorama
+gevent
