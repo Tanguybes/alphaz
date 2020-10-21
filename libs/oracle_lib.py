@@ -34,7 +34,7 @@ class Connection():
             
         group = []
         for row in cursor:
-            group.append(row)
+            group.appendrow
 
         dataset = pd.DataFrame(group,columns=col_names)
         

@@ -169,8 +169,16 @@ class AlphaFlask(Flask):
         if self.conf.get('admin_databases'):
             self.init_admin_view()
 
-
         #Base.prepare(self.db.engine, reflect=True)
+
+    def set_config(self,config_path,configuration=None,root=None):
+        self.log.debug('Set <%s> configuration for API from %s in %s'%(configuration,config_path,root))
+        self.config_path    = config_path
+        self.configuration  = configuration
+        self.conf           = AlphaConfig(filepath=config_path,configuration=configuration,root=root,log=self.log) # root=os.path.dirname(os.path.realpath(__file__))
+        self.conf.set_configuration(configuration)
+        if self.conf.get('routes_no_log'):
+            _colorations.WerkzeugColorFilter.routes_exceptions = self.conf.get('routes_no_log')
 
     def init_admin_view(self):
         #models_sources      = self.conf.get('models') or []
@@ -236,14 +244,6 @@ class AlphaFlask(Flask):
         os.kill(pid, 9)
 
         self.log.info('Process n°%s killed'%pid)
-
-    def set_config(self,config_path,configuration=None,root=None):
-        self.config_path    = config_path
-        self.configuration  = configuration
-        self.conf           = AlphaConfig(filepath=config_path,configuration=configuration,root=root,log=self.log) # root=os.path.dirname(os.path.realpath(__file__))
-
-        if self.conf.get('routes_no_log'):
-            _colorations.WerkzeugColorFilter.routes_exceptions = self.conf.get('routes_no_log')
 
     def get_database(self,name):
         return self.conf.get_database(name)

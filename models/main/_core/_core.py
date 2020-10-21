@@ -14,13 +14,7 @@ from . import _utils
 import alphaz
 
 class AlphaCore: 
-    instance                = None
-
-    api         = None
-    db          = None
-    ma          = None
-
-    databases   = {}
+    instance    = None
 
     def __init__(self,file:str): 
         self.root:str               = self.get_relative_path(file, level=0)
@@ -31,6 +25,12 @@ class AlphaCore:
         self.databases: dict        = {}
         self.configuration: str     = None
         self.configuration_name: str = None
+        self.ma                     = None
+        self.db                     = None
+        self.api                    = None
+        
+        if 'ALPHA_CONF' in os.environ:
+            self.set_configuration(os.environ['ALPHA_CONF'])
 
     def set_configuration(self,configuration_name):
         if self.config is not None: return
@@ -67,7 +67,7 @@ class AlphaCore:
     def prepare_api(self,configuration):
         self.set_configuration(configuration)
 
-        self.config.info('Configuring API from configuration %s ...'%self.config.config_file)
+        self.config.info('Configurating API from configuration %s ...'%self.config.config_file)
 
         template_path = alphaz.__file__.replace('__init__.py','') + 'templates'
         self.api            = AlphaFlask(__name__,
@@ -103,7 +103,9 @@ class AlphaCore:
 
         # configuration
         self.api.log: AlphaLogger    = self.get_logger('api')
-        self.api.set_config('api',self.configuration)
+
+        api_root = self.config.get('api_root')
+        self.api.set_config('api',self.configuration,root=api_root if api_root is not None else self.root)
         self.api.db = self.db
 
         models_sources = self.api.conf.get('directories/database_models')
