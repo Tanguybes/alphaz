@@ -4,13 +4,6 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [   
-        {
-            "name": "Configuration",
-            "type": "python",
-            "request": "launch",
-            "program": "config/page.py",
-            "args": [""],
-            "console": "integratedTerminal"
-        }
+
     ]
 }

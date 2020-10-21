@@ -162,14 +162,14 @@ class AlphaConfig():
             print('   ERROR: %s'%message)
         if out: exit()
 
-    def get_config(self,path=[]):
+    def get_config(self,path=[],configuration=None):
         config_data = self.get(path)
 
         config      = AlphaConfig(
             name    = self.name,
             root    = self.root,
             log     = self.log,
-            configuration   = self.configuration,
+            configuration   = self.configuration if configuration is None else configuration,
             logger_root     = self.logger_root,
             data            = config_data
         )
@@ -205,7 +205,11 @@ class AlphaConfig():
                 self.loaded = True
 
     def load(self,configuration):
-        self.load_raw()
+        try:
+            self.load_raw()
+        except Exception as ex:
+            print('Cannot read configuration file %s:%s'%(self.config_file,ex))
+            exit()
         
         self.__check_reserved()
 
@@ -374,6 +378,10 @@ class AlphaConfig():
         if 'databases' in config:
             self.configure_databases(config["databases"])
 
+        if self.is_path("envs"):
+            for env, value in self.get("envs").items():
+                os.environ[env] = value
+
     def configure_databases(self,config):
         # Databases
         structure   = {'name':None,'required':False,'value':None}
@@ -471,7 +479,7 @@ class AlphaConfig():
                 colors      = self.get("colors/loggers")
             )
         if name not in self.loggers:
-            self.warning('%s is not configured as a logger'%name)
+            self.warning('%s is not configured as a logger in %s'%(name,self.filepath))
             """log = AlphaLogger(
                 name,
                 filename    = name,

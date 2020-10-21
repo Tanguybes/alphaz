@@ -40,7 +40,8 @@ class AlphaLogger():
         # Create logger
         self.logger             = logging.getLogger(name)
 
-        self.set_level(level)
+        self.level_show = _utils.get_level(level if level is not None else 'INFO')
+        self.logger.setLevel(self.level_show)
 
         # File handler
         handler             = TimedRotatingFileHandler(log_path, when="midnight", interval=1,backupCount=7)
@@ -61,10 +62,6 @@ class AlphaLogger():
         self.name           = name
         #self.cmd_output     = cmd_output if cmd_output is not None else True
     
-    def set_level(self,level):
-        self.level_show = _utils.get_level(level)
-        self.logger.setLevel(self.level_show)
-
     def _log(self,message:str,caller,level:str='info',monitor:str=None,save=False,ex:Exception=None):
         """
                 frame       = inspect.stack()[1]

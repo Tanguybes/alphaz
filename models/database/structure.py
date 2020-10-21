@@ -61,7 +61,7 @@ class Row(MutableMapping):
 
 class AlphaDatabaseCore(SQLAlchemy):
     def __init__(self,*args,name=None,log=None,config=None,timeout=None,**kwargs):
-        self.db_type    = config['type']
+        self.db_type = config['type']
         self.user = config['user']
 
         timeout = 5 if self.db_type != 'oracle' else None
@@ -69,9 +69,9 @@ class AlphaDatabaseCore(SQLAlchemy):
         if timeout is not None:
             engine_options={ 'connect_args': { 'connect_timeout': 5 }, 'pool_recycle':5} # TODO: modify
             """
-                                 'pool_size' : 10,
-                                 'pool_recycle':120,
-                                 'pool_pre_ping': True
+                'pool_size' : 10,
+                'pool_recycle':120,
+                'pool_pre_ping': True
             """
 
         super().__init__(*args,engine_options=engine_options,**kwargs)
@@ -114,7 +114,13 @@ class AlphaDatabase(AlphaDatabaseCore):
     def drop(self,table_model):
         table_model.__table__.drop(self.engine)
 
-    def execute_query(self,query,values=None):
+    def execute(self,query,values=None):
+        return self.execute_query(query,values)
+
+    def execute_many_query(self,query,values=None):
+        return self.execute_query(query,values,multi=True)
+
+    def execute_query(self,query,values=None,multi=False):
         if self.db_type == 'sqlite':
             query = query.replace('%s','?')
 
@@ -124,7 +130,11 @@ class AlphaDatabase(AlphaDatabaseCore):
             return self.get_query_results(query,values,unique=False)
         
         try:
-            self.engine.execute(query, values)
+            if multi:
+                for V in values:
+                    self.engine.execute(query,V)
+            else:
+                self.engine.execute(query, values)
             self.query_str = get_compiled_query(query)
             return True
         except Exception as err:

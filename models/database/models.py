@@ -72,13 +72,6 @@ class AlphaInteger(TypeDecorator):
     def process_result_value(self, value, dialect):
         return float(int) if value is not None else None
 
-"""def set_alpha_tables(db):
-    engine  = db.get_engine()
-    AlphaTable.prepare(engine)
-    #engine  = db.get_engine(bind="users")
-    #AlphaTable.prepare(engine, reflect=True)
-    pass"""
-
 """
     
 # creating class dynamically 
