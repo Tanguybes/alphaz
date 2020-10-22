@@ -1,6 +1,6 @@
-import mysql.connector, inspect, os
+#import mysql.connector
+import inspect, os
 from ...libs.oracle_lib import Connection 
-from ...libs.sql_lib import NumpyMySQLConverter 
 
 from collections.abc import MutableMapping
 
