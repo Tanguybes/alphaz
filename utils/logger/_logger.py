@@ -20,7 +20,7 @@ class AlphaLogger():
     monitoring_logger = None
 
     def __init__(self,name,filename=None,root=None,cmd_output=True,level='INFO',colors=None,database=None):
-        self.level          = 'info'
+        self.level          = level
         self.date_str       = ""
         self.database_name  = database
         self.database       = None
@@ -40,8 +40,8 @@ class AlphaLogger():
         # Create logger
         self.logger             = logging.getLogger(name)
 
-        self.level_show = _utils.get_level(level if level is not None else 'INFO')
-        self.logger.setLevel(self.level_show)
+        level_show = _utils.get_level(level if level is not None else 'INFO')
+        self.logger.setLevel(level_show)
 
         # File handler
         handler             = TimedRotatingFileHandler(log_path, when="midnight", interval=1,backupCount=7)

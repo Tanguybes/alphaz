@@ -66,13 +66,13 @@ class AlphaDatabaseCore(SQLAlchemy):
 
         timeout = 5 if self.db_type != 'oracle' else None
         engine_options = {}
-        if timeout is not None:
-            engine_options={ 'connect_args': { 'connect_timeout': 5 }, 'pool_recycle':5} # TODO: modify
-            """
+        #if timeout is not None:
+        #engine_options={ 'connect_args': { 'connect_timeout': 5 }, 'pool_recycle':5} # TODO: modify
+        """
                 'pool_size' : 10,
                 'pool_recycle':120,
                 'pool_pre_ping': True
-            """
+        """
 
         super().__init__(*args,engine_options=engine_options,**kwargs)
 
@@ -279,6 +279,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         
         if unique: 
             columns = [unique]
+            json = True
         if columns is not None:
             query = query.with_entities(*columns)
             #TODO: get column if string
@@ -302,6 +303,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         else:
             self.log.error('Missing schema for model <%s>'%str(model.__name__))
         self.query_str      = get_compiled_query(query)
+        self.log.debug(self.query_str)
 
         if unique:
             return [list(x.values())[0] for x in results_json]

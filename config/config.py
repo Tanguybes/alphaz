@@ -180,8 +180,9 @@ class AlphaConfig():
     def get_config(self,path=[],configuration=None):
         config_data = self.get(path)
 
+        # TODO: enhance
         config      = AlphaConfig(
-            name    = self.name,
+            name    = '.'.join(path), # self.name,
             root    = self.root,
             log     = self.log,
             configuration   = self.configuration if configuration is None else configuration,
