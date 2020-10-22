@@ -28,7 +28,6 @@ def index():
 @route('/profil/pic',logged=True)
 def get_profil_pic():
     file_path = core.config.get('directories/images')
-    print('profil pic',file_path)
     api.get_file(file_path,api.get_logged_user()['id'])
 
 @route('/files/upload',logged=True,methods=['POST'])

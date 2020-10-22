@@ -1,6 +1,6 @@
+import traceback
 from flask import request, send_file, send_from_directory, safe_join, abort, url_for, render_template
 
-from ..models.database import main_definitions as defs
 from ..models.main import AlphaException
 from ..models.api import Parameter
 
@@ -8,6 +8,8 @@ from core import core
 api = core.api
 db  = core.db
 log = core.get_logger('api')
+
+ROUTES = {}
 
 # Specify the debug panels you want
 #api.config['DEBUG_TB_PANELS'] = [ 'flask_debugtoolbar.panels.versions.VersionDebugPanel', 'flask_debugtoolbar.panels.timer.TimerDebugPanel', 'flask_debugtoolbar.panels.headers.HeaderDebugPanel', 'flask_debugtoolbar.panels.request_vars.RequestVarsDebugPanel', 'flask_debugtoolbar.panels.template.TemplateDebugPanel', 'flask_debugtoolbar.panels.sqlalchemy.SQLAlchemyDebugPanel', 'flask_debugtoolbar.panels.logger.LoggingPanel', 'flask_debugtoolbar.panels.profiler.ProfilerDebugPanel', 'flask_debugtoolbar_lineprofilerpanel.panels.LineProfilerPanel' ]
@@ -116,7 +118,11 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
         if cache:
             parameters.append(Parameter('reset_cache',ptype=bool,cacheable=False))
 
-        api_wrapper._kwargs   = {
+        try: 
+            category = category.lower()
+        except:
+            category = func.__module__.split('.')[-1]
+        kwargs_ = {
             "path":path,
             "parameters":parameters,
             "parameters_names":parameters_names,
@@ -125,8 +131,24 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
             "logged":logged,
             "admin":admin,
             "timeout":timeout,
-            "category": func.__module__.split('.')[-1] if not category else category.lower()
+            "category": category
         }
+        api_wrapper._kwargs   = kwargs_
+
+        paths  = [ x for x in path.split('/') if x.strip() != '']
+        if len(paths) == 1:
+            paths = ['root',paths[0]]
+
+        trace = traceback.format_stack()
+
+        ROUTES[path] = {
+            'category': category,
+            'name': func.__name__,
+            'module': '',
+            'paths':paths,
+            'arguments':{x:y if x != 'parameters' else [j.__dict__ for j in y] for x,y in kwargs_.items()}
+        }
+
         return api_wrapper
     return api_in
 
