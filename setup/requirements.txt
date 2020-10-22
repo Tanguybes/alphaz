@@ -20,3 +20,5 @@ flask_monitoringdashboard
 dicttoxml
 colorama
 gevent
+sqlalchemy-utils
+flask-bcrypt

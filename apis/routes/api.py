@@ -9,9 +9,11 @@ api         = core.api
 db          = core.db
 log         = core.get_logger('api')
 
-@route("/map",)
+@route("/map",parameters=[
+    Parameter('reload',ptype=bool)
+])
 def api_map():
-    api.set_data(api_lib.get_routes_infos(log=log))
+    api.set_data(api_lib.get_routes_infos(log=log,reload=api.get('reload')))
 
 
 def has_no_empty_params(rule):

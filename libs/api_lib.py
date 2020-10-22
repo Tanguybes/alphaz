@@ -3,7 +3,9 @@ import sys, os, inspect, copy
 
 from ..libs import dict_lib
 from ..utils.logger import AlphaLogger
-from ..models.api._converters import jsonify_database_models, jsonify_data
+
+from ..models.api._converters import jsonify_database_models
+from ..models.api._converters import jsonify_data
 
 MODULES = {}
 
@@ -42,7 +44,9 @@ def get_routes_infos(log:AlphaLogger=None,categories=None,routes=None,reload=Fal
     Returns:
         dict: [description]
     """
-    if len(MODULES) != 0 and not reload: return MODULES
+
+    if len(MODULES) != 0 and not reload: 
+        return MODULES
 
     routes_configurations = {}
 

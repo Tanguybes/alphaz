@@ -4,8 +4,6 @@ from sqlalchemy.types import TypeDecorator
 
 from core import core
 
-ma = core.ma
-
 def repr(instance):
     columns_values  = {x:instance.__dict__[x] if x in instance.__dict__ else None for x,y in instance.columns.items() if y['show']}
     text            = ','.join("%s=%s"%(x,y) for x,y in columns_values.items())
@@ -36,7 +34,7 @@ class AlphaTable(object):
         #instance    = class_obj.__dict__['_sa_instance_state'].__dict__['class_']
         columns     = [k for k,v in class_obj.__dict__.items() if hasattr(v,'show')]
 
-        class_obj.schema = type(schema_name, (ma.Schema,),
+        class_obj.schema = type(schema_name, (core.ma.Schema,),
             {
                 'Meta':type('Meta', (object,),{'fields':columns})
             }

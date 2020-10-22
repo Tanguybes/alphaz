@@ -30,11 +30,18 @@ def ensure_path(dict_object,paths=[],value=None):
 class AlphaConfig():
     reserved    =  ['user']
 
-    def __init__(self,name='config',filepath=None,root=None,filename=None,log=None,configuration=None,logger_root=None,data=None,origin=None):
+    def __new__(cls,name='config',filepath=None,root=None,filename=None,log=None,configuration=None,logger_root=None,data=None,origin=None):
         key = "%s - %s"%(name,filepath)
-        if key in CONFIGURATIONS:
-            if log: log.error('Cannot reload configuration %s'%key)
-            exit()
+        if name in CONFIGURATIONS:
+            #if log: log.error('Cannot reload configuration <%s>'%key)
+            return CONFIGURATIONS[name]
+        return super(AlphaConfig,cls).__new__(cls)
+
+    def __init__(self,name='config',filepath=None,root=None,filename=None,log=None,configuration=None,logger_root=None,data=None,origin=None):
+        if hasattr(self,'tmp'): return
+
+        key = "%s - %s"%(name,filepath)
+        CONFIGURATIONS[name] = self
 
         self.origin         = origin
         self.tmp            = {}
@@ -103,23 +110,31 @@ class AlphaConfig():
 
         #self.info('Set configuration %s'%self.config_file) # TODO: check
                         
-        """if data is None:
-            self.set_configuration(configuration)
-        else:"""
         if data:
             self.data_origin  = data
             self.data         = data
+        else:
+            self.load_raw()
+
+        if data is None and configuration is not None:
+            self.set_configuration(configuration)
+
+        if configuration is None:
+            self.auto_configuration()
+
+    def auto_configuration(self):
+        configuration = None
+        if 'configuration' in self.data_origin:
+            configuration = self.data_origin['configuration']
+        elif 'default_configuration' in self.data_origin:
+            configuration = self.data_origin['default_configuration']
+        if configuration is not None:
+            self.set_configuration(configuration)
 
     def set_configuration(self,configuration):
         if configuration is None:
-            self.load_raw()
-
-            if 'configuration' in self.data_origin:
-                configuration = self.data_origin['configuration']
-            elif 'default_configuration' in self.data_origin:
-                configuration = self.data_origin['default_configuration']
-            else:
-                self.error('Configuration need to be explicitely specified in configuration call or config file for %s file'%self.filepath)
+            self.error('Configuration need to be explicitely specified in configuration call or config file for %s file'%self.filepath)
+            return 
 
         self.configuration = configuration
         self.info('Setting <%s> configuration for file %s'%(configuration,self.config_file))
@@ -302,7 +317,12 @@ class AlphaConfig():
             config_path = values[0]
             if not config_path in sub_configurations:
                 name                            = config_path.split(os.sep)[-1]
-                sub_configurations[config_path] = AlphaConfig(name=name,filepath=config_path,log=self.log,configuration=self.configuration,logger_root=self.logger_root,origin=self)
+                sub_configurations[config_path] = AlphaConfig(name=name,filepath=config_path,
+                    log=self.log,
+                    configuration=self.configuration,
+                    logger_root=self.logger_root,
+                    origin=self
+                )
 
         # replace sub configurations
         set_paths(config,paths,configs_values,sub_configurations,types='configs')
@@ -530,9 +550,8 @@ class AlphaConfig():
                 return value 
 
         if self.name != 'config':
-            from core import core
-            if core.config is not None:
-                value = core.config.get(parameter)
+            if self.origin is not None:
+                value = self.origin.get(parameter)
                 if value is not None:
                     return value   
         if force_exit:
@@ -619,6 +638,7 @@ def show(config,level=0):
         if type(cf) == dict:
             show(cf,level + 1)
 
+# config,paths,configs_values,sub_configurations,types='configs'
 def set_paths(config,paths,parameters_values,parameters_value,types=None):
     levels = list(set([len(x) for x in paths]))
 

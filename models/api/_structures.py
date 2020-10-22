@@ -14,7 +14,12 @@ from werkzeug.debug import DebuggedApplication
 
 import flask_monitoringdashboard
 
-from ...libs import mail_lib, flask_lib, io_lib, database_lib, api_lib
+from ...libs import mail_lib
+from ...libs import flask_lib
+from ...libs import io_lib
+from ...libs import database_lib
+from ...libs import api_lib
+
 from ...utils.logger import AlphaLogger
 from ...models.main import AlphaException
 from ...config.config import AlphaConfig
@@ -93,14 +98,14 @@ class AlphaFlask(Flask):
         self.config['UPLOAD_FOLDER']                    = self.root_path
 
     def init(self,encode_rules={}):
-        from core import core
+        #from core import core
 
-        routes = self.conf.get('routes')
+        routes = self.conf.get("routes")
         if routes is None:
             self.log.error('Missing <routes> parameters in api configuration')
         else:
             for route in routes:
-                importlib.import_module(route)
+                module = importlib.import_module(route)
 
         api_lib.get_routes_infos(log=self.log)
 
@@ -171,12 +176,17 @@ class AlphaFlask(Flask):
 
         #Base.prepare(self.db.engine, reflect=True)
 
-    def set_config(self,config_path,configuration=None,root=None):
-        self.log.debug('Set <%s> configuration for API from %s in %s'%(configuration,config_path,root))
-        self.config_path    = config_path
+    def set_config(self,name,configuration=None,root=None):
+        self.log.debug('Set <%s> configuration for API from %s in %s'%(configuration,name,root))
+        self.config_path    = root + os.sep + name + '.json'
         self.configuration  = configuration
-        self.conf           = AlphaConfig(filepath=config_path,configuration=configuration,root=root,log=self.log) # root=os.path.dirname(os.path.realpath(__file__))
-        self.conf.set_configuration(configuration)
+
+        self.conf           = AlphaConfig(name=name,
+            configuration=configuration,
+            root=root,
+            log=self.log
+        ) # root=os.path.dirname(os.path.realpath(__file__))
+        
         if self.conf.get('routes_no_log'):
             _colorations.WerkzeugColorFilter.routes_exceptions = self.conf.get('routes_no_log')
 
