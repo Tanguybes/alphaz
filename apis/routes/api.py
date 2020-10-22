@@ -13,7 +13,8 @@ log         = core.get_logger('api')
     Parameter('reload',ptype=bool)
 ])
 def api_map():
-    api.set_data(api_lib.get_routes_infos(log=log,reload=api.get('reload')))
+    reload_ = api.get('reload')
+    api.set_data(api_lib.get_routes_infos(log=log,reload_=reload_))
 
 
 def has_no_empty_params(rule):

@@ -18,7 +18,6 @@ from ...libs import mail_lib
 from ...libs import flask_lib
 from ...libs import io_lib
 from ...libs import database_lib
-from ...libs import api_lib
 
 from ...utils.logger import AlphaLogger
 from ...models.main import AlphaException
@@ -106,8 +105,6 @@ class AlphaFlask(Flask):
         else:
             for route in routes:
                 module = importlib.import_module(route)
-
-        api_lib.get_routes_infos(log=self.log)
 
         # check request
         # ! freeze - dont know why
