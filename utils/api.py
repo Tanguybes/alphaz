@@ -15,10 +15,14 @@ ROUTES = {}
 #api.config['DEBUG_TB_PANELS'] = [ 'flask_debugtoolbar.panels.versions.VersionDebugPanel', 'flask_debugtoolbar.panels.timer.TimerDebugPanel', 'flask_debugtoolbar.panels.headers.HeaderDebugPanel', 'flask_debugtoolbar.panels.request_vars.RequestVarsDebugPanel', 'flask_debugtoolbar.panels.template.TemplateDebugPanel', 'flask_debugtoolbar.panels.sqlalchemy.SQLAlchemyDebugPanel', 'flask_debugtoolbar.panels.logger.LoggingPanel', 'flask_debugtoolbar.panels.profiler.ProfilerDebugPanel', 'flask_debugtoolbar_lineprofilerpanel.panels.LineProfilerPanel' ]
 #toolbar = flask_debugtoolbar.DebugToolbarExtension(api)
 
-def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,logged=False,admin=False,timeout=None,category=None):
+def route(path,parameters=None,parameters_names=[],methods = ['GET'],cache=False,logged=False,admin=False,timeout=None,category=None):
     if path[0] != '/': path = '/' + path
+
     def api_in(func):
         names = []
+        if not 'parameters' in locals() or parameters is None:
+            parameters = []
+
         for parameter in parameters:
             if not parameter.name in names:
                 names.append(parameter.name)
@@ -118,10 +122,11 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
         if cache:
             parameters.append(Parameter('reset_cache',ptype=bool,cacheable=False))
 
-        try: 
-            category = category.lower()
-        except:
+        if not 'category' in locals() or category is None:
             category = func.__module__.split('.')[-1]
+        else:
+            category = category.lower()
+            
         kwargs_ = {
             "path":path,
             "parameters":parameters,
@@ -139,6 +144,8 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
         if len(paths) == 1:
             paths = ['root',paths[0]]
 
+        arguments = {x:y if x != 'parameters' else [j.__dict__ for j in y] for x,y in kwargs_.items()}
+
         trace = traceback.format_stack()
 
         ROUTES[path] = {
@@ -146,7 +153,7 @@ def route(path,parameters=[],parameters_names=[],methods = ['GET'],cache=False,l
             'name': func.__name__,
             'module': '',
             'paths':paths,
-            'arguments':{x:y if x != 'parameters' else [j.__dict__ for j in y] for x,y in kwargs_.items()}
+            'arguments':arguments
         }
 
         return api_wrapper

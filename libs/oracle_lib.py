@@ -12,8 +12,8 @@ def update_os():
     
 import os
 update_os()
-import cx_Oracle
-
+#import cx_Oracle
+"""
 class Connection():
     conn = None
     dataset  = None
@@ -50,4 +50,4 @@ class Connection():
         
     def close(self):
         self.conn.close()
-        
+        """
