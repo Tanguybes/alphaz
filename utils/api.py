@@ -15,21 +15,16 @@ ROUTES = {}
 #api.config['DEBUG_TB_PANELS'] = [ 'flask_debugtoolbar.panels.versions.VersionDebugPanel', 'flask_debugtoolbar.panels.timer.TimerDebugPanel', 'flask_debugtoolbar.panels.headers.HeaderDebugPanel', 'flask_debugtoolbar.panels.request_vars.RequestVarsDebugPanel', 'flask_debugtoolbar.panels.template.TemplateDebugPanel', 'flask_debugtoolbar.panels.sqlalchemy.SQLAlchemyDebugPanel', 'flask_debugtoolbar.panels.logger.LoggingPanel', 'flask_debugtoolbar.panels.profiler.ProfilerDebugPanel', 'flask_debugtoolbar_lineprofilerpanel.panels.LineProfilerPanel' ]
 #toolbar = flask_debugtoolbar.DebugToolbarExtension(api)
 
-def route(path,parameters=None,parameters_names=[],methods = ['GET'],cache=False,logged=False,admin=False,timeout=None,category=None):
+def route(path,parameters=[],methods = ['GET'],cache=False,logged=False,admin=False,timeout=None,category=None):
     if path[0] != '/': path = '/' + path
 
     def api_in(func):
-        names = []
-        if not 'parameters' in locals() or parameters is None:
-            parameters = []
+        """if not 'parameters' in locals() or parameters is None:
+            parameters = []"""
 
-        for parameter in parameters:
-            if not parameter.name in names:
-                names.append(parameter.name)
-            if parameter.name in parameters_names:
-                parameters_names.remove(parameter.name)
-        for name in parameters_names:
-            parameters.append(Parameter(name))
+        for i, parameter in enumerate(parameters):
+            if type(parameter) == str:
+                parameters[i] = Parameter(parameter)
 
         @api.route(path, methods = methods, endpoint=func.__name__)
         def api_wrapper(*args,**kwargs):
@@ -130,7 +125,7 @@ def route(path,parameters=None,parameters_names=[],methods = ['GET'],cache=False
         kwargs_ = {
             "path":path,
             "parameters":parameters,
-            "parameters_names":parameters_names,
+            "parameters_names":[x.name for x in parameters],
             "methods":methods,
             "cache":cache,
             "logged":logged,

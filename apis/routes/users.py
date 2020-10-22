@@ -32,8 +32,7 @@ def register():
 @route('/register/validation',methods = ['GET'],
     parameters  = [
         Parameter('tmp_token',required=True)
-    ],
-    parameters_names=[])
+    ])
 def register_validation():
     if api.get_logged_user() is not None:
         return api.set_error('logged')
@@ -79,8 +78,7 @@ def password_reset_validation():
 
     users.confirm_user_password_reset(api,token=api.get('tmp_token'), password=api.get('password'), password_confirmation=api.get('password_confirmation'),db=db)
 
-@route('/logout',cache=False,logged=False,methods = ['GET', 'POST'],
-    parameters  = [],  parameters_names=[])
+@route('/logout',cache=False,logged=False,methods = ['GET', 'POST'])
 def logout():
     token   = api.get_token()
 
