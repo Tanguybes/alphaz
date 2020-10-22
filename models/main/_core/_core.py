@@ -7,6 +7,7 @@ from ....models import database as database_models
 from ....models.main._exception import EXCEPTIONS
 
 from ...api import AlphaFlask
+
 from ...database.structure import AlphaDatabase
 
 from . import _utils
@@ -16,8 +17,8 @@ import alphaz
 class AlphaCore: 
     instance    = None
 
-    def __init__(self,file:str): 
-        self.root:str               = self.get_relative_path(file, level=0)
+    def __init__(self,file:str,level=0): 
+        self.root:str               = self.get_relative_path(file, level=level)
         self.config                 = None
         self.log: AlphaLogger       = None
         self.loggers: {AlphaLogger} = {}
@@ -28,14 +29,14 @@ class AlphaCore:
         self.ma                     = None
         self.db                     = None
         self.api                    = None
-        
-        if 'ALPHA_CONF' in os.environ:
-            self.set_configuration(os.environ['ALPHA_CONF'])
+                
+        self.config         = AlphaConfig('config',root=self.root)
+
+        if 'ALPHA_CONF' in os.environ and self.config.configuration is None:
+            configuration = os.environ['ALPHA_CONF']
+            self.set_configuration(configuration)
 
     def set_configuration(self,configuration_name):
-        if self.config is not None: return
-
-        self.config         = AlphaConfig('config',root=self.root,configuration=configuration_name)
         self.config.set_configuration(configuration_name)
         self.configuration  = self.config.configuration
         self.configuration_name = configuration_name
@@ -105,7 +106,10 @@ class AlphaCore:
         self.api.log: AlphaLogger    = self.get_logger('api')
 
         api_root = self.config.get('api_root')
-        self.api.set_config('api',self.configuration,root=api_root if api_root is not None else self.root)
+        self.api.set_config(name='api',
+            configuration=self.configuration,
+            root=api_root if api_root is not None else self.root
+        )
         self.api.db = self.db
 
         models_sources = self.api.conf.get('directories/database_models')
