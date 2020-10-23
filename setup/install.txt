@@ -1,0 +1,18 @@
+conda install lxml
+conda install colorama
+conda install numpy
+conda install sqlalchemy
+conda install flask-admin
+conda install jwt
+conda install dicttoxml
+conda install flask-mail
+conda install -c conda-forge flask-mail
+conda install -c conda-forge flask-marshmallow
+pip install flask-statistics
+conda install -c conda-forge flask-debugtoolbar
+conda install gevent
+pip install flask-monitoringdashboard
+conda install pandas
+conda install requests-toolbelt
+conda install -c conda-forge ta-lib
+conda install pysftp
