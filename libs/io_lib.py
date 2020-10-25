@@ -94,7 +94,7 @@ def get_proxies(nb=None):
     return proxies
 
 
-def archive_object(object_to_save,filename:str, ext:str='dmp',log=None) -> None:
+def archive_object(object_to_save,filename:str, ext:str=None,log=None) -> None:
     """Archive a Python object as a dump file
 
     Args:
@@ -104,6 +104,11 @@ def archive_object(object_to_save,filename:str, ext:str='dmp',log=None) -> None:
         verbose (bool, optional): [ouput in cmd]. Default to 'False'.
     """
     ensure_dir(filename)
+    if '.' in filename:
+        ext = filename.split('.')[-1]
+        filename = filename.replace(ext,'')
+    if ext is None:
+        ext = 'dmp'
     if ext is not None and pathlib.Path(filename).suffix == '':
         filename = filename + '.' + ext
     with open(filename, 'wb') as f:
@@ -112,7 +117,7 @@ def archive_object(object_to_save,filename:str, ext:str='dmp',log=None) -> None:
         log.info('Saved file %s'%filename)
         
 
-def unarchive_object(filename:str, ext:str='dmp'):
+def unarchive_object(filename:str, ext:str=None):
     """[Unarchive a Python object from a dump file]
 
     Args:
@@ -122,6 +127,11 @@ def unarchive_object(filename:str, ext:str='dmp'):
     Returns:
         [type]: [Unarchived python object]
     """
+    if '.' in filename and ext is None:
+        ext = filename.split('.')[-1]
+        filename = filename.replace(ext,'')
+    if ext is None:
+        ext = 'dmp'
     if ext is not None and pathlib.Path(filename).suffix == '':
         filename = filename + '.' + ext
     object_to_get = None

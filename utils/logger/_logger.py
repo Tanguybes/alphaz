@@ -61,6 +61,9 @@ class AlphaLogger():
         self.pid            = os.getpid()
         self.name           = name
         #self.cmd_output     = cmd_output if cmd_output is not None else True
+
+        self.last_level = None
+        self.last_message = None
     
     def _log(self,message:str,caller,level:str='info',monitor:str=None,save=False,ex:Exception=None):
         """
@@ -79,7 +82,6 @@ class AlphaLogger():
             self.monitoring_logger  = AlphaMonitorLogger('monitoring',root=self.root,cmd_output=False)
 
         self.set_current_date()
-        self.level                  = level.upper()
 
         full_message                = self.get_formatted_message(message,caller)
 
@@ -87,11 +89,14 @@ class AlphaLogger():
             text            = traceback.format_exc()
             full_message    += "/n" + text
 
-        fct = getattr(self.logger,self.level.lower())
+        fct = getattr(self.logger,level.lower())
         fct(full_message)
         if monitor is not None:
-            fct_monitor = getattr(self.monitoring_logger,self.level.lower())
+            fct_monitor = getattr(self.monitoring_logger,level.lower())
             fct_monitor(message=full_message.replace(message,"[%s] %s"%(monitor,message)))
+
+        self.last_level = level.lower()
+        self.last_message = message
 
         """if save:
             self.__log_in_db(text, origin=origin, type="error")"""

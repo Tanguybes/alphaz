@@ -43,10 +43,10 @@ def send_files(ftp,target, source, folder_list,root_ftp=''):
 
 def upload(target, source, folder_list, root_ftp=''):
     ftp         = common.GolliathFtp(
-        host=CoreP.FTP_HOST,
-        port=CoreP.FTP_PORT,
-        user=CoreP.FTP_USER,
-        key = '/home/truegolliath/.ssh/ssh-gprivate-key'
+        host=core.config.get('ftp/public/host'),
+        port=core.config.get('ftp/public/port'),
+        user=core.config.get('ftp/public/user')
+        key =core.config.get('ftp/public/key')
     )
 
     #root_ftp_folder = CoreP.WEB_API_PATH + os.sep + root_ftp + path.replace(root_source,'')
