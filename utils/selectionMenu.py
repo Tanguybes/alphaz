@@ -380,7 +380,6 @@ class SelectionMenu():
                     if type(config) == dict and 'name' in config:
                         self.set_value(config['name'],functionReturn)
         
-        
     def convert_list(self,args):
         convertedArgs = []
         for value in args:

@@ -3,9 +3,8 @@ conda install colorama
 conda install numpy
 conda install sqlalchemy
 conda install flask-admin
-conda install jwt
+pip install pyjwt
 conda install dicttoxml
-conda install flask-mail
 conda install -c conda-forge flask-mail
 conda install -c conda-forge flask-marshmallow
 pip install flask-statistics
@@ -16,3 +15,5 @@ conda install pandas
 conda install requests-toolbelt
 conda install -c conda-forge ta-lib
 conda install pysftp
+conda install matplotlib
+conda install pymysql
