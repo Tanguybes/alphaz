@@ -12,10 +12,16 @@ class AlphaTest():
         self.output = True
 
     def test(self,name):
+        status = False
         fct = getattr(self,name)
         if fct is None:
+            log.info('Failed to get testing function <%s> in category <%s>'%(name,category))
             return False
-        return fct()
+        try:
+            status = fct()
+        except Exception as ex:
+            log.error(ex)
+        return status
 
     def save(self,name):
         fct = getattr(self,name)

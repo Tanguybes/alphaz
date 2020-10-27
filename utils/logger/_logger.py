@@ -20,7 +20,7 @@ class AlphaLogger():
     monitoring_logger = None
 
     def __init__(self,name,filename=None,root=None,cmd_output=True,level='INFO',colors=None,database=None):
-        self.level          = level
+        self.level          = level.upper()
         self.date_str       = ""
         self.database_name  = database
         self.database       = None
@@ -65,7 +65,7 @@ class AlphaLogger():
         self.last_level = None
         self.last_message = None
     
-    def _log(self,message:str,caller,level:str='info',monitor:str=None,save=False,ex:Exception=None):
+    def _log(self,message:str,stack,stack_level:int,level:str='INFO',monitor:str=None,save=False,ex:Exception=None):
         """
                 frame       = inspect.stack()[1]
         module      = inspect.getmodule(frame[0])
@@ -83,7 +83,7 @@ class AlphaLogger():
 
         self.set_current_date()
 
-        full_message                = self.get_formatted_message(message,caller)
+        full_message                = self.get_formatted_message(message,stack,stack_level,level)
 
         if ex is not None:
             text            = traceback.format_exc()
@@ -95,24 +95,26 @@ class AlphaLogger():
             fct_monitor = getattr(self.monitoring_logger,level.lower())
             fct_monitor(message=full_message.replace(message,"[%s] %s"%(monitor,message)))
 
-        self.last_level = level.lower()
+        self.last_level = level.upper()
         self.last_message = message
 
         """if save:
             self.__log_in_db(text, origin=origin, type="error")"""
 
-    def get_formatted_message(self,message,caller):
+    def get_formatted_message(self,message,stack,stack_level:int,level):
         msg = self.format_log
 
         parameters = re.findall("\{\$([a-zA-Z0-9]*):?[0-9<>]*\}", msg)
 
         parameters_values = []
 
+        caller = inspect.getframeinfo(stack[stack_level][0])
+
         structure = '$%s'
         keys = {
             'date':     self.date_str,
             'pid':      self.pid,
-            'level':    self.level,
+            'level':    level.upper(),
             'name':     self.name,
             'path':     caller.filename,
             'file':     caller.filename.split(os.sep)[-1].replace('.py',''),
@@ -125,23 +127,22 @@ class AlphaLogger():
                 parameters_values.append(keys[parameter_name])
 
         msg = msg.format(*parameters_values).replace(structure%'message',str(message))
-
         return msg
 
     def info(self,message,monitor=None,level=1,save=False,ex:Exception=None):
-        self._log(message,inspect.getframeinfo(inspect.stack()[level][0]),'info',monitor=monitor,save=save,ex=ex)
+        self._log(message,stack=inspect.stack(),stack_level=level,level='info',monitor=monitor,save=save,ex=ex)
 
     def warning(self,message,monitor=None,level=1,save=False,ex:Exception=None):
-        self._log(message,inspect.getframeinfo(inspect.stack()[level][0]),'warning',monitor=monitor,save=save,ex=ex)
+        self._log(message,stack=inspect.stack(),stack_level=level,level='warning',monitor=monitor,save=save,ex=ex)
 
     def error(self,message,monitor=None,level=1,save=False,ex:Exception=None):
-        self._log(message,inspect.getframeinfo(inspect.stack()[level][0]),'error',monitor=monitor,save=save,ex=ex)
+        self._log(message,stack=inspect.stack(),stack_level=level,level='error',monitor=monitor,save=save,ex=ex)
 
     def debug(self,message,monitor=None,level=1,save=False,ex:Exception=None):
-        self._log(message,inspect.getframeinfo(inspect.stack()[level][0]),'debug',monitor=monitor,save=save,ex=ex)
+        self._log(message,stack=inspect.stack(),stack_level=level,level='debug',monitor=monitor,save=save,ex=ex)
 
     def critical(self,message, monitor=None,level=1,save=False,ex:Exception=None):
-        self._log(message,inspect.getframeinfo(inspect.stack()[level][0]),'critical',monitor=monitor,save=save,ex=ex)
+        self._log(message,stack=inspect.stack(),stack_level=level,level='critical',monitor=monitor,save=save,ex=ex)
 
     def set_current_date(self):
         current_date        = datetime.datetime.now()

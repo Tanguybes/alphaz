@@ -16,8 +16,7 @@ def get_tests_auto(
         group:str=None,
         category:str=None,
         run:bool=False,
-        log:AlphaLogger=None,
-        verbose:bool=False
+        log:AlphaLogger=None
     ) -> TestCategories:
     """Get the TestCategories class, containings all required tests
 
@@ -37,12 +36,11 @@ def get_tests_auto(
     test_categories = TestCategories()
 
     for tests_module in tests_modules:
-        if log: log.debug('Loading tests from %s'%(tests_module))
-
         try:
+            log.error('Loading test module <%s>'%tests_module)
             module              = importlib.import_module(tests_module)
         except Exception as ex:
-            log.error('Cannot load test <%s>'%tests_module)
+            log.error('Cannot load test module <%s>'%tests_module,ex=ex)
             continue
 
         importlib.reload(module)
@@ -62,10 +60,12 @@ def get_tests_auto(
 
             if group is not None and group != test_group.name: continue
 
-            if log is not None and verbose: log.info('Found function group %s'%test_group.name)
+            if log is not None: log.info('Found function group %s'%test_group.name)
 
-            if run:
+            if run and name is None:
                 test_group.test_all()
+            elif run:
+                test_group.test(name)
             else:
                 test_group.get_from_database()
 

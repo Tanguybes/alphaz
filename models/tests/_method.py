@@ -3,6 +3,8 @@ import datetime, re
 from core import core
 from ..database.main_definitions import Tests
 
+log = core.get_logger('tests')
+
 class AlphaTable():
     def update_from(self,source):
         for key in self.__dict__.keys():
@@ -28,7 +30,14 @@ class TestMethod(AlphaTable):
         classObject.verbose     = verbose
 
         self.start_time         = datetime.datetime.now()
-        self.status              = classObject.test(self.name)
+        
+        log.info('Testing function <%s> of <%s> in category <%s>'%(self.name,type(self).__name__,self.category))
+
+        self.status             = classObject.test(self.name)
+
+        log.info('Function <%s> of <%s> in category <%s>: %s'%(
+            self.name,type(self).__name__,self.category,'X' if not self.status else 'O'))
+
         self.end_time           = datetime.datetime.now()
         self.elapsed            = (self.end_time - self.start_time).total_seconds()
 

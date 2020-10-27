@@ -121,6 +121,9 @@ class AlphaCore:
 
         modules             = flask_lib.get_definitions_modules(models_sources,log=self.log)
 
+        # ensure tests
+        self.db.ensure('tests')
+
     def get_database(self,name=None) -> AlphaDatabase:
         if self.api is None:
             # required for database cnx
@@ -147,7 +150,7 @@ class AlphaCore:
             sys.path.append(root)
         return root
 
-    def get_logger(self,*args, **kwargs):
+    def get_logger(self,*args, **kwargs) -> AlphaLogger:
         self.check_configuration()
         return self.config.get_logger(*args,**kwargs)
 

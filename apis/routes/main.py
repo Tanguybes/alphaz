@@ -64,7 +64,6 @@ def home():
         'routes': api_lib.get_routes_infos(log=log),
         'compagny': config.get('parameters/compagny'),
         'compagny_website': config.get('parameters/compagny_website'),
-        'statistics': debug,
         'dashboard':debug,
         'tests':test_lib.get_tests_auto(core.config.get('directories/tests')),
         'databases':database_lib.get_databases_tables_dict()

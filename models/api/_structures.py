@@ -61,7 +61,6 @@ class AlphaFlask(Flask):
 
         self.log            = None
         self.db             = None
-        self.statistics     = None
 
         self.admin_db       = None
         self.ma             = None
@@ -160,13 +159,6 @@ class AlphaFlask(Flask):
         monitoring = self.conf.get('monitoring')
         if monitoring:
             flask_monitoringdashboard.bind(self)
-
-        statistics = self.conf.get('statistics')
-        if statistics:
-            from ..database.main_definitions import Request
-            if core.db is None:
-                self.log.error('Cannot initiate statistics, db is None')
-            self.statistics = Statistics(self, core.db, Request)
 
         if self.conf.get('admin_databases'):
             self.init_admin_view()
@@ -347,6 +339,7 @@ class AlphaFlask(Flask):
         if type(message) == AlphaException:
             description = message.description 
             message     = message.name
+            self.log.error(message + ' - ' + description)
             
         self.returned['status']                 = message
         self.returned['status_description']     = description

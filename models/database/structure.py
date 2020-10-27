@@ -11,14 +11,17 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql.expression import or_, and_, all_
 from flask_sqlalchemy import SQLAlchemy
 
+from ...libs import database_lib
 from ...models.main import AlphaException
 
 def get_compiled_query(query):
-    if hasattr(query,'statement'):
+    if hasattr(query,"statement"):
         full_query_str = query.statement.compile(compile_kwargs={"literal_binds": True})
+    elif hasattr(query,"query"):
+        full_query_str = query.query.statement.compile(compile_kwargs={"literal_binds": True})
     else:
         full_query_str = str(query)
-    full_query_str = full_query_str if not hasattr('full_query_str','string') else full_query_str.string
+    full_query_str = full_query_str if not hasattr(full_query_str,'string') else full_query_str.string
     return full_query_str
 
 class Row(MutableMapping):
@@ -206,17 +209,19 @@ class AlphaDatabase(AlphaDatabaseCore):
             obj         = obj(**parameters)
 
         if type(obj) == list:
-            self.session.add_all(obj)
+            obj_ = self.session.add_all(obj)
         else:
             if not update:
-                self.session.add(obj)
+                obj_ = self.session.add(obj)
             else:
-                self.session.merge(obj)
+                obj_ = self.session.merge(obj)
 
         if commit: 
             try:
                 self.commit()
             except Exception as ex:
+                #self.query_str = get_compiled_query(obj_) #TODO: modify - not working: get select query
+                #self.log.error("Error on query: "+self.query_str)
                 raise AlphaException('database_insert',description=str(ex))
         return obj
 
@@ -243,18 +248,24 @@ class AlphaDatabase(AlphaDatabaseCore):
             return True
         except:
             return False
+    
+    def ensure(self,table_name):
+        request_model    = database_lib.get_table(self,self.name, table_name)
+        if not self.exist(request_model):
+            self.log.info('Creating <%s> table in <%s> database'%(table_name,self.name))
+            request_model.__table__.create(self.engine)
 
     def select(self,model,
-            filters=None,
-            first=False,
-            json=False,
+            filters:list=None,
+            first:bool=False,
+            json:bool=False,
             distinct=None,
-            unique=None,
-            count=False,
+            unique:InstrumentedAttribute =None,
+            count:bool=False,
             order_by=None,
             group_by=None,
-            limit=None,
-            columns=None
+            limit:int=None,
+            columns:list=None
         ):
         #model_name = inspect.getmro(model)[0].__name__
 
@@ -275,24 +286,30 @@ class AlphaDatabase(AlphaDatabaseCore):
         if count:
             results = query.count()
             self.query_str = get_compiled_query(query)
+            self.log.debug(self.query_str)
             return results
         
-        if unique: 
+        if unique and (type(unique) == InstrumentedAttribute or type(unique) == str): # TODO: upgrade
             columns = [unique]
             json = True
+        elif unique:
+            self.log.error('Parameter or <unique> must be of type <InstrumentedAttribute> or <str>')
         if columns is not None:
             query = query.with_entities(*columns)
             #TODO: get column if string
 
         try:
-                results = query.all() if not first else query.first()
+            results = query.all() if not first else query.first()
         except Exception as ex:
-            #self.log.error('non valid query "%s" \n%s'%(get_compiled_query(query),str(ex)))
+            self.query_str = get_compiled_query(query)
+            self.log.error('non valid query "%s" \n%s'%(self.query_str ,str(ex)))
+            self.session.close()
             raise ex
             #raise AlphaException('non_valid_query',get_compiled_query(query),str(ex)))
 
         if not json:
             self.query_str = get_compiled_query(query)
+            self.log.debug(self.query_str)
             return results
 
         results_json = {}
@@ -306,17 +323,27 @@ class AlphaDatabase(AlphaDatabaseCore):
         self.log.debug(self.query_str)
 
         if unique:
-            return [list(x.values())[0] for x in results_json]
+            if type(results_json) == list:
+                return [list(x.values())[0] for x in results_json]
+            else:
+                return None if len(results_json) == 0 else list(results_json.values())[0]
         return results_json
 
-    def update(self,model,values={},filters={}):
+    def update(self,model,values={},filters=None,fetch=True):
         query           = self._get_filtered_query(model,filters=filters)
         values_update   = self.get_values(model,values,filters)
-        query.update(values_update)
+
+        if fetch:
+            query.update(values_update,synchronize_session='fetch')
+        else:
+            try:
+                query.update(values_update,synchronize_session='evaluate')
+            except:
+                query.update(values_update,synchronize_session='fetch')
 
         self.commit()
 
-    def get_values(self,model,values,filters={}):
+    def get_values(self,model,values,filters=None):
         values_update = {}
         for key, value in values.items():
             if type(key) == InstrumentedAttribute and not key in filters:
