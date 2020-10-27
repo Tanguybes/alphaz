@@ -37,9 +37,7 @@
                 <h1 class="hero-title mt-0">{{title}}</h1>
                 <p class=hero-paragraph>{{description}}</p>
                 <div class=hero-cta>
-                  {% if statistics %}
-                    <a class="button button-secondary" href="/statistics" target="_blank">Statistics</a>
-                  {% endif %}
+                  <a class="button button-secondary" href="#tests">Tests</a>
                   {% if statistics %}
                     <a class="button button-primary" href="/dashboard" target="_blank">Dashboard</a>
                   {% endif %}
@@ -147,7 +145,7 @@
 
         <section class="features section">
           <div class=container>
-            <h1 class="hero-title mt-0">Tests</h1>
+            <h1 class="hero-title mt-0" id="tests">Tests</h1>
             
             <div class="features-inner section-inner has-bottom-divider">
               <div class=features-wrap>
@@ -269,7 +267,7 @@
     
     parameters = "run=Y&category=" + category
     if (test != '') {
-      parameters = parameters + "&grou=" + group
+      parameters = parameters + "&group=" + group
     }
     if (test != '') {
       parameters = parameters + "&name=" + test

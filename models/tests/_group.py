@@ -6,16 +6,14 @@ from ._wrappers import TEST_METHOD_NAME
 from typing import Dict
 
 class TestGroup():
-    name        = ""
-    classObject = None
-    tests       = Dict[str,TestMethod]
-    verbose     = False
-
     def __init__(self,name,classObject):
+        self.verbose        = False
         self.name           = name.replace('_Tests','').replace('_tests','')
         self.classObject    = classObject
-        self.tests          = {}
+        self.tests: Dict[str,TestMethod] = {}
         self.category       = classObject.category
+        if self.category == '':
+            self.category = classObject.__module__.split('.')[-1].capitalize() 
 
         for method_name, method in classObject.__dict__.items():
             if '__' in method_name: continue
@@ -31,6 +29,10 @@ class TestGroup():
     def get_from_database(self):
         for test in self.tests.values():
             test.get_from_database()
+
+    def test(self,name):
+        if name in self.tests:
+            self.tests[name].test()
 
     def test_all(self,verbose=False):
         self.classObject.verbose = verbose

@@ -48,6 +48,11 @@ class AlphaTableIdUpdateDate(AlphaTableId):
     update_date  = AlphaColumn(DateTime,default=datetime.datetime.utcnow(),
         onupdate=datetime.datetime.utcnow())
 
+class AlphaTableIdUpdateDateCreationDate(AlphaTableId):
+    update_date  = AlphaColumn(DateTime,default=datetime.datetime.utcnow(),
+        onupdate=datetime.datetime.utcnow())
+    creation_date  = AlphaColumn(DateTime,default=datetime.datetime.utcnow())
+
 class AlphaFloat(TypeDecorator):
     impl = String
 

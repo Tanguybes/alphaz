@@ -490,7 +490,7 @@ class AlphaConfig():
                     continue
                 log.database = self.databases[log.database_name]
 
-    def get_logger(self,name='main',default_level='INFO'):
+    def get_logger(self,name='main',default_level='INFO') -> AlphaLogger:
         if not 'main' in self.loggers:
             self.loggers['main'] = AlphaLogger(
                 name,
@@ -511,11 +511,11 @@ class AlphaConfig():
             return self.loggers['main']
         return  self.loggers[name] 
 
-    def get(self,path=[],root=True):
+    def get(self,path=[],root=True,default=None):
         value       = self.get_parameter_path(path)
         if value is None and root:
             value   = self.get_value_from_main_config(path)
-        return value
+        return value if value is not None else default
 
     def get_parameter_path(self,parameters,data=None,level=1):
         if '/' in parameters:
