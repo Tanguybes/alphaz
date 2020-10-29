@@ -1,9 +1,8 @@
 import os, datetime, inspect, sys, re, traceback, uuid, time
 import logging
 from logging.handlers import TimedRotatingFileHandler
-from alphaz.libs import io_lib
 
-import platform 
+import platform
 PLATFORM = platform.system().lower()
 
 from . import _colorations, _utils
@@ -20,9 +19,9 @@ class AlphaLogger():
     monitoring_logger = None
 
     def __init__(self,name,filename=None,root=None,cmd_output=True,level='INFO',colors=None,database=None):
-        self.level          = level.upper()
-        self.date_str       = ""
-        self.database_name  = database
+        self.level: str          = level.upper()
+        self.date_str: str       = ""
+        self.database_name: str  = database
         self.database       = None
 
         if filename is None:
@@ -73,6 +72,9 @@ class AlphaLogger():
         if module is not None:
             origin  = os.path.basename(module.__file__)
         """
+        if message is None and ex is not None: 
+            message = ex
+            ex = None
         if monitor: save = True
 
         if isinstance(message, Exception):
@@ -129,19 +131,19 @@ class AlphaLogger():
         msg = msg.format(*parameters_values).replace(structure%'message',str(message))
         return msg
 
-    def info(self,message,monitor=None,level=1,save=False,ex:Exception=None):
+    def info(self,message=None,monitor=None,level=1,save=False,ex:Exception=None):
         self._log(message,stack=inspect.stack(),stack_level=level,level='info',monitor=monitor,save=save,ex=ex)
 
-    def warning(self,message,monitor=None,level=1,save=False,ex:Exception=None):
+    def warning(self,message=None,monitor=None,level=1,save=False,ex:Exception=None):
         self._log(message,stack=inspect.stack(),stack_level=level,level='warning',monitor=monitor,save=save,ex=ex)
 
-    def error(self,message,monitor=None,level=1,save=False,ex:Exception=None):
+    def error(self,message=None,monitor=None,level=1,save=False,ex:Exception=None):
         self._log(message,stack=inspect.stack(),stack_level=level,level='error',monitor=monitor,save=save,ex=ex)
 
-    def debug(self,message,monitor=None,level=1,save=False,ex:Exception=None):
+    def debug(self,message=None,monitor=None,level=1,save=False,ex:Exception=None):
         self._log(message,stack=inspect.stack(),stack_level=level,level='debug',monitor=monitor,save=save,ex=ex)
 
-    def critical(self,message, monitor=None,level=1,save=False,ex:Exception=None):
+    def critical(self,message=None, monitor=None,level=1,save=False,ex:Exception=None):
         self._log(message,stack=inspect.stack(),stack_level=level,level='critical',monitor=monitor,save=save,ex=ex)
 
     def set_current_date(self):

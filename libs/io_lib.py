@@ -4,10 +4,6 @@ from ..models.main import AlphaFile
 
 from typing import List
 
-import colorama
-from colorama import Fore, Back, Style
-colorama.init()
-
 def ensure_dir(file_path):
     directory = os.path.dirname(file_path)
     if directory != '' and not os.path.exists(directory):
@@ -153,19 +149,6 @@ def print_dict(dictio,level=1):
             print_dict(value,level + 1)
         else:
             print("{} {:20} {}".format(level*'  ',key,value))
-
-
-def colored_term(text,front=None,back=None,bold=False):
-    if front is not None and hasattr(Fore,front.upper()):
-        text = getattr(Fore,front.upper()) + text
-    if back is not None and hasattr(Back,back.upper()):
-        text = getattr(Back,back.upper()) + text
-    if bold:
-        text = Style.BRIGHT
-
-    if front is not None or back is not None or bold:
-        text += Style.RESET_ALL
-    return text
 
 def proceed():
     answer = None

@@ -63,7 +63,7 @@ class TestMethod(AlphaTable):
         core.db.add(test)
 
     def get_from_database(self):
-        test = core.db.select(Tests,filters=[Tests.category==self.category,Tests.group==self.group,Tests.name==self.name],
+        test = core.db.select(Tests,filters=[Tests.category==self.category,Tests.tests_group==self.group,Tests.name==self.name],
             order_by=Tests.start_time.desc(),first=True)
         self.update_from(test)
 

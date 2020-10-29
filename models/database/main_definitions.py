@@ -63,7 +63,7 @@ class Tests(db.Model,AlphaTableIdUpdateDate):
     __tablename__ = 'tests'
 
     category  = AlphaColumn(String(50))
-    group  = AlphaColumn(String(50))
+    tests_group  = AlphaColumn(String(50))
     name  = AlphaColumn(String(50))
 
     status = AlphaColumn(Integer)
@@ -127,7 +127,7 @@ class Log(db.Model,AlphaTableIdUpdateDate):
     stack           = AlphaColumn(Text)
 
 class ProcesseLog(db.Model,AlphaTableIdUpdateDate):
-    __tablename__   = 'processe_log'
+    __tablename__   = 'process_log'
 
     uuid            = AlphaColumn(String(36))
     name            = AlphaColumn(String(20))

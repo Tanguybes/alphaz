@@ -9,7 +9,7 @@ from ...utils.time import tic, tac
 from core import core
 api = core.api
 db  = core.db
-log = core.get_logger('api')
+LOG = core.get_logger('api')
 
 @api.route('/assets/<path:path>')
 def send_js(path):
@@ -19,8 +19,8 @@ def send_js(path):
 def send_images(path):
     return send_from_directory('images', filename=path)
 
-@route('/page', parameters = [
-    Parameter('page',required=True,ptype=str)
+@route('/page', parameters=[
+    Parameter('page', required=True, ptype=str)
 ])
 def index():
     api.set_html(api.get('page'))
@@ -52,6 +52,12 @@ def home():
 
     debug =  core.config.configuration != 'prod'
 
+    tests = None
+    try:
+        tests = test_lib.get_tests_auto(core.config.get('directories/tests'))
+    except Exception as ex:
+        LOG.error(ex)
+
     parameters = {
         'mode':core.config.configuration,
         'mode_color': '#e74c3c' if core.config.configuration == 'prod' else ('#0270D7' if core.config.configuration == 'dev' else '#2ecc71'),
@@ -61,11 +67,11 @@ def home():
         'users':0,
         'ip': request.environ['REMOTE_ADDR'],
         'admin': config.get('admin_databases'),
-        'routes': api_lib.get_routes_infos(log=log),
+        'routes': api_lib.get_routes_infos(log=LOG),
         'compagny': config.get('parameters/compagny'),
         'compagny_website': config.get('parameters/compagny_website'),
         'dashboard':debug,
-        'tests':test_lib.get_tests_auto(core.config.get('directories/tests')),
+        'tests':tests,
         'databases':database_lib.get_databases_tables_dict()
     }
-    api.set_html('home.html',parameters=parameters)
+    api.set_html('home.html', parameters=parameters)

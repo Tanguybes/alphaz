@@ -11,6 +11,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql.expression import or_, and_, all_
 from flask_sqlalchemy import SQLAlchemy
 
+from ...utils.logger import AlphaLogger
+
 from ...libs import database_lib
 from ...models.main import AlphaException
 
@@ -63,10 +65,17 @@ class Row(MutableMapping):
         return list(super().keys())
 
 class AlphaDatabaseCore(SQLAlchemy):
-    def __init__(self,*args,name=None,log=None,config=None,timeout=None,**kwargs):
-        self.db_type = config['type']
+    def __init__(self, *args, 
+            name: str = None,
+            log: AlphaLogger = None, 
+            config = None, 
+            timeout: int = None, 
+            **kwargs
+            ):
+
+        self.db_type:str = config['type']
         if 'user' in config:
-            self.user = config['user']
+            self.user:str = config['user']
 
         timeout = 5 if self.db_type != 'oracle' else None
         engine_options = {}
@@ -78,12 +87,12 @@ class AlphaDatabaseCore(SQLAlchemy):
                 'pool_pre_ping': True
         """
 
-        super().__init__(*args,engine_options=engine_options,**kwargs)
+        super().__init__(*args,engine_options = engine_options,**kwargs)
 
-        self.name       = name
+        self.name: str = name
 
-        self.config     = config
-        self.log        = log 
+        self.config = config
+        self.log: AlphaLogger = log 
 
     def test(self):
         """[Test the connection]
@@ -247,14 +256,23 @@ class AlphaDatabase(AlphaDatabaseCore):
         try:
             instance = self.session.query(model).first()
             return True
-        except:
+        except Exception as ex:
+            self.log.error(ex=ex)
             return False
     
-    def ensure(self,table_name):
+    def ensure(self,table_name:str,drop:bool=False):
         request_model    = database_lib.get_table(self,self.name, table_name)
         if not self.exist(request_model):
             self.log.info('Creating <%s> table in <%s> database'%(table_name,self.name))
-            request_model.__table__.create(self.engine)
+            try:
+                request_model.__table__.create(self.engine)
+            except Exception as ex:
+                if drop:
+                    self.log.info('Drop <%s> table in <%s> database'%(table_name,self.name))
+                    request_model.__table__.drop(self.engine)
+                    self.ensure(table_name)
+                else:
+                    self.log.error(ex)
 
     def select(self,model,
             filters:list=None,

@@ -1,6 +1,7 @@
 
 import  os, json, inspect, copy, sys, socket, re, platform, getpass
 import numpy as np
+from typing import List, Dict
 
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
@@ -9,10 +10,9 @@ from . import utils
 
 from ..libs import converter_lib, sql_lib, io_lib
 from ..utils.logger import AlphaLogger
+from ..models.main import AlphaClass
 
 PAREMETER_PATTERN = '{{%s}}'
-
-CONFIGURATIONS = {}
 
 def ensure_path(dict_object,paths=[],value=None):
     if len(paths) == 0: 
@@ -27,24 +27,108 @@ def ensure_path(dict_object,paths=[],value=None):
 
     ensure_path(dict_object[paths[0]],paths[1:],value=value)
 
-class AlphaConfig():
+def ensure_filepath(name:str,filepath:str,root:str,filename:str):
+    name = name.split('/')[-1]
+    if filepath is not None:    
+        if not filepath[-5:] == '.json':
+            filepath    = filepath + '.json'
+
+        filename        = os.path.basename(filepath).split('.')[0]
+        if root is None:
+            root        = os.path.abspath(filepath).replace('%s.json'%filename,'')
+        if name == 'config':
+            name        = filename
+
+    if root is None:
+        stack           = inspect.stack()
+        parentframe     = stack[1]
+        module          = inspect.getmodule(parentframe[0])
+        filename_frame  = parentframe.filename
+        current_path    = os.getcwd()
+        root            = current_path
+    
+    if filename is None:
+        filename        = name.lower()
+
+    filepath       = root + os.sep + filename + '.json'
+    return name, filepath, root, filename
+
+class AlphaConfigurations(object):
+    _name = 'configs'
+    _instance = None
+    _configurations: Dict[str,object] = {}
+
+    def __new__(cls):
+        try:
+            cls._instance = io_lib.unarchive_object(AlphaConfigurations._name)
+        except Exception as ex:
+            print(ex)
+
+        if not cls._instance:
+            cls._instance = object.__new__(cls)
+        return cls._instance
+
+    def get_configuration(self,path:str):
+        if path in self._configurations:
+            return self._configurations[path]
+        return None
+
+    def set_configuration(self,path:str, config):
+        self._configurations[path] = config
+        io_lib.archive_object(self, self._name)
+
+CONFIGURATIONS = AlphaConfigurations()
+
+class AlphaConfig(AlphaClass):
     reserved    =  ['user']
 
-    def __new__(cls,name='config',filepath=None,root=None,filename=None,log=None,configuration=None,logger_root=None,data=None,origin=None):
-        key = "%s - %s - %s"%(name,filepath,configuration)
-        if name in CONFIGURATIONS:
-            #if log: log.error('Cannot reload configuration <%s>'%key)
-            return CONFIGURATIONS[name]
-        return super(AlphaConfig,cls).__new__(cls)
+    def __new__(cls,
+            name: str='config',
+            filepath: str=None,
+            root: str=None,
+            filename: str=None,
+            log: AlphaLogger=None,
+            configuration: str=None,
+            logger_root: str=None,
+            data: dict=None,
+            origin=None
+            ):
 
-    def __init__(self,name='config',filepath=None,root=None,filename=None,log=None,configuration=None,logger_root=None,data=None,origin=None):
-        if hasattr(self,'tmp'): return
+        name, filepath, root, filename = ensure_filepath(name, filepath, root, filename)
+        #key = "%s - %s - %s"%(name,filepath,configuration)
 
-        key = "%s - %s"%(name,filepath)
-        CONFIGURATIONS[name] = self
+        instance = CONFIGURATIONS.get_configuration(filepath)
+        if instance is not None:
+            return instance
 
-        self.origin         = origin
-        self.tmp            = {}
+        instance = super(AlphaConfig, cls).__new__(cls)
+        instance.__init__(name, filepath, root, filename, log, configuration, logger_root, data, origin)
+        return instance
+
+    def __init__(self,
+            name: str = 'config',
+            filepath: str = None,
+            root: str = None,
+            filename: str = None,
+            log: AlphaLogger = None,
+            configuration: str = None,
+            logger_root: str = None,
+            data: dict = None,
+            origin = None
+            ):
+
+        if hasattr(self, 'tmp'): return
+        self.name = name
+        self.filepath = filepath
+        self.root = root
+        self.filename = filename
+        self.configuration:str = configuration
+        self.logger_root = logger_root
+        self.origin = origin
+
+        super().__init__(log=log)
+
+        self.tmp         = {}
         self.data_origin = {}
 
         self.data        = {}
@@ -55,10 +139,7 @@ class AlphaConfig():
 
         self.exist       = False
         self.valid       = True
-        self.loaded         = False
-        self.configuration:str = configuration
-
-        self.logger_root = None
+        self.loaded      = False
 
         self.databases   = {}
         self.loggers     = {}
@@ -71,44 +152,8 @@ class AlphaConfig():
         self.api = None
         self.cnx_str = None
 
-        self.name = name.split('/')[-1]
-
-        if filepath is not None:
-            if not filepath[-5:] == '.json':
-                filepath    = filepath + '.json'
-
-            filename        = os.path.basename(filepath).split('.')[0]
-            if root is None:
-                root        = os.path.abspath(filepath).replace('%s.json'%filename,'')
-            if name == 'config':
-                name        = filename
-
-        if root is None:
-            stack           = inspect.stack()
-            parentframe     = stack[1]
-            module          = inspect.getmodule(parentframe[0])
-            filename_frame  = parentframe.filename
-            current_path    = os.getcwd()
-            root            = current_path
-            """if type(filename_frame) == str:
-                root        = filename_frame.replace(os.path.basename(filename_frame),'')[:-1]
-            else:
-                root        = os.path.abspath(module.__file__).replace(module.__file__,'')"""
-        self.root           = root
-        #self.add_tmp('root', self.root)
-
-        # config file
-        if filename is None:
-            filename        = name.lower()
-
-        self.filename       = filename
-        self.filepath       = root + os.sep + filename + '.json'
-        self.config_file    = self.filepath if root.strip() != '' else self.filename + '.json'
-
         self.log            = log
 
-        #self.info('Set configuration %s'%self.config_file) # TODO: check
-                        
         if data:
             self.data_origin  = data
             self.data         = data
@@ -120,6 +165,8 @@ class AlphaConfig():
 
         if configuration is None:
             self.auto_configuration()
+
+        CONFIGURATIONS.set_configuration(self.filepath, self)
 
     def auto_configuration(self):
         configuration = None
@@ -139,45 +186,16 @@ class AlphaConfig():
             return 
 
         self.configuration = configuration
-        self.info('Setting <%s> configuration for file %s'%(configuration,self.config_file))
+        self.info('Setting <%s> configuration for file %s'%(configuration,self.filepath))
                 
-        if os.path.isfile(self.config_file):
+        if os.path.isfile(self.filepath):
             self.exist = True
             #self.add_tmp('configuration',configuration)
             self.load(configuration)
             self.check_required()
         else:
-            self.error('Config file %s does not exist !'%self.config_file)
+            self.error('Config file %s does not exist !'%self.filepath)
             exit()
-
-    def info(self,message):
-        if self.log is not None:
-            if len(self.infos) != 0:
-                for info in self.infos:
-                    self.log.info(info)
-                self.infos = []
-            self.log.info(message)
-        else:
-            self.infos.append(message)
-
-    def warning(self,message):
-        if self.log is not None:
-            if len(self.warnings) != 0:
-                for msg in self.warnings:
-                    self.log.warning(msg)
-                self.warnings = []
-            self.log.warning(message)
-        else:
-            self.warnings.append(message)
-
-    def error(self,message,out=False):
-        for info in self.infos:
-            print('   INFO: %s'%info)
-        if self.log is not None:
-            self.log.error(message)
-        else:
-            print('   ERROR: %s'%message)
-        if out: exit()
 
     def get_config(self,path=[],configuration=None):
         path = self.get_path(path)
@@ -221,7 +239,7 @@ class AlphaConfig():
 
     def load_raw(self):
         if not self.loaded:
-            with open(self.config_file) as json_data_file:
+            with open(self.filepath) as json_data_file:
                 self.data_origin = json.load(json_data_file)
                 self.loaded = True
 
@@ -229,7 +247,7 @@ class AlphaConfig():
         try:
             self.load_raw()
         except Exception as ex:
-            print('Cannot read configuration file %s:%s'%(self.config_file,ex))
+            print('Cannot read configuration file %s:%s'%(self.filepath,ex))
             exit()
         
         self.__check_reserved()
@@ -288,13 +306,13 @@ class AlphaConfig():
         show(self.data)
 
     def save(self):
-        self.info('Save configuration file at %s'%self.config_file)
+        self.info('Save configuration file at %s'%self.filepath)
 
         for name in self.tmp:
             if name in self.data_origin:
                 del self.data_origin['user']
 
-        with open(self.config_file,'w') as json_data_file:
+        with open(self.filepath,'w') as json_data_file:
             json.dump(self.data_origin,json_data_file, sort_keys=True, indent=4)
             
     def set_data(self,value,paths=[]):
@@ -365,7 +383,7 @@ class AlphaConfig():
         # loggers
         self.logger_root = self.get("directories/logs")
         if self.logger_root is None:
-            self.error('Missing "directories/logs" entry in configuration file %s'%self.config_file)
+            self.error('Missing "directories/logs" entry in configuration file %s'%self.filepath)
             exit()
 
         colors = self.get("colors/loggers")
@@ -640,6 +658,7 @@ class AlphaConfig():
                 exit()
 
         self.data = config
+
 
 def show(config,level=0):
     for key, cf in config.items():
