@@ -15,17 +15,25 @@ ROUTES = {}
 #api.config['DEBUG_TB_PANELS'] = [ 'flask_debugtoolbar.panels.versions.VersionDebugPanel', 'flask_debugtoolbar.panels.timer.TimerDebugPanel', 'flask_debugtoolbar.panels.headers.HeaderDebugPanel', 'flask_debugtoolbar.panels.request_vars.RequestVarsDebugPanel', 'flask_debugtoolbar.panels.template.TemplateDebugPanel', 'flask_debugtoolbar.panels.sqlalchemy.SQLAlchemyDebugPanel', 'flask_debugtoolbar.panels.logger.LoggingPanel', 'flask_debugtoolbar.panels.profiler.ProfilerDebugPanel', 'flask_debugtoolbar_lineprofilerpanel.panels.LineProfilerPanel' ]
 #toolbar = flask_debugtoolbar.DebugToolbarExtension(api)
 
-def route(path,parameters=[],methods = ['GET'],cache=False,logged=False,admin=False,timeout=None,category=None):
+def route(path, 
+        parameters=None, 
+        methods = ['GET'], 
+        cache=False,
+        logged=False,
+        admin=False,
+        timeout=None,
+        category=None
+        ):
     if path[0] != '/': path = '/' + path
 
+    """if not 'parameters' in locals() or parameters is None:
+        parameters = []"""
+    if parameters is None: parameters = []
+    for i, parameter in enumerate(parameters):
+        if type(parameter) == str:
+            parameters[i] = Parameter(parameter)
+
     def api_in(func):
-        """if not 'parameters' in locals() or parameters is None:
-            parameters = []"""
-
-        for i, parameter in enumerate(parameters):
-            if type(parameter) == str:
-                parameters[i] = Parameter(parameter)
-
         @api.route(path, methods = methods, endpoint=func.__name__)
         def api_wrapper(*args,**kwargs):
             log.debug('get api route {:10} with method <{}>'.format(path,func.__name__))

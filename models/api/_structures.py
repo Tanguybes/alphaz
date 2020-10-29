@@ -28,6 +28,18 @@ from ...utils.time import tic, tac
 from . import _converters, _utils, _colorations
 
 SEPARATOR = '::'
+
+def check_format(data,depth=3):
+   if depth == 0: return True
+
+   accepted = [int,str,float]
+   if type(data) in accepted: return True
+
+   if type(data) == list and len(data) != 0:
+        return check_format(data[0],depth-1)
+   if type(data) == dict and len(data) != 0:
+        return check_format(list(data.keys())[0],depth-1) & check_format(list(data.values())[0],depth-1)
+   return False
 class AlphaFlask(Flask):
 
     def __init__(self,*args,no_log:bool=False,**kwargs):
@@ -288,9 +300,13 @@ class AlphaFlask(Flask):
         
         if self.data is not None:
         #if self.data is not None and (len(self.data) > 0 or forceData):
-            self.returned['data'] = self.data
-    
-        self.returned['data'] = _converters.jsonify_data(self.returned['data'])
+            data = self.data
+
+        # Convert
+        if not check_format(data):
+            self.returned['data'] = _converters.jsonify_data(data)
+        else:
+            self.returned['data'] = data
 
         format_ = 'json'
         if 'format' in self.dataGet:

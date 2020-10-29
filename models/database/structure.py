@@ -65,7 +65,8 @@ class Row(MutableMapping):
 class AlphaDatabaseCore(SQLAlchemy):
     def __init__(self,*args,name=None,log=None,config=None,timeout=None,**kwargs):
         self.db_type = config['type']
-        self.user = config['user']
+        if 'user' in config:
+            self.user = config['user']
 
         timeout = 5 if self.db_type != 'oracle' else None
         engine_options = {}

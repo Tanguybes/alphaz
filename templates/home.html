@@ -72,13 +72,13 @@
 
         <section class="features section">
           <div class=container>
-            <h1 class="hero-title mt-0">Routes</h1>
+            <h1 class="hero-title mt-0" id="routes">Routes</h1>
 
             <div class="features-inner section-inner has-bottom-divider">
               <div class=features-wrap>
 
               {% for category in routes.categories %}
-                <div class="feature text-center is-revealing" style=visibility:visible>
+                <div class="feature text-center is-revealing" style=visibility:visible id="routes-{{category}}">
                   <div class=feature-inner>
                     <div class=feature-icon></div>
 
@@ -150,7 +150,7 @@
             <div class="features-inner section-inner has-bottom-divider">
               <div class=features-wrap>
                 {% for category in tests.categories %}
-                <div class="feature text-center is-revealing" style=visibility:visible>
+                <div class="feature text-center is-revealing" style=visibility:visible id="test-{{category}}">
                   <div class=feature-inner>
                     <div class=feature-icon></div>
 
@@ -168,7 +168,7 @@
                             <div class="feature-route">
                               <a class="button button-primary" onclick="executeTest('{{category}}','{{group}}','{{test}}')" style="padding: 2px 2px 2px 2px;height: 20px;">Run</a>&nbsp;
 
-                              <span {% if tests.categories[category].groups[group].tests[test].status %} style="color:green" {% else %} style="color:red" {%endif %}>{{test}}</span>
+                              <span {% if tests.categories[category].groups[group].tests[test].status %} style="color:green" {% else %} style="color:red;font-size: 0.8em;" {%endif %}>{{test}}</span>
                               
                               {% if tests.categories[category].groups[group].tests[test].elapsed %}
                                 <sub style="color:orange">{{tests.categories[category].groups[group].tests[test].elapsed}}s</sub>
@@ -209,6 +209,20 @@
         </section>
 
         <div class=logo-background></div>
+
+        <div id="routes-btns">
+          <a class="button side-button" href="#routes">Routes</a>
+          {% for category in routes.categories %}
+            <a class="button button-secondary side-button" href="#routes-{{category}}">{{category}}</a>
+          {% endfor %}
+        </div>
+
+        <div id="tests-btns">
+          <a class="button side-button" href="#tests">Tests</a>
+          {% for category in tests.categories %}
+            <a class="button button-primary side-button" href="#test-{{category}}">{{category}}</a>
+          {% endfor %}
+        </div>
 
       </main>
 

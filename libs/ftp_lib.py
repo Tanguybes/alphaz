@@ -1,2 +1,2 @@
-from ..models.ftp import FtpFile, AlphaFtp
+from ..models.ftp import AlphaFtpFile, AlphaFtp
 

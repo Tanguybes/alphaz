@@ -31,7 +31,7 @@ class AlphaConfig():
     reserved    =  ['user']
 
     def __new__(cls,name='config',filepath=None,root=None,filename=None,log=None,configuration=None,logger_root=None,data=None,origin=None):
-        key = "%s - %s"%(name,filepath)
+        key = "%s - %s - %s"%(name,filepath,configuration)
         if name in CONFIGURATIONS:
             #if log: log.error('Cannot reload configuration <%s>'%key)
             return CONFIGURATIONS[name]
@@ -45,7 +45,6 @@ class AlphaConfig():
 
         self.origin         = origin
         self.tmp            = {}
-
         self.data_origin = {}
 
         self.data        = {}
@@ -132,6 +131,9 @@ class AlphaConfig():
             self.set_configuration(configuration)
 
     def set_configuration(self,configuration):
+        if len(self.tmp) != 0:
+            self.data_origin = {x:y for x,y in self.data_origin.items() if x not in self.tmp}
+
         if configuration is None:
             self.error('Configuration need to be explicitely specified in configuration call or config file for %s file'%self.filepath)
             return 
@@ -178,8 +180,11 @@ class AlphaConfig():
         if out: exit()
 
     def get_config(self,path=[],configuration=None):
+        path = self.get_path(path)
         config_data = self.get(path)
-
+        if config_data is None:
+            return None
+            
         # TODO: enhance
         config      = AlphaConfig(
             name    = '.'.join(path), # self.name,
@@ -517,13 +522,17 @@ class AlphaConfig():
             value   = self.get_value_from_main_config(path)
         return value if value is not None else default
 
-    def get_parameter_path(self,parameters,data=None,level=1):
-        if '/' in parameters:
+    def get_path(self,parameters):
+        if type(parameters) == str and '/' in parameters:
             parameters = parameters.split('/')
-        if parameters == '':
-            return self.data
         if type(parameters) == str:
             parameters = [parameters]
+        return parameters
+
+    def get_parameter_path(self,parameters,data=None,level=1):
+        parameters = self.get_path(parameters)
+        if parameters == '':
+            return self.data
 
         if data is None:
             data = self.data

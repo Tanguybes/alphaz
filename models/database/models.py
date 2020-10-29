@@ -44,6 +44,10 @@ class AlphaTable(object):
 class AlphaTableId(AlphaTable):
     id =  AlphaColumn(Integer, primary_key=True, autoincrement=True)
 
+class AlphaTableUpdateDate(AlphaTable):
+    update_date  = AlphaColumn(DateTime,default=datetime.datetime.utcnow(),
+        onupdate=datetime.datetime.utcnow())
+
 class AlphaTableIdUpdateDate(AlphaTableId):
     update_date  = AlphaColumn(DateTime,default=datetime.datetime.utcnow(),
         onupdate=datetime.datetime.utcnow())

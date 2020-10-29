@@ -3,6 +3,8 @@ import datetime, re
 from core import core
 from ..database.main_definitions import Tests
 
+from ...libs import number_lib
+
 log = core.get_logger('tests')
 
 class AlphaTable():
@@ -10,6 +12,8 @@ class AlphaTable():
         for key in self.__dict__.keys():
             if hasattr(source,key):
                 source_element = getattr(source,key)
+                if key == 'elapsed':
+                    source_element = number_lib.myround(source_element,2)
                 self.__dict__[key] = source_element
 
 class TestMethod(AlphaTable):
@@ -25,8 +29,9 @@ class TestMethod(AlphaTable):
         self.end_time:datetime.datetime     = None
         self.elapsed:int                    = None
         
-    def test(self,verbose=False):
-        classObject             = self.classObject()
+    def test(self,classObject=None,verbose=False):
+        if classObject is None:
+            classObject             = self.classObject()
         classObject.verbose     = verbose
 
         self.start_time         = datetime.datetime.now()
@@ -76,6 +81,6 @@ class TestMethod(AlphaTable):
     def to_json(self):
         return {
             'status': self.status,
-            'elapsed': self.elapsed,
+            'elapsed': number_lib.myround(self.elapsed,2),
             'end_time': self.start_time
         }

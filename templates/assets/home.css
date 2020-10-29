@@ -1039,3 +1039,26 @@ sup {
 	background-repeat: no-repeat;
 	background-position: center;
   }
+
+  #routes-btns{
+	  position:fixed;
+	  top:10%;
+	  right:0;
+	  display: flex;
+      flex-direction: column;
+  }
+
+  #tests-btns{
+	position:fixed;
+	top:10%;
+	left:0;
+	display: flex;
+	flex-direction: column;
+}
+
+  .side-button {
+	margin: 5px;
+    padding: 4px;
+    height: auto;
+    font-size: 0.5em;
+  }

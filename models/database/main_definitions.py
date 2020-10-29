@@ -5,7 +5,7 @@ from sqlalchemy.sql import func
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship, backref
 
-from .models import AlphaTable, AlphaTableId, AlphaColumn, AlphaFloat, AlphaInteger, AlphaTableIdUpdateDate
+from .models import AlphaTable, AlphaTableId, AlphaColumn, AlphaFloat, AlphaInteger, AlphaTableIdUpdateDate, AlphaTableUpdateDate
 
 import datetime, inspect
 
@@ -13,6 +13,17 @@ from core import core
 
 db = core.get_database()
 ma = core.ma
+
+class FilesProcess(db.Model,AlphaTableUpdateDate):
+    __tablename__       = "files_process"
+
+    name                = AlphaColumn(String(40),nullable=False,primary_key=True)
+    key                 = AlphaColumn(String(100),nullable=False,primary_key=True)
+    filename            = AlphaColumn(String(100),nullable=False,primary_key=True)
+    modifiation_time    = AlphaColumn(Integer)
+    filesize            = AlphaColumn(Integer)
+    lifetime            = AlphaColumn(Integer)
+    error               = AlphaColumn(Integer)
 
 class Processes(db.Model,AlphaTableIdUpdateDate):
     __tablename__ = "processes"

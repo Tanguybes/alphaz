@@ -1,4 +1,7 @@
-import paramiko, encodings, scp
+import paramiko, encodings, scp, re
+from typing import List
+
+from ..models.main import AlphaFile
 from .string_lib import universal_decode
 from . import io_lib
 
@@ -54,16 +57,65 @@ class AlphaSsh():
         while not ssh_stdout.channel.exit_status_ready():
             pass
 
-    def list_files(self,directory):
+    def list_files(self,directory:str) -> List[AlphaFile]:
+        """[summary]
+
+        Args:
+            directory (str): [description]
+
+        Returns:
+            List[AlphaFile]: [description]
+        """
         output = self.execute_cmd('ls -l %s'%directory)
         files = io_lib.get_list_file(output)
         return files
 
+    def list_files_names(self,directory:str,pattern:str=None) -> List[str]:
+        cmd = 'ls -l -f %s'%directory
+        output = self.execute_cmd(cmd)
+        lines = str(output).split('\\r\\n')
+        if pattern is not None:
+            """filtered = []
+            for line in lines:
+                matchs = re.findall(pattern,line)
+                if matchs:
+                    filtered.append(line)
+            lines = filtered"""
+            lines = [x for x in lines if len(re.findall(pattern,x)) != 0]
+        return [ x for x in lines if x.replace('.','') != '']
+
+    def list_directories(self,directory:str) -> List[AlphaFile]:
+        """[summary]
+
+        Args:
+            directory (str): [description]
+
+        Returns:
+            List[AlphaFile]: [description]
+        """
+        output = self.execute_cmd('ls -l %s'%directory)
+        directories = io_lib.get_list_file(output)
+        return directories
+
+    def list_directories_names(self,directory:str) -> List[str]:
+        output = self.execute_cmd('ls -l -f %s'%directory)
+        lines = str(output).split('\\r\\n')
+        return [ x for x in lines if x.replace('.','') != '']
+
+    def get_file_content(self,filepath:str,decode=False):
+        output = self.execute_cmd('cat %s'%filepath,decode=decode)
+        return output
+
     def execute_cmd(self,cmd,decode=True):
         inputs, output, err = '', '', ''
         ssh_stdin, ssh_stdout, ssh_stderr = self.ssh.exec_command(cmd, get_pty=True)
-
-        return str(ssh_stdout.read())
+        output = ssh_stdout.read()
+        if decode:
+            output = output.decode('utf-8').encode('ascii')
+            output = str(output)
+            if output[:2] == "b'":
+                output = output[2:-1]
+        return output
 
     def execute_cmd_interactive(self,cmd,decode=True):
         inputs, output, err = '', '', ''
