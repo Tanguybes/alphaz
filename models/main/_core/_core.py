@@ -1,5 +1,7 @@
 import os, sys, datetime, glob, importlib, inspect
 
+from flask_marshmallow import Marshmallow
+
 from ....utils.logger import AlphaLogger
 from ....config.config import AlphaConfig
 from ....libs import io_lib, flask_lib, database_lib
@@ -14,27 +16,48 @@ from . import _utils
 
 import alphaz
 
-class AlphaCore: 
+class AlphaClass:
+    def __init__(self,log:AlphaLogger = None):
+        self.log: AlphaLogger       = log
+
+    def error(self,message):
+        if self.log: self.log.error(message)
+
+    def info(self,message):
+        if self.log: self.log.info(message)
+
+def _get_relative_path(file: str, level = 0, add_to_path=True):
+    if level == 0:
+        root                    = os.path.dirname(file)
+    else:
+        root                    = os.sep.join(os.path.dirname(file).split(os.sep)[:-level])
+    if add_to_path:
+        sys.path.append(root)
+    return root
+
+class AlphaCore(AlphaClass): 
     instance    = None
 
-    def __init__(self,file:str,level=0): 
-        self.root:str               = self.get_relative_path(file, level=level)
-        self.config                 = None
-        self.log: AlphaLogger       = None
+    def __init__(self,file:str,level:int=0,*args,**kwargs): 
+        super().__init__(log=None)
+
+        self.root:str               = _get_relative_path(file, level=level)
+        self.config:AlphaConfig     = None
+
         self.loggers: {AlphaLogger} = {}
         self.initiated: bool        = False
         self.databases: dict        = {}
         self.configuration: str     = None
         self.configuration_name: str = None
-        self.ma                     = None
-        self.db                     = None
-        self.api                    = None
-                
-        self.config         = AlphaConfig('config',root=self.root)
-
-        if 'ALPHA_CONF' in os.environ and self.config.configuration is None:
+        self.ma:Marshmallow         = None
+        self.db:AlphaDatabase       = None
+        self.api:AlphaFlask         = None
+        
+        configuration = None
+        if 'ALPHA_CONF' in os.environ:
             configuration = os.environ['ALPHA_CONF']
-            self.set_configuration(configuration)
+
+        self.config:AlphaConfig     = AlphaConfig('config',root=self.root,configuration=configuration)
 
     def set_configuration(self,configuration_name):
         self.config.set_configuration(configuration_name)
@@ -58,12 +81,6 @@ class AlphaCore:
                         EXCEPTIONS[exception_name] = exception_configuration
                     else:
                         self.log.error('Duplicate exception name for %s'%exception_name)
-
-    def error(self,message):
-        if self.log: self.log.error(message)
-
-    def info(self,message):
-        if self.log: self.log.info(message)
 
     def prepare_api(self,configuration):
         self.set_configuration(configuration)
@@ -122,7 +139,8 @@ class AlphaCore:
         modules             = flask_lib.get_definitions_modules(models_sources,log=self.log)
 
         # ensure tests
-        self.db.ensure('tests')
+        self.db.ensure("tests")
+        self.db.ensure("files_process")
 
     def get_database(self,name=None) -> AlphaDatabase:
         if self.api is None:
@@ -140,21 +158,11 @@ class AlphaCore:
 
         return self.config.get_database(name)
                 
-    def get_relative_path(self, file: str, level = 0, add_to_path=True):
-        if level == 0:
-            root                    = os.path.dirname(file)
-        else:
-            root                    = os.sep.join(os.path.dirname(file).split(os.sep)[:-level])
-        self.root     = root
-        if add_to_path:
-            sys.path.append(root)
-        return root
-
     def get_logger(self,*args, **kwargs) -> AlphaLogger:
-        self.check_configuration()
+        self._check_configuration()
         return self.config.get_logger(*args,**kwargs)
 
-    def check_configuration(self):
+    def _check_configuration(self):
         if self.config is None:
             self.set_configuration(None)
             if self.config is None:

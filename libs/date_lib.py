@@ -4,6 +4,7 @@ format_date     = "%Y-%m-%d %H:%M:%S"
 format_date2    = "%Y/%m/%d %H:%M:%S"
 format_date3    = "%d/%m/%Y %H:%M:%S"
 format_date_ws  = "%H:%M:%S.%f"
+format_date_4   = "%d_%m_%y"
 
 def str_to_datetime_if_needed(date_string):
     if re.findall(r'[0-9]+-[0-9]+-[0-9]+[T\s][0-9]+:[0-9]+:[0-9]+'):

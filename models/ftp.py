@@ -1,21 +1,32 @@
-import pysftp, ftplib
+import pysftp, ftplib, re
+from typing import List, Dict
 
 from core import core
 
 LOG = core.get_logger('ftp')
 
-class FtpFile():
-    name = ""
-    size = 0
-    modification_time = None
-    origin = None
-
+class AlphaFtpFile():
     def __init__(self,name,parameters=None,origin=None):
-        self.name  = name
+        self.name   = name
         self.origin = origin
+        self.size   = 0
+        self.key = None
+        self.version = 0
+        self.modification_time = None
+        self.type = "classic"
+
         if parameters is not None:
             self.size   = parameters.st_size
             self.modification_time = parameters.st_mtime
+
+        matchs = re.findall(r"\.[A-Z]*;[0-9]*",self.name)
+        if len(matchs):
+            self.extension, self.version = matchs[0].replace(".","").split(';')
+            self.type = 'vms'
+            self.short_name = self.name.replace(matchs[0],'')
+        else:
+            self.extension = self.name.split('.')[-1]
+            self.short_name = self.name.replace('.' + self.extension,'')
         #print (attr.filename,attr.st_uid, attr.st_gid, attr.st_mode,attr.st_mtime,attr.st_size)
 
 class AlphaFtp():
@@ -65,7 +76,19 @@ class AlphaFtp():
             self.valid = False
         return self.valid
 
-    def list_dir(self,directory,contain=None,origin=None):
+    def __enter__(self):
+        self.connect()
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        self.disconnect()
+
+        if exc_type:
+            print(f'exc_type: {exc_type}')
+            print(f'exc_value: {exc_value}')
+            print(f'exc_traceback: {exc_traceback}')
+
+    def list_dir(self,directory,contain=None,origin=None) -> List[AlphaFtpFile]:
         files = []
 
         # Switch to a remote directory
@@ -75,13 +98,13 @@ class AlphaFtp():
         if self.sftp:
             for attr in self.cnx.listdir_attr():
                 if contain is None or contain in attr.filename:
-                    ftp_file = FtpFile(attr.filename,attr,origin=origin if origin is not None else directory)
+                    ftp_file = AlphaFtpFile(attr.filename,attr,origin=origin if origin is not None else directory)
                     files.append(ftp_file)
                     #print (attr.filename,attr.st_uid, attr.st_gid, attr.st_mode,attr.st_mtime,attr.st_size)
         else:
             for attr in self.cnx.nlst():
                 if contain is None or contain in attr:
-                    files.append(FtpFile(attr,None))
+                    files.append(AlphaFtpFile(attr,None))
 
         if len(files) == 0 and self.log:
             self.log.error('No files in directory %s'%directory)
@@ -90,7 +113,7 @@ class AlphaFtp():
     def upload(self,sourcepath,remotepath):
         self.cnx.put(sourcepath,remotepath)
 
-    def download(self,remotepath,localpath):
+    def download(self,remotepath:str,localpath:str):
         try:
             if self.sftp:
                 self.cnx.get(remotepath, localpath, callback=None)
@@ -113,7 +136,7 @@ class AlphaFtp():
         if not ';' in txt: return
         try:
             name        = txt.split()[0]
-            ftp_file    = FtpFile(name)
+            ftp_file    = AlphaFtpFile(name)
             self.files.append(ftp_file)
             self.index += 1
         except Exception as ex:

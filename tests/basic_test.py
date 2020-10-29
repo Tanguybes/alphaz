@@ -1,16 +1,4 @@
 import unittest
-
-class Dataframe(AlphaTest):
-
-    def __init__(self):
-        super().__init__()
-
-    def first_test(self):
-        return True
-
-    def second_test(self):
-        return True
-
 class TestStringMethods(unittest.TestCase):
 
     def test_upper(self):

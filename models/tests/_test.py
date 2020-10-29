@@ -1,8 +1,10 @@
+
+import traceback
 from core import core
 
 from ._save import AlphaSave
 
-log = core.get_logger('tests')
+LOG = core.get_logger('tests')
 
 class AlphaTest():
     category = ''
@@ -15,12 +17,13 @@ class AlphaTest():
         status = False
         fct = getattr(self,name)
         if fct is None:
-            log.info('Failed to get testing function <%s> in category <%s>'%(name,category))
+            LOG.info('Failed to get testing function <%s> in category <%s>'%(name,category))
             return False
         try:
             status = fct()
         except Exception as ex:
-            log.error(ex)
+            text    = traceback.format_exc()
+            LOG.error(text)
         return status
 
     def save(self,name):
@@ -40,5 +43,5 @@ class AlphaTest():
                 if a[i] != b[i]: 
                     equal = False
         elif self.verbose:
-            log.warning("Arrays size are not equal: <%s> and <%s>"%(len(a),len(b)))
+            LOG.warning("Arrays size are not equal: <%s> and <%s>"%(len(a),len(b)))
         return equal

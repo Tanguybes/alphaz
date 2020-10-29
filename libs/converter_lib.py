@@ -4,7 +4,7 @@ Created on 13 janv. 2019
 @author: aurele durand
 '''
 
-import math
+import math, xmltodict, re
 
 def to_int(value):
     try:
@@ -44,3 +44,8 @@ def is_int(val):
 def format_as_string_if_not_num(s):
     s = "'%s'"%s if not is_num(s) else s
     return s
+
+def xml_content_to_orderdict(content):
+    content = re.sub('<\?.*\?>','',content).replace('\\r\\n','')
+    content_dict = xmltodict.parse(content)
+    return content_dict

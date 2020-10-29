@@ -5,12 +5,14 @@ from ._wrappers import TEST_METHOD_NAME
 
 from typing import Dict
 
+from collections import OrderedDict
+
 class TestGroup():
     def __init__(self,name,classObject):
         self.verbose        = False
         self.name           = name.replace('_Tests','').replace('_tests','')
         self.classObject    = classObject
-        self.tests: Dict[str,TestMethod] = {}
+        self.tests: OrderedDict[str,TestMethod] = OrderedDict()
         self.category       = classObject.category
         if self.category == '':
             self.category = classObject.__module__.split('.')[-1].capitalize() 
@@ -36,8 +38,9 @@ class TestGroup():
 
     def test_all(self,verbose=False):
         self.classObject.verbose = verbose
+        classObject = self.classObject()
         for method in self.tests.values():
-            method.test(verbose=verbose)
+            method.test(classObject=classObject,verbose=verbose)
 
     def save_all(self,verbose=False):
         for method in self.tests.values():

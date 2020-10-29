@@ -2,6 +2,8 @@ import requests, json, re, os, pickle, pathlib, datetime
 from lxml.html import fromstring
 from ..models.main import AlphaFile
 
+from typing import List
+
 import colorama
 from colorama import Fore, Back, Style
 colorama.init()
@@ -137,7 +139,10 @@ def unarchive_object(filename:str, ext:str=None):
     object_to_get = None
     if os.path.exists(filename):
         with open(filename, 'rb') as f:
-            object_to_get     = pickle.load(f)
+            try:
+                object_to_get     = pickle.load(f)
+            except:
+                None
     return object_to_get
 
 
@@ -179,18 +184,24 @@ def get_match(regex,txt):
     return None if len(matchs) == 0 else matchs[0]
 
 
-def get_list_file(output):
+def get_list_file(output) -> List[AlphaFile]:
     files = []
     for line in output.split('\\r\\n'):
         if line.strip() == '': continue
         
-        permission = get_match(r'[a-z-]{10}\.',line)
+        permission = get_match(r'[drwxr-]{10}\.?',line)
         if permission is None: continue
     
-        users       = get_match(r'[a-zA-Z]+\s[a-zA-Z]+\s[0-9]+',line)
+        users       = get_match(r'[a-zA-Z]+[^\S\r\n]+[a-zA-Z]+[^\S\r\n]+[0-9]+',line.split(permission)[1])
+        if users is None: continue
+
         owner, group, size = users.split()
-        date = get_match(r'[a-zA-Z]{3}\s[0-9\s]{1,2}\s[0-9\s]{1,2}:[0-9\s]{1,2}',line)
-        
+
+        date = get_match(r'[a-zA-Z]{3}\s[0-9\s]{1,2}\s[0-9\s]{1,2}:[0-9\s]{1,2}',line.split(users)[1])
+        if date is None: 
+            date = get_match(r'[a-zA-Z]{3}\s[0-9\s]{1}[0-9]{1}\s{1,2}[0-9]{4}',line.split(users)[1])
+        if date is None: continue
+
         name = line.split(date)[1]
         
         file_ = AlphaFile(name,

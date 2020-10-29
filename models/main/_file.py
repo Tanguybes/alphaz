@@ -15,3 +15,5 @@ class AlphaFile():
         self.group = group
         self.size = size
         self.date = date
+
+        self.key = None
