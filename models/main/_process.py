@@ -6,7 +6,7 @@ class AlphaProcess():
 PROCESSES = {}
 
 PROCESS_METHOD_NAME = "process_alpha_in"
-def process(name=None, thread=False):
+def process(name: str=None, thread:bool=False):
     def process_alpha_in(func):
         def process_wrapper(*args,**kwargs):
             return func(*args, **kwargs)

@@ -1,6 +1,6 @@
 import re
 
-from ...libs import io_lib
+from ...utils.logger._colorations import colored_term
 
 class WerkzeugColorFilter:
     P_REQUEST_LOG = re.compile(r'^(.*?) - - \[(.*?)\] "(.*?)" (\d+) (\d+|-)$')
@@ -29,21 +29,21 @@ class WerkzeugColorFilter:
                         return False
 
                 fmt = self.method_colors.get(method.upper(), 'white')
-                request_line = io_lib.colored_term(request_line,fmt)
-                ip = io_lib.colored_term(ip,'blue')
-                date = io_lib.colored_term(date,'yellow')
+                request_line = colored_term(request_line,fmt)
+                ip = colored_term(ip,'blue')
+                date = colored_term(date,'yellow')
                 try:
                     status_code_value = int(status_code)
                     if status_code_value >= 500:
-                        status_code = io_lib.colored_term(status_code, back='red')
+                        status_code = colored_term(status_code, back='red')
                     elif status_code_value >= 400:
-                        status_code = io_lib.colored_term(status_code,'red')
+                        status_code = colored_term(status_code,'red')
                     elif status_code_value >= 300:
-                        status_code = io_lib.colored_term(status_code,'black','yellow')
+                        status_code = colored_term(status_code,'black','yellow')
                     elif status_code_value >= 200:
-                        status_code = io_lib.colored_term(status_code,'green')
+                        status_code = colored_term(status_code,'green')
                     else:
-                        status_code = io_lib.colored_term(status_code,bold=True)
+                        status_code = colored_term(status_code,bold=True)
                 except ValueError:
                     pass
                 record.msg = '%s - - [%s] "%s" %s %s' % (

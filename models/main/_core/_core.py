@@ -2,6 +2,7 @@ import os, sys, datetime, glob, importlib, inspect
 
 from flask_marshmallow import Marshmallow
 
+from ....models.main import AlphaClass
 from ....utils.logger import AlphaLogger
 from ....config.config import AlphaConfig
 from ....libs import io_lib, flask_lib, database_lib
@@ -15,16 +16,6 @@ from ...database.structure import AlphaDatabase
 from . import _utils
 
 import alphaz
-
-class AlphaClass:
-    def __init__(self,log:AlphaLogger = None):
-        self.log: AlphaLogger       = log
-
-    def error(self,message):
-        if self.log: self.log.error(message)
-
-    def info(self,message):
-        if self.log: self.log.info(message)
 
 def _get_relative_path(file: str, level = 0, add_to_path=True):
     if level == 0:
@@ -57,7 +48,11 @@ class AlphaCore(AlphaClass):
         if 'ALPHA_CONF' in os.environ:
             configuration = os.environ['ALPHA_CONF']
 
-        self.config:AlphaConfig     = AlphaConfig('config',root=self.root,configuration=configuration)
+        self.config:AlphaConfig     = AlphaConfig('config',
+            root=self.root,
+            configuration=configuration
+        )
+        a = 1
 
     def set_configuration(self,configuration_name):
         self.config.set_configuration(configuration_name)
@@ -139,10 +134,10 @@ class AlphaCore(AlphaClass):
         modules             = flask_lib.get_definitions_modules(models_sources,log=self.log)
 
         # ensure tests
-        self.db.ensure("tests")
+        self.db.ensure("tests",drop=True)
         self.db.ensure("files_process")
 
-    def get_database(self,name=None) -> AlphaDatabase:
+    def get_database(self, name=None) -> AlphaDatabase:
         if self.api is None:
             # required for database cnx
             self.prepare_api(self.configuration)
@@ -150,7 +145,7 @@ class AlphaCore(AlphaClass):
         if name is None or name == 'main':
             return self.db
 
-        if name == "users" and not 'users' in self.databases:
+        if name == "users" and 'users' not in self.databases:
             return self.db
 
         if name in self.databases:
