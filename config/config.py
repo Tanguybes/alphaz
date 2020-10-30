@@ -63,11 +63,12 @@ class AlphaConfig(AlphaClass):
 
         self.log            = log
 
-        try:
-            self._load_raw()
-        except Exception as ex:
-            print('Cannot read configuration file %s:%s'%(self.filepath,ex))
-            exit()
+        if data is None:
+            try:
+                self._load_raw()
+            except Exception as ex:
+                print('Cannot read configuration file %s:%s'%(self.filepath,ex))
+                exit()
 
         if data is None and configuration is not None:
             self.set_configuration(configuration)
@@ -151,8 +152,9 @@ class AlphaConfig(AlphaClass):
         self._configure_databases()
 
         if self.core_configuration: 
-            sequence = ', '.join(["%s%s"%(tmp, '*' if tmp+'s' in self.data_tmp else ' ') for tmp, tmp_value in self.tmp.items() ])
+            sequence = ', '.join(["%s=%s%s"%(tmp, tmp_value, '*' if tmp+'s' in self.data_tmp else ' ') for tmp, tmp_value in self.tmp.items() ])
             self.info('Configuration %s initiated for: %s'%(self.filepath,sequence))
+            self.show()
 
     def _set_sub_configurations(self):
         config = self.data
@@ -161,7 +163,7 @@ class AlphaConfig(AlphaClass):
         configs_values, paths = get_configs_from_config(config, path=None)
         for i, values in enumerate(configs_values):
             config_path = values[0]
-            if not config_path in sub_configurations:
+            if not config_path in self.sub_configurations:
                 name                            = config_path.split(os.sep)[-1]
                 self.sub_configurations[config_path] = AlphaConfig(name=name,filepath=config_path,
                     log=self.log,
@@ -586,9 +588,9 @@ class AlphaConfigurations(object):
 
     def _is_valid_configuration(self,configuration):
         valid = False
-        if type(loaded_configuration) == dict:
+        if type(configuration) == dict:
             valid = True
-            for key, values in loaded_configuration.items():
+            for key, values in configuration.items():
                 if type(values) != dict:
                     valid = False
         return valid
