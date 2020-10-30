@@ -38,7 +38,8 @@ class TestMethod(AlphaTable):
         
         log.info('Testing function <%s> of <%s> in category <%s>'%(self.name,type(self).__name__,self.category))
 
-        self.status             = classObject.test(self.name)
+        result                  = classObject.test(self.name)
+        self.status             = result if type(result) == bool else False
 
         log.info('Function <%s> of <%s> in category <%s>: %s'%(
             self.name,type(self).__name__,self.category,'X' if not self.status else 'O'))
@@ -53,7 +54,7 @@ class TestMethod(AlphaTable):
     def update_database(self):
         test = Tests(
             category=self.category, 
-            group=self.group,
+            tests_group=self.group,
             name=self.name,
             status=self.status,
             start_time=self.start_time,

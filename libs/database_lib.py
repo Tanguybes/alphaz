@@ -1,29 +1,11 @@
 import datetime, glob, os, importlib
 from typing import Dict
 
+from sqlalchemy import MetaData
+
 from . import flask_lib, io_lib
 
 from ..models.main import AlphaException
-
-def get_table(db,schema:str,table:str):
-    if not schema in flask_lib.TABLES:
-        raise AlphaException('schema_not_loaded',parameters={'schema':schema})
-
-    """if table in flask_lib.TABLES:
-        obj = flask_lib.TABLES[table]
-        obj.__table__.drop()
-        api.set_data("%s dropped"%table)"""
-
-    if not table in flask_lib.TABLES[schema]['tables']:
-        raise AlphaException('cannot_find_table',parameters={'table':table})
-
-    table_object = flask_lib.TABLES[schema]['tables'][table]
-    
-    """if not table in db.metadata.tables:
-        raise AlphaException('cannot_find_table',parameters={'table':table})
-
-    table_object = db.metadata.tables[table]"""
-    return table_object
 
 def convert_value(value):
     if type(value) == str and len(value) > 7 and value[4] == '/' and value[7] == '/':

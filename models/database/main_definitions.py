@@ -15,7 +15,9 @@ db = core.get_database()
 ma = core.ma
 
 class FilesProcess(db.Model,AlphaTableUpdateDate):
+    __bind_key__        = 'main'
     __tablename__       = "files_process"
+    ensure              = True
 
     name                = AlphaColumn(String(40),nullable=False,primary_key=True)
     key                 = AlphaColumn(String(100),nullable=False,primary_key=True)
@@ -26,6 +28,7 @@ class FilesProcess(db.Model,AlphaTableUpdateDate):
     error               = AlphaColumn(Integer)
 
 class Processes(db.Model,AlphaTableIdUpdateDate):
+    __bind_key__        = 'main'
     __tablename__ = "processes"
 
     uuid = AlphaColumn(String(36))
@@ -38,6 +41,7 @@ class Processes(db.Model,AlphaTableIdUpdateDate):
     )
 
 class Logs(db.Model,AlphaTableIdUpdateDate):
+    __bind_key__        = 'main'
     __tablename__ = "logs"
 
     type_ = AlphaColumn(String(30))
@@ -46,6 +50,7 @@ class Logs(db.Model,AlphaTableIdUpdateDate):
     stack = AlphaColumn(Text)
 
 class Notification(db.Model,AlphaTableIdUpdateDate):
+    __bind_key__        = 'main'
     __tablename__ = "notification"
 
     user = AlphaColumn(Integer, ForeignKey('user.id'),
@@ -60,6 +65,7 @@ class Notification(db.Model,AlphaTableIdUpdateDate):
     element_id = AlphaColumn(Integer)
 
 class Tests(db.Model,AlphaTableIdUpdateDate):
+    __bind_key__        = 'main'
     __tablename__ = 'tests'
 
     category  = AlphaColumn(String(50))
@@ -72,6 +78,7 @@ class Tests(db.Model,AlphaTableIdUpdateDate):
     elapsed  = AlphaColumn(Float)
 
 class Request(db.Model,AlphaTable):
+    __bind_key__        = 'main'
     __tablename__ = "request"
 
     index = AlphaColumn(Integer, primary_key=True, autoincrement=True)
@@ -90,10 +97,13 @@ class Request(db.Model,AlphaTable):
     mimetype = AlphaColumn(String(30))
 
 class NewsLetter(db.Model,AlphaTableIdUpdateDate):
+    __bind_key__        = 'main'
+    __tablename__       = "newsletter"
     name  = AlphaColumn(String(100))
     mail  = AlphaColumn(String(50))
 
 class Test(db.Model,AlphaTableIdUpdateDate):
+    __bind_key__        = 'main'
     __tablename__ = 'test'
 
     name            = AlphaColumn(String(30))
@@ -102,6 +112,7 @@ class Test(db.Model,AlphaTableIdUpdateDate):
     date            = AlphaColumn(DateTime)
 
 class User(db.Model,AlphaTableId):
+    __bind_key__        = 'main'
     __tablename__ = 'user'
 
     username                    = AlphaColumn(String(30))
@@ -119,6 +130,7 @@ class User(db.Model,AlphaTableId):
     registration_code           = AlphaColumn(String(255))
 
 class Log(db.Model,AlphaTableIdUpdateDate):
+    __bind_key__        = 'main'
     __tablename__   = 'log'
 
     type            = AlphaColumn(String(30))
@@ -127,6 +139,7 @@ class Log(db.Model,AlphaTableIdUpdateDate):
     stack           = AlphaColumn(Text)
 
 class ProcesseLog(db.Model,AlphaTableIdUpdateDate):
+    __bind_key__        = 'main'
     __tablename__   = 'process_log'
 
     uuid            = AlphaColumn(String(36))
@@ -135,6 +148,7 @@ class ProcesseLog(db.Model,AlphaTableIdUpdateDate):
     status          = AlphaColumn(String(5))
 
 class UserSession(db.Model,AlphaTableId):
+    __bind_key__        = 'main'
     __tablename__   = 'user_session'
 
     user_id         = AlphaColumn(Integer)
@@ -143,6 +157,7 @@ class UserSession(db.Model,AlphaTableId):
     expire          = AlphaColumn(DateTime)
 
 class MailHistory(db.Model,AlphaTableIdUpdateDate):
+    __bind_key__        = 'main'
     __tablename__   = 'mail_history'
 
     uuid            = AlphaColumn(String(50))
@@ -152,6 +167,7 @@ class MailHistory(db.Model,AlphaTableIdUpdateDate):
     date            = AlphaColumn(DateTime)
 
 class MailBlacklist(db.Model,AlphaTableId):
+    __bind_key__        = 'main'
     __tablename__   = 'mail_blacklist'
     __table_args__  = (
         UniqueConstraint('mail', 'mail_type', name='unique_component_commit'),

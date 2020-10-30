@@ -2,6 +2,8 @@ import datetime
 from sqlalchemy import Table, Column, ForeignKey, Integer, String, Text, DateTime, UniqueConstraint
 from sqlalchemy.types import TypeDecorator
 
+from .utils import get_schema
+
 from core import core
 
 def repr(instance):
@@ -13,7 +15,9 @@ class AlphaColumn(Column):
     show = True
 
 class AlphaTable(object):
-    schema = None
+    def __init__(self):
+        self.schema = None
+        self.ensure = False
 
     """@declared_attr
     def __tablename__(self):
@@ -28,18 +32,7 @@ class AlphaTable(object):
     def get_schema(class_obj):
         if class_obj.schema is not None:
             return class_obj.schema
-
-        schema_name = type(class_obj).__name__ + 'Schema'
-        
-        #instance    = class_obj.__dict__['_sa_instance_state'].__dict__['class_']
-        columns     = [k for k,v in class_obj.__dict__.items() if hasattr(v,'show')]
-
-        class_obj.schema = type(schema_name, (core.ma.Schema,),
-            {
-                'Meta':type('Meta', (object,),{'fields':columns})
-            }
-        )
-        return class_obj.schema
+        return get_schema(class_obj)
 
 class AlphaTableId(AlphaTable):
     id =  AlphaColumn(Integer, primary_key=True, autoincrement=True)
