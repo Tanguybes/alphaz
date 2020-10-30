@@ -137,8 +137,8 @@ def unarchive_object(filename:str, ext:str=None):
         with open(filename, 'rb') as f:
             try:
                 object_to_get     = pickle.load(f)
-            except:
-                None
+            except Exception as ex:
+                print(ex)
     return object_to_get
 
 
