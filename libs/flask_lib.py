@@ -10,7 +10,6 @@ from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 TABLES = {}
 
-
 def get_definitions_modules(modules_list:List[ModuleType],log:AlphaLogger) -> List[ModuleType]:
     """[Get database table definitions from parent or children module list]
 
@@ -21,12 +20,13 @@ def get_definitions_modules(modules_list:List[ModuleType],log:AlphaLogger) -> Li
     Returns:
         List[ModuleType]: [description]
     """
-    from alphaz.models.database.models import AlphaTable
 
+    from alphaz.models.database.models import AlphaTable
+    main = None
     modules = []
 
     loaded_modules = []
-
+    # TODO replace ?
     for module_r in modules_list:
         module = importlib.import_module(module_r) if type(module_r) == str else module_r
         
@@ -64,6 +64,7 @@ def get_definitions_modules(modules_list:List[ModuleType],log:AlphaLogger) -> Li
                 
                 if not 'db' in sub_module.__dict__: continue
                 db = sub_module.__dict__['db']
+                if db.main and db.name != "main": main = db.name
 
                 if not db.name in TABLES:
                     TABLES[db.name] = {'db':db,'tables':{}}
@@ -74,26 +75,45 @@ def get_definitions_modules(modules_list:List[ModuleType],log:AlphaLogger) -> Li
                         table = obj
                         found = True
 
-                        TABLES[db.name]['tables'][obj.__tablename__] = obj
+                        TABLES[db.name]['tables'][obj.__tablename__.upper()] = obj
                 
                 if found:
                     modules.append(sub_module)
         else:
-            if not 'db' in module.__dict__: continue
-            db = module.__dict__['db']
+            elements = module.__dict__
+            if "alphaz" in module_r and "core" in elements:
+                db = elements["core"].db
+            elif not 'db' in elements: continue
+            else:
+                db = elements['db']
+
+            if db.main and db.name != "main": main = db.name
 
             if not db.name in TABLES:
-                TABLES[db.name] = {'db':db,'tables':{}}
+                tables = db.engine.table_names()
+                TABLES[db.name] = {'db':db,'tables':{x.upper():None for x in tables}}
 
-            for name, obj in module.__dict__.items():
-                if inspect.isclass(obj) and issubclass(obj,AlphaTable) and hasattr(obj,'__tablename__'):
+            for name, obj in elements.items():
+                is_class = inspect.isclass(obj)
+                if not is_class: continue 
+
+                alpha_model = issubclass(obj,AlphaTable)
+                has_table = hasattr(obj,'__tablename__')
+                if alpha_model and has_table:
                     table = obj
                     found = True
 
-                    TABLES[db.name]['tables'][obj.__tablename__] = obj
+                    TABLES[db.name]['tables'][obj.__tablename__.upper()] = obj
             
             if found:
                 modules.append(module)
+
+    if main and main in TABLES:
+        if not "main" in TABLES:
+            TABLES['main'] = TABLES[main]
+        else:
+            for table, obj in TABLES[main]["tables"].items():
+                TABLES["main"]["tables"][table] = obj 
 
     return modules
 

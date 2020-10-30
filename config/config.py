@@ -152,9 +152,8 @@ class AlphaConfig(AlphaClass):
         self._configure_databases()
 
         if self.core_configuration: 
-            sequence = ', '.join(["%s=%s%s"%(tmp, tmp_value, '*' if tmp+'s' in self.data_tmp else ' ') for tmp, tmp_value in self.tmp.items() ])
+            sequence = ', '.join(["%s=<%s>%s"%(tmp, tmp_value, '*' if tmp+'s' in self.data_tmp else '') for tmp, tmp_value in self.tmp.items() ])
             self.info('Configuration %s initiated for: %s'%(self.filepath,sequence))
-            self.show()
 
     def _set_sub_configurations(self):
         config = self.data
@@ -345,7 +344,7 @@ class AlphaConfig(AlphaClass):
             exit()
         return value
 
-    def get(self,path=[],root=True,default=None,force_exit=False):
+    def get(self,path=[],root=True,default=None,force_exit=False,configuration=None):
         value       = self._get_parameter_path(path)
         if value is None and root:
             value   = self._get_value_from_main_config(path,force_exit=force_exit)
@@ -382,8 +381,9 @@ class AlphaConfig(AlphaClass):
         return parameters
 
     def _configure_databases(self):
-        if self.is_path('databases'):
-            config = self.get("databases")
+        if not self.is_path('databases'): return
+
+        config = self.get("databases")
         # Databases
         structure   = {'name':None,'required':False,'value':None}
 
@@ -458,6 +458,7 @@ class AlphaConfig(AlphaClass):
 
         self.db_cnx = db_cnx
 
+        # TODO: remove self.databases elements ? 
         for db_name in self.databases:
             if self.databases[db_name].log is None:
                 self.databases[db_name].log = self.log
@@ -560,7 +561,7 @@ class AlphaConfig(AlphaClass):
         return self.filepath + ": " + " - ".join("%s=%s"%(x,y) for x,y in self.tmp.items() if not raw or x != 'configuration')
 
     def _process_tmps(self):
-        to_process = ['user',"ips","platforms"]
+        to_process = ["user","ip","platform"]
 
         for name in to_process:
             if name + 's' in self.data_origin:
@@ -615,7 +616,7 @@ class AlphaConfigurations(object):
             'data_origin': config.data_origin,
             'data_tmp': config.data_tmp,
             "data": config.data,
-            "sub_configurations_paths": {x.filepath:x.data_origin for x in config.sub_configurations}
+            "sub_configurations_paths": {x.filepath:x.data_origin for x in config.sub_configurations.values()}
         }
         try:
             self._configurations[key] = dataset

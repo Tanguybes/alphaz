@@ -17,7 +17,6 @@ import flask_monitoringdashboard
 from ...libs import mail_lib
 from ...libs import flask_lib
 from ...libs import io_lib
-from ...libs import database_lib
 
 from ...utils.logger import AlphaLogger
 from ...models.main import AlphaException
@@ -91,16 +90,18 @@ class AlphaFlask(Flask):
         self.dataGet = {}
 
     def set_databases(self,db_cnx):
-        if 'main' in db_cnx:
-            uri = db_cnx['main']['cnx']
-            if ':///' in uri:
-                io_lib.ensure_file(uri.split(':///')[1])
-            db_type = db_cnx['main']['type']
+        if not 'main' in db_cnx:
+            self.log.error('You must define a <main> database')
+            exit()
 
-            self.config['SQLALCHEMY_DATABASE_URI'] = uri
+        uri = db_cnx['main']['cnx']
+        if ':///' in uri:
+            io_lib.ensure_file(uri.split(':///')[1])
+        db_type = db_cnx['main']['type']
+        self.config['SQLALCHEMY_DATABASE_URI'] = uri
 
         for key, cf_db in db_cnx.items():
-            self.config['SQLALCHEMY_BINDS'] = {x:y['cnx'] for x,y in db_cnx.items() if x != 'main'}
+            self.config['SQLALCHEMY_BINDS'] = {x:y['cnx'] for x,y in db_cnx.items()}
 
         #self.api.config['MYSQL_DATABASE_CHARSET']           = 'utf8mb4'
         #self.api.config['QLALCHEMY_TRACK_MODIFICATIONS']    = True
@@ -298,15 +299,12 @@ class AlphaFlask(Flask):
     def get_return(self,forceData=False, return_status=None):
         self.returned['data'] = {}
         
-        if self.data is not None:
-        #if self.data is not None and (len(self.data) > 0 or forceData):
-            data = self.data
+        data = {} if self.data is None else self.data
 
         # Convert
+        self.returned['data'] = data
         if not check_format(data):
-            self.returned['data'] = _converters.jsonify_data(data)
-        else:
-            self.returned['data'] = data
+            self.returned['data'] = _converters.jsonify_data(data)           
 
         format_ = 'json'
         if 'format' in self.dataGet:

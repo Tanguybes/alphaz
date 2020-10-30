@@ -37,7 +37,7 @@ def get_tests_auto(
 
     for tests_module in tests_modules:
         try:
-            log.error('Loading test module <%s>'%tests_module)
+            log.info('Loading test module <%s>'%tests_module)
             module              = importlib.import_module(tests_module)
         except Exception as ex:
             log.error('Cannot load test module <%s>'%tests_module,ex=ex)

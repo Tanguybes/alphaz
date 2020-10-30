@@ -10,10 +10,13 @@ from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql.expression import or_, and_, all_
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.engine.reflection import Inspector
+
+from .utils import get_schema
 
 from ...utils.logger import AlphaLogger
 
-from ...libs import database_lib
+#from ...libs import database_lib
 from ...models.main import AlphaException
 
 def get_compiled_query(query):
@@ -70,6 +73,7 @@ class AlphaDatabaseCore(SQLAlchemy):
             log: AlphaLogger = None, 
             config = None, 
             timeout: int = None, 
+            main: bool = False,
             **kwargs
             ):
 
@@ -90,6 +94,7 @@ class AlphaDatabaseCore(SQLAlchemy):
         super().__init__(*args,engine_options = engine_options,**kwargs)
 
         self.name: str = name
+        self.main = main
 
         self.config = config
         self.log: AlphaLogger = log 
@@ -252,16 +257,28 @@ class AlphaDatabase(AlphaDatabaseCore):
             return True
         return False
 
-    def exist(self,model):
-        try:
-            instance = self.session.query(model).first()
-            return True
-        except Exception as ex:
-            self.log.error(ex=ex)
-            return False
-    
     def ensure(self,table_name:str,drop:bool=False):
-        request_model    = database_lib.get_table(self,self.name, table_name)
+        inspector = Inspector.from_engine(self.engine)
+        tables = inspector.get_table_names() 
+        if not table_name.lower() in tables:
+            request_model    = core.get_table(self, self.name, table_name)
+
+            self.log.info('Creating <%s> table in <%s> database'%(table_name,self.name))
+            try:
+                request_model.__table__.create(self.engine)
+            except Exception as ex:
+                if drop:
+                    self.log.info('Drop <%s> table in <%s> database'%(table_name,self.name))
+                    request_model.__table__.drop(self.engine)
+                    self.ensure(table_name)
+                else:
+                    self.log.error(ex)
+                    
+        """
+        #if not cls.__tablename__ in cls.metadata.tables:
+        #    cls.metadata.create_all()
+        # ensure tests
+        
         if not self.exist(request_model):
             self.log.info('Creating <%s> table in <%s> database'%(table_name,self.name))
             try:
@@ -273,7 +290,16 @@ class AlphaDatabase(AlphaDatabaseCore):
                     self.ensure(table_name)
                 else:
                     self.log.error(ex)
+        """
 
+    def exist(self,model):
+        try:
+            instance = self.session.query(model).first()
+            return True
+        except Exception as ex:
+            self.log.error(ex=ex)
+            return False
+    
     def select(self,model,
             filters:list=None,
             first:bool=False,
@@ -333,11 +359,14 @@ class AlphaDatabase(AlphaDatabaseCore):
 
         results_json = {}
         if hasattr(model,"schema"):
-            schema          = model.get_schema()
-            structures      = schema(many=True) if not first else schema()
-            results_json    = structures.dump(results)
+            schema      = model.get_schema()
         else:
             self.log.error('Missing schema for model <%s>'%str(model.__name__))
+            schema      = get_schema(model)
+
+        structures      = schema(many=True) if not first else schema()
+        results_json    = structures.dump(results)
+
         self.query_str      = get_compiled_query(query)
         self.log.debug(self.query_str)
 
