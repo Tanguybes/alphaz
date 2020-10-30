@@ -6,104 +6,14 @@ from typing import List, Dict
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
-from . import utils
+from .utils import *
 
 from ..libs import converter_lib, sql_lib, io_lib
 from ..utils.logger import AlphaLogger
 from ..models.main import AlphaClass
 
-PAREMETER_PATTERN = '{{%s}}'
-
-def ensure_path(dict_object,paths=[],value=None):
-    if len(paths) == 0: 
-        return
-
-    if not paths[0] in dict_object:
-        dict_object[paths[0]] = {}
-
-    if len(paths) == 1 and value is not None:
-        dict_object[paths[0]] = value
-        return
-
-    ensure_path(dict_object[paths[0]],paths[1:],value=value)
-
-def ensure_filepath(name:str,filepath:str,root:str,filename:str):
-    name = name.split('/')[-1]
-    if filepath is not None:    
-        if not filepath[-5:] == '.json':
-            filepath    = filepath + '.json'
-
-        filename        = os.path.basename(filepath).split('.')[0]
-        if root is None:
-            root        = os.path.abspath(filepath).replace('%s.json'%filename,'')
-        if name == 'config':
-            name        = filename
-
-    if root is None:
-        stack           = inspect.stack()
-        parentframe     = stack[1]
-        module          = inspect.getmodule(parentframe[0])
-        filename_frame  = parentframe.filename
-        current_path    = os.getcwd()
-        root            = current_path
-    
-    if filename is None:
-        filename        = name.lower()
-
-    filepath       = root + os.sep + filename + '.json'
-    return name, filepath, root, filename
-
-class AlphaConfigurations(object):
-    _name = 'configs'
-    _instance = None
-    _configurations: Dict[str,object] = {}
-
-    def __new__(cls):
-        try:
-            cls._instance = io_lib.unarchive_object(AlphaConfigurations._name)
-        except Exception as ex:
-            print(ex)
-
-        if not cls._instance:
-            cls._instance = object.__new__(cls)
-        return cls._instance
-
-    def get_configuration(self,path:str):
-        if path in self._configurations:
-            return self._configurations[path]
-        return None
-
-    def set_configuration(self,path:str, config):
-        self._configurations[path] = config
-        io_lib.archive_object(self, self._name)
-
-CONFIGURATIONS = AlphaConfigurations()
-
 class AlphaConfig(AlphaClass):
-    reserved    =  ['user']
-
-    def __new__(cls,
-            name: str='config',
-            filepath: str=None,
-            root: str=None,
-            filename: str=None,
-            log: AlphaLogger=None,
-            configuration: str=None,
-            logger_root: str=None,
-            data: dict=None,
-            origin=None
-            ):
-
-        name, filepath, root, filename = ensure_filepath(name, filepath, root, filename)
-        #key = "%s - %s - %s"%(name,filepath,configuration)
-
-        instance = CONFIGURATIONS.get_configuration(filepath)
-        if instance is not None:
-            return instance
-
-        instance = super(AlphaConfig, cls).__new__(cls)
-        instance.__init__(name, filepath, root, filename, log, configuration, logger_root, data, origin)
-        return instance
+    reserved    =  ['user','configuration','project','ip','platform']
 
     def __init__(self,
             name: str = 'config',
@@ -116,28 +26,27 @@ class AlphaConfig(AlphaClass):
             data: dict = None,
             origin = None
             ):
-
         if hasattr(self, 'tmp'): return
+
+        name, filepath, root, filename = ensure_filepath(name, filepath, root, filename)
+
         self.name = name
         self.filepath = filepath
         self.root = root
         self.filename = filename
-        self.configuration:str = configuration
+        self.configuration: str = configuration
         self.logger_root = logger_root
         self.origin = origin
+        self.sub_configurations = {}
 
         super().__init__(log=log)
 
         self.tmp         = {}
-        self.data_origin = {}
 
-        self.data        = {}
-        self.data_env    = {}
-        self.data_user   = {}
-        self.data_platform = {}
-        self.data_ip     = {}
+        self.data_tmp    = {}
+        self.data_origin = data if data is not None else {}
+        self.data        = data if data is not None else {}
 
-        self.exist       = False
         self.valid       = True
         self.loaded      = False
 
@@ -154,51 +63,119 @@ class AlphaConfig(AlphaClass):
 
         self.log            = log
 
-        if data:
-            self.data_origin  = data
-            self.data         = data
-        else:
-            self.load_raw()
+        try:
+            self._load_raw()
+        except Exception as ex:
+            print('Cannot read configuration file %s:%s'%(self.filepath,ex))
+            exit()
 
         if data is None and configuration is not None:
             self.set_configuration(configuration)
+        else:
+            self._load()
 
-        if configuration is None:
-            self.auto_configuration()
-
-        CONFIGURATIONS.set_configuration(self.filepath, self)
-
-    def auto_configuration(self):
-        configuration = None
-        if 'configuration' in self.data_origin:
-            configuration = self.data_origin['configuration']
-        elif 'default_configuration' in self.data_origin:
-            configuration = self.data_origin['default_configuration']
-        if configuration is not None:
-            self.set_configuration(configuration)
-
-    def set_configuration(self,configuration):
-        if len(self.tmp) != 0:
-            self.data_origin = {x:y for x,y in self.data_origin.items() if x not in self.tmp}
-
+    def set_configuration(self, configuration):
         if configuration is None:
             self.error('Configuration need to be explicitely specified in configuration call or config file for %s file'%self.filepath)
             return 
+            
+        self._clean()
 
         self.configuration = configuration
-        self.info('Setting <%s> configuration for file %s'%(configuration,self.filepath))
-                
-        if os.path.isfile(self.filepath):
-            self.exist = True
-            #self.add_tmp('configuration',configuration)
-            self.load(configuration)
-            self.check_required()
-        else:
-            self.error('Config file %s does not exist !'%self.filepath)
-            exit()
+        self.info('Setting <%s> configuration for file %s'%(configuration, self.filepath))
+        self._load()
+
+    def _clean(self):
+        # remove tmp from data_origin
+        if len(self.tmp) != 0:
+            self.data_origin = {x:y for x, y in self.data_origin.items() if x not in self.tmp}
+
+    def _load(self):
+        self._check_reserved()
+        
+        self._set_tmps()
+
+        # configuration
+        if "configurations" in self.data_origin:
+            configurations = self.data_origin["configurations"]
+            
+            default_configuration = None
+            if "default_configuration" in self.data_origin:
+                default_configuration = self.data_origin['default_configuration']
+
+            if self.configuration is not None and self.configuration in configurations:
+                self.data_tmp['configurations'] = configurations[self.configuration]
+            elif default_configuration is not None and default_configuration in configurations:
+                self.data_tmp['configurations'] = configurations[default_configuration]
+
+        self._add_tmp('configuration', self.configuration)
+
+        # check if loaded
+        if not CONFIGURATIONS.load_configuration(self):
+            self._process_tmps()
+            self._init_data()
+            CONFIGURATIONS.set_configuration(self)
+
+        self._check_required()
+
+        self._set_sub_configurations()
+
+        self._configure()
+
+    """def set_data(self,value,paths=[]):
+        ensure_path(self.data_origin,paths,value=value)"""
+
+    def _init_data(self):
+        config          = copy.deepcopy(self.data_origin)
+        for key, values in self.data_tmp.items():
+            merge_configuration(config, values, replace=True)
+            del config[key]
+
+        self.data = self._replace_parameters(config)
+
+    def _configure(self):
+        # Paths
+        if self.is_path("paths"):
+            for path in self.get("paths"):
+                sys.path.append(path)
+
+        if self.is_path("envs"):
+            for env, value in self.get("envs").items():
+                os.environ[env] = value
+
+        self.core_configuration = self.get('core_configuration', root=False)
+        if not self.core_configuration:
+            return
+
+        self._set_loggers()
+        self._configure_databases()
+
+        if self.core_configuration: 
+            sequence = ', '.join(["%s%s"%(tmp, '*' if tmp+'s' in self.data_tmp else ' ') for tmp, tmp_value in self.tmp.items() ])
+            self.info('Configuration %s initiated for: %s'%(self.filepath,sequence))
+
+    def _set_sub_configurations(self):
+        config = self.data
+        # get sub configurations
+        self.sub_configurations = {}
+        configs_values, paths = get_configs_from_config(config, path=None)
+        for i, values in enumerate(configs_values):
+            config_path = values[0]
+            if not config_path in sub_configurations:
+                name                            = config_path.split(os.sep)[-1]
+                self.sub_configurations[config_path] = AlphaConfig(name=name,filepath=config_path,
+                    log=self.log,
+                    configuration=self.configuration,
+                    logger_root=self.logger_root,
+                    origin=self
+                )
+
+        # replace sub configurations
+        set_paths(config,paths,configs_values,self.sub_configurations,types='configs')
+        self.data = config
 
     def get_config(self,path=[],configuration=None):
-        path = self.get_path(path)
+        path = self._get_path(path)
         config_data = self.get(path)
         if config_data is None:
             return None
@@ -214,181 +191,18 @@ class AlphaConfig(AlphaClass):
         )
         return config
 
-    def check_required(self):
-        if not 'required' in self.data:
-            return
 
-        for path in self.data['required']:
-            if not self.is_path(path):
-                self.log.error("Missing '%s' key in config file"%('/'.join(path)))
-                self.valid = False
 
-    def __check_reserved(self):
-        for reserved_name in self.reserved:
-            if reserved_name in self.data_origin:
-                self.error('"%s" entry in configuration %s is reserved'%(reserved_name,self.filepath))
-                exit()
 
-    def add_tmp(self,name,value):
-        if name in self.data_origin:
-            self.error('<%s> entry in configuration %s is reserved'%(name,self.filepath))
-            exit()
-
-        self.tmp[name]          = value
-        self.data_origin[name]  = value
-
-    def load_raw(self):
-        if not self.loaded:
-            with open(self.filepath) as json_data_file:
-                self.data_origin = json.load(json_data_file)
-                self.loaded = True
-
-    def load(self,configuration):
-        try:
-            self.load_raw()
-        except Exception as ex:
-            print('Cannot read configuration file %s:%s'%(self.filepath,ex))
-            exit()
-        
-        self.__check_reserved()
-
-        if "configurations" in self.data_origin:
-            configurations = self.data_origin["configurations"]
-            
-            default_configuration = None
-            if "default_configuration" in self.data_origin:
-                default_configuration = self.data_origin['default_configuration']
-
-            if configuration is not None and configuration in configurations:
-                self.data_env = configurations[configuration]
-            elif default_configuration is not None and default_configuration in configurations:
-                self.data_env = configurations[default_configuration]
-
-        self.configuration = configuration
-
-        self.add_tmp('configuration',configuration)
-        self.add_tmp('run',os.getcwd())
-        self.add_tmp('project',os.getcwd())
-
-        user = getpass.getuser()
-        user_configured = False
-        self.add_tmp('user',user)
-
-        if "users" in self.data_origin:
-            users = self.data_origin["users"]
-            
-            if user in users:
-                self.data_user = self.data_origin["users"][user]
-
-        current_ip = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
-        ip_configured = False
-        self.add_tmp('ip',current_ip)
-        if "ips" in self.data_origin:
-            ips = self.data_origin["ips"]
-            if current_ip in ips:
-                self.data_ip = self.data_origin["ips"][current_ip]
-
-        system_platform    = platform.system()
-        platform_configured = False
-        self.add_tmp('platform',system_platform)
-        if "platforms" in self.data_origin:
-            platforms = self.data_origin["platforms"]
-
-            if system_platform.lower() in platforms:
-                self.data_platform = self.data_origin["platforms"][system_platform.lower()]
-
-        self.init_data()
-
-        if self.core_configuration: 
-            self.info('Configuration %s initiated for user <%s%s>, %s%s ip and <%s%s> platform'%(self.filepath,user,'' if not user_configured else "*",current_ip,'' if not ip_configured else "*",system_platform,'' if not platform_configured else "*" ))
-
-    def show(self):
-        show(self.data)
-
-    def save(self):
-        self.info('Save configuration file at %s'%self.filepath)
-
-        for name in self.tmp:
-            if name in self.data_origin:
-                del self.data_origin['user']
-
-        with open(self.filepath,'w') as json_data_file:
-            json.dump(self.data_origin,json_data_file, sort_keys=True, indent=4)
-            
-    def set_data(self,value,paths=[]):
-        ensure_path(self.data_origin,paths,value=value)
-
-    def is_parameter_path(self,parameters,data=None):
-        if type(parameters) == str:
-            parameters  = [parameters]
-        if data is None:
-            data = self.data
-        if len(parameters) == 0:
-            return True
-        if parameters[0] not in data:
-            return False
-        return self.is_parameter_path(parameters[1:],data[parameters[0]])
-
-    def is_path(self,parameters,data=None):
-        return self.is_parameter_path(parameters,data=data)
-
-    def set_sub_configurations(self):
-        config = self.data
-        # get sub configurations
-        sub_configurations = {}
-        configs_values, paths = get_configs_from_config(config, path=None)
-        for i, values in enumerate(configs_values):
-            config_path = values[0]
-            if not config_path in sub_configurations:
-                name                            = config_path.split(os.sep)[-1]
-                sub_configurations[config_path] = AlphaConfig(name=name,filepath=config_path,
-                    log=self.log,
-                    configuration=self.configuration,
-                    logger_root=self.logger_root,
-                    origin=self
-                )
-
-        # replace sub configurations
-        set_paths(config,paths,configs_values,sub_configurations,types='configs')
-        self.data = config
-
-    def init_data(self):
-        config          = copy.deepcopy(self.data_origin)
-        config_env      = copy.deepcopy(self.data_env)
-        config_user     = copy.deepcopy(self.data_user)
-        config_ip       = copy.deepcopy(self.data_ip)
-        config_platform = copy.deepcopy(self.data_platform)
-        
-        utils.merge_configuration(config,config_ip,replace=True)
-        utils.merge_configuration(config,config_platform,replace=True)
-        utils.merge_configuration(config,config_user,replace=True)
-        utils.merge_configuration(config,config_env,replace=True)
-
-        if 'users' in config:
-            del config['users']
-
-        debug = False
-
-        self.replace_parameters(config)
-        self.set_sub_configurations()
-
-        if "paths" in config:
-            for path in config["paths"]:
-                sys.path.append(path)
-
-        self.core_configuration = self.get('core_configuration',root=False)
-        if not self.core_configuration:
-            return
-
+    def _set_loggers(self):
         # loggers
         self.logger_root = self.get("directories/logs")
         if self.logger_root is None:
             self.error('Missing "directories/logs" entry in configuration file %s'%self.filepath)
             exit()
 
-        colors = self.get("colors/loggers")
-
         # log
+        colors = self.get("colors/loggers")
         if self.log is None:
             log_filename        = "alpha" #type(self).__name__.lower()
             self.log            = AlphaLogger(type(self).__name__,log_filename,root=self.logger_root,colors=colors)
@@ -419,14 +233,155 @@ class AlphaConfig(AlphaClass):
             )
             self.loggers[main_logger_name] = self.log
 
-        if 'databases' in config:
-            self.configure_databases(config["databases"])
+    def _replace_parameters(self,config):
+        """Replace parameters formatted has {{<parameter>}} by their values in a json dict
+        
+        Arguments:
+            config {dict} -- json dict to analyse and replace parameters formatted has {{<parameter>}}
+        
+        Returns:
+            dict -- the input dict with parameters replace by their values
+        """
 
-        if self.is_path("envs"):
-            for env, value in self.get("envs").items():
-                os.environ[env] = value
+        parameters_name, paths = get_parameters_from_config(config, path=None)
+        """
+            paths                                    parameters_name
+            tests / save_directory                   save_root
+            files / google-taxonomy / file_path      sources & file_name
+            ips / 62.210.244.105 / web / root        root
+            save_root                                root & project_name
+            sqllite_path                             root
+            web / api_root                           root
+        """
+        parameters = list(set([x for sublist in parameters_name for x in sublist]))
 
-    def configure_databases(self,config):
+        parameters_value    = {}
+        for parameter in parameters:
+            # ([3306, 3308], [['variables'], []])
+            if '/' in parameter:
+                parameter = parameter.split('/')
+            values_paths          = search_it(config, parameter)
+
+            # take the first value if any
+            if len(values_paths) != 0 and len(values_paths[0]) != 0:
+                values, pths               = values_paths
+
+                index, path_len = 0, None
+
+                lenghts = [len(x) for x in pths]
+                indexs  = np.where(lenghts == np.amin(lenghts))[0]
+                
+                if len(indexs) == 0:
+                    value                       = self.get(parameter)
+                elif len(indexs) == 1:
+                    value                       = values[indexs[0]]
+                else:
+                    self.error('Too many possible value at the same level are specified for parameter <%s>'%parameter)
+                    exit()
+                
+                if isinstance(parameter,list):
+                    parameter = '/'.join(parameter)
+                parameters_value[parameter] = value
+            else:
+                if isinstance(parameter,list):
+                    parameter = '/'.join(parameter)
+                value = self.get(parameter, force_exit=True)
+                parameters_value[parameter]                       = value
+
+        l = 0
+        set_parameter_value(parameters_value,l)
+
+        # Replace parameters values
+        set_paths(config,paths,parameters_name,parameters_value,types='parameters')
+
+        # check parameters
+        parameters_name, paths = get_parameters_from_config(config, path=None)
+        if len(parameters_name) != 0:
+            parameters = list(set([x[0] for x in parameters_name if len(x) != 0]))
+            for i in range(len(parameters)):
+                self.error('Missing parameter "%s" in configuration %s'%(parameters[i],self.filepath))
+            if len(parameters) != 0:
+                exit()
+        return config
+
+    def get_logger(self,name='main',default_level='INFO') -> AlphaLogger:
+        if not 'main' in self.loggers:
+            self.loggers['main'] = AlphaLogger(
+                name,
+                filename    = 'main',
+                root        = self.logger_root,
+                level       = default_level,
+                colors      = self.get("colors/loggers")
+            )
+        if name not in self.loggers:
+            self.warning('%s is not configured as a logger in %s'%(name,self.filepath))
+            """log = AlphaLogger(
+                name,
+                filename    = name,
+                root        = self.logger_root,
+                level       = default_level,
+                colors      = self.get("colors/loggers")
+            )"""
+            return self.loggers['main']
+        return  self.loggers[name] 
+
+    def _get_value_from_main_config(self,parameter,force_exit=False):
+        value = None
+        if self.origin is not None:
+            value = self.origin.get(parameter)
+            if value is not None:
+                return value 
+
+        if self.name != 'config':
+            if self.origin is not None:
+                value = self.origin.get(parameter)
+                if value is not None:
+                    return value
+
+        if force_exit:
+            self.error('No value is specified for <%s> in %s'%(parameter, self.filepath))
+            exit()
+        return value
+
+    def get(self,path=[],root=True,default=None,force_exit=False):
+        value       = self._get_parameter_path(path)
+        if value is None and root:
+            value   = self._get_value_from_main_config(path,force_exit=force_exit)
+        return value if value is not None else default
+
+    def _get_parameter_path(self,parameters,data=None,level=1):
+        parameters = self._get_path(parameters)
+        if parameters == '':
+            return self.data
+
+        if data is None:
+            data = self.data
+
+        not_init = parameters[0] not in self.data_origin and parameters[0] not in self.tmp
+
+        if parameters[0] not in data and not_init:
+            return None
+
+        if len(parameters) == 1:
+            if parameters[0] in data:
+                return data[parameters[0]]
+            if parameters[0] in self.data_origin:
+                return self.data_origin[parameters[0]]
+            if parameters[0] in self.tmp:
+                return self.tmp[parameters[0]]
+
+        return self._get_parameter_path(parameters[1:],data[parameters[0]],level = level + 1)
+
+    def _get_path(self,parameters):
+        if type(parameters) == str and '/' in parameters:
+            parameters = parameters.split('/')
+        if type(parameters) == str:
+            parameters = [parameters]
+        return parameters
+
+    def _configure_databases(self):
+        if self.is_path('databases'):
+            config = self.get("databases")
         # Databases
         structure   = {'name':None,'required':False,'value':None}
 
@@ -513,401 +468,157 @@ class AlphaConfig(AlphaClass):
                     continue
                 log.database = self.databases[log.database_name]
 
-    def get_logger(self,name='main',default_level='INFO') -> AlphaLogger:
-        if not 'main' in self.loggers:
-            self.loggers['main'] = AlphaLogger(
-                name,
-                filename    = 'main',
-                root        = self.logger_root,
-                level       = default_level,
-                colors      = self.get("colors/loggers")
-            )
-        if name not in self.loggers:
-            self.warning('%s is not configured as a logger in %s'%(name,self.filepath))
-            """log = AlphaLogger(
-                name,
-                filename    = name,
-                root        = self.logger_root,
-                level       = default_level,
-                colors      = self.get("colors/loggers")
-            )"""
-            return self.loggers['main']
-        return  self.loggers[name] 
-
-    def get(self,path=[],root=True,default=None):
-        value       = self.get_parameter_path(path)
-        if value is None and root:
-            value   = self.get_value_from_main_config(path)
-        return value if value is not None else default
-
-    def get_path(self,parameters):
-        if type(parameters) == str and '/' in parameters:
-            parameters = parameters.split('/')
-        if type(parameters) == str:
-            parameters = [parameters]
-        return parameters
-
-    def get_parameter_path(self,parameters,data=None,level=1):
-        parameters = self.get_path(parameters)
-        if parameters == '':
-            return self.data
-
-        if data is None:
-            data = self.data
-
-        if parameters[0] not in data and parameters[0] not in self.data_origin:
-            return None
-        if len(parameters) == 1:
-            if parameters[0] in data:
-                return data[parameters[0]]
-            if parameters[0] in self.data_origin:
-                return self.data_origin[parameters[0]]
-
-        return self.get_parameter_path(parameters[1:],data[parameters[0]],level = level + 1)
-
     def get_database(self,name):
         if name in self.databases:
             return self.databases[name]
         return None
 
-    def get_value_from_main_config(self,parameter,force_exit=False):
-        value = None
-        if self.origin is not None:
-            value = self.origin.get(parameter)
-            if value is not None:
-                return value 
+    def is_parameter_path(self,parameters,data=None):
+        if type(parameters) == str:
+            parameters = [parameters]
+        if data is None:
+            data = self.data
+        if len(parameters) == 0:
+            return True
+        if parameters[0] not in data:
+            return False
+        return self.is_parameter_path(parameters[1:], data[parameters[0]])
 
-        if self.name != 'config':
-            if self.origin is not None:
-                value = self.origin.get(parameter)
-                if value is not None:
-                    return value   
-        if force_exit:
-            self.error('No value is specified for <%s> in %s'%(parameter,self.filepath))
-            exit()
-        return value            
+    def is_path(self,parameters,data=None):
+        return self.is_parameter_path(parameters,data=data)
 
-    def replace_parameters(self,config):
-        """Replace parameters formatted has {{<parameter>}} by their values in a json dict
-        
-        Arguments:
-            config {dict} -- json dict to analyse and replace parameters formatted has {{<parameter>}}
-        
-        Returns:
-            dict -- the input dict with parameters replace by their values
-        """
+    def save(self):
+        self.info('Save configuration file at %s'%self.filepath)
 
-        parameters_name, paths = get_parameters_from_config(config, path=None)
-        """
-            paths                                    parameters_name
-            tests / save_directory                   save_root
-            files / google-taxonomy / file_path      sources & file_name
-            ips / 62.210.244.105 / web / root        root
-            save_root                                root & project_name
-            sqllite_path                             root
-            web / api_root                           root
-        """
-        parameters = list(set([x for sublist in parameters_name for x in sublist]))
+        self._clean()
 
-        parameters_value    = {}
-        for parameter in parameters:
-            # ([3306, 3308], [['variables'], []])
-            if '/' in parameter:
-                parameter = parameter.split('/')
-            values_paths          = search_it(config, parameter)
+        with open(self.filepath,'w') as json_data_file:
+            json.dump(self.data_origin,json_data_file, sort_keys=True, indent=4)
 
-            # take the first value if any
-            if len(values_paths) != 0 and len(values_paths[0]) != 0:
-                values, pths               = values_paths
+    def show(self):
+        show(self.data)
 
-                index, path_len = 0, None
+    def _load_raw(self):
+        if not self.loaded:
+            with open(self.filepath) as json_data_file:
+                try:
+                    self.data_origin = json.load(json_data_file)
+                except Exception as ex:
+                    print('Configuration file %s is invalid: %s'%(self.filepath, ex))
+                self.loaded = True
+        """if os.path.isfile(self.filepath):
+            self.exist = True
+            #self._add_tmp('configuration',configuration)
+        else:
+            self.error('Config file %s does not exist !'%self.filepath)
+            exit()"""
 
-                lenghts = [len(x) for x in pths]
-                indexs  = np.where(lenghts == np.amin(lenghts))[0]
-                
-                if len(indexs) == 0:
-                    value                       = self.get_value_from_main_config(parameter)
-                elif len(indexs) == 1:
-                    value                       = values[indexs[0]]
-                else:
-                    self.error('Too many possible value at the same level are specified for parameter <%s>'%parameter)
-                    exit()
-                
-                if isinstance(parameter,list):
-                    parameter = '/'.join(parameter)
-                parameters_value[parameter] = value
-            else:
-                if isinstance(parameter,list):
-                    parameter = '/'.join(parameter)
-                value = self.get_value_from_main_config(parameter,force_exit=True)
-                parameters_value[parameter]                       = value
+    def _check_required(self):
+        if not 'required' in self.data:
+            return
 
-        l = 0
-        set_parameter_value(parameters_value,l)
+        for path in self.data['required']:
+            if not self.is_path(path):
+                self.log.error("Missing '%s' key in config file"%('/'.join(path)))
+                self.valid = False
 
-        # Replace parameters values
-        set_paths(config,paths,parameters_name,parameters_value,types='parameters')
-
-        # check parameters
-        parameters_name, paths = get_parameters_from_config(config, path=None)
-        if len(parameters_name) != 0:
-            parameters = list(set([x[0] for x in parameters_name if len(x) != 0]))
-            for i in range(len(parameters)):
-                self.error('Missing parameter "%s" in configuration %s'%(parameters[i],self.filepath))
-            if len(parameters) != 0:
+    def _check_reserved(self):
+        for reserved_name in self.reserved:
+            if reserved_name in self.data_origin:
+                self.error("<%s> entry in configuration %s is reserved"%(reserved_name,self.filepath))
                 exit()
 
-        self.data = config
+    def _add_tmp(self,name,value):
+        if name in self.data_origin:
+            self.error('<%s> entry in configuration %s is reserved'%(name,self.filepath))
+            exit()
+
+        self.tmp[name]          = value
+        #self.data_origin[name]  = value # TODO: check
+
+    def get_tmp(self,name):
+        if not name in self.tmp: return None
+        return self.tmp[name]
+
+    def _set_tmps(self):
+        # tmps
+        self._add_tmp('project', os.getcwd())
+
+        # USER
+        user = getpass.getuser()
+        self._add_tmp('user',user)
+
+        current_ip = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
+        self._add_tmp('ip',current_ip)
+
+        system_platform    = platform.system().lower()
+        self._add_tmp('platform',system_platform)
+
+    def get_key(self,raw=False):
+        return self.filepath + ": " + " - ".join("%s=%s"%(x,y) for x,y in self.tmp.items() if not raw or x != 'configuration')
+
+    def _process_tmps(self):
+        to_process = ['user',"ips","platforms"]
+
+        for name in to_process:
+            if name + 's' in self.data_origin:
+                users = self.data_origin[name + 's']
+                if self.get_tmp(name) in users:
+                    self.data_tmp[name + 's'] = self.data_origin[name + 's'][self.get_tmp(name)]
 
 
-def show(config,level=0):
-    for key, cf in config.items():
-        val = '' if type(cf) == dict else str(cf)
-        print('{} {:30} {}'.format('   '*level,key,val))
-        if type(cf) == dict:
-            show(cf,level + 1)
+class AlphaConfigurations(object):
+    _name = 'configs'
+    _instance = None
 
-# config,paths,configs_values,sub_configurations,types='configs'
-def set_paths(config,paths,parameters_values,parameters_value,types=None):
-    levels = list(set([len(x) for x in paths]))
+    def __new__(cls):
+        if not cls._instance:
+            cls._instance = object.__new__(cls)
+        return cls._instance
 
-    for level in levels:
-        for i in range(len(parameters_values)):
-            if len(paths[i]) == level:
-                set_path(config, paths[i], parameters_values[i], parameters_value,types)
+    def __init__(self):
+        self._configurations = {}
+        loaded_configurations = io_lib.unarchive_object(self._name)
+        if type(loaded_configurations) == dict:
+            for key, values in loaded_configurations.items():
+                if self._is_valid_configuration(values):
+                    self._configurations[key] = values
 
-def set_path(config,path,parameters,parameters_values,types=None):
-    if len(path) == 1:
-        if types == 'parameters':
-            value   = config[path[0]]
-            for parameter in parameters:
-                if parameter in parameters_values:
-                    parameter_value     = parameters_values[parameter]
-                    if value == PAREMETER_PATTERN%parameter:
-                        value           = parameter_value
-                    elif PAREMETER_PATTERN%parameter in str(value):
-                        value           = value.replace(PAREMETER_PATTERN%parameter,str(parameter_value))
-                
-            config[path[0]]         = value
+    def _is_valid_configuration(self,configuration):
+        valid = False
+        if type(loaded_configuration) == dict:
+            valid = True
+            for key, values in loaded_configuration.items():
+                if type(values) != dict:
+                    valid = False
+        return valid
 
-        elif types == 'configs':
-            matchs = get_configs_matchs(config[path[0]])
-            if len(matchs) != 0 and matchs[0] in parameters_values:
-                sub_configuration       = parameters_values[matchs[0]]
-                replacement_data        = {x:y for x,y in sub_configuration.data.items() if x not in sub_configuration.tmp}
-                config[path[0]]         = replacement_data
-            
-        return
+    def load_configuration(self, config: AlphaConfig) -> bool:
+        path = config.get_key()
 
-    sub_config  = config[path[0]]
-    path        = path[1:]
+        if path in self._configurations:
+            loaded_configuration = self._configurations[path]
 
-    set_path(sub_config,path,parameters,parameters_values,types)
+            if loaded_configuration and loaded_configuration['data_origin'] == config.data_origin:
+                for key in loaded_configuration:
+                    if hasattr(config, key):
+                        setattr(config, key, loaded_configuration[key])
+                return True
 
-def fill_config(configuration,source_configuration):
-    for key, value in configuration.items():
-        for key2, value2 in source_configuration.items():
-            if type(value) != dict and PAREMETER_PATTERN%key2 in str(value):
-                value = str(value).replace(PAREMETER_PATTERN%key2,value2)
-        configuration[key] = value
+        return False
 
-def process_configuration(configuration,source_configuration,path=None):
-    if path is None:
-        fill_config(configuration,source_configuration)
+    def set_configuration(self, config: AlphaConfig):
+        key = config.get_key()
+        dataset = {
+            'data_origin': config.data_origin,
+            'data_tmp': config.data_tmp,
+            "data": config.data,
+            "sub_configurations_paths": {x.filepath:x.data_origin for x in config.sub_configurations}
+        }
+        try:
+            self._configurations[key] = dataset
+        except:
+            self._configurations: Dict[str,object] = {key: dataset}
+        io_lib.archive_object(self._configurations, self._name)
 
-        for key in source_configuration:
-            fill_config(configuration,source_configuration[key])
-
-        source  = source_configuration[keys[level]]
-
-        fill_config()
-
-def search_it(nested, target,path=None):
-    found, paths = [], []
-    if path is None:
-        path = []
-
-    for key, value in nested.items():
-        next_path   = copy.copy(path)
-        next_path.append(key)
-
-        if isinstance(target,list) and len(target) == 1:
-            target = target[0]
-        
-        if isinstance(target,list):
-            if key == target[0]:
-                f, p = search_it(value, target[1:],next_path)
-                found.extend(f)
-                paths.extend(p)
-        else:
-            if key == target:
-                found.append(value)
-                paths.append(path)
-        
-        if isinstance(value, dict):
-            f, p = search_it(value, target,next_path)
-            found.extend(f)
-            paths.extend(p)
-        elif isinstance(value, list):
-            i = 0
-            for item in value:
-                if isinstance(item, dict):
-                    path.append(i)
-                    f, p = search_it(item, target, next_path)
-                    found.extend(f)
-                    paths.extend(p)
-                """else:
-                    if key == target:
-                        path.append(key)
-                        found.append(value)"""
-                i += 1
-    return found, paths
-
-def get_configs_matchs(string):
-    return re.findall(r"\$config\(([^\$]+)\)",string)
-
-def check_value(value,found,paths,object_type,next_path):
-    parameters      = utils.get_parameters(value)
-
-    if object_type == 'parameters':
-        results     = [ x.replace('{{','').replace('}}','') for x in parameters]
-    else:
-        results     = get_configs_matchs(value)
-
-    if len(results) != 0:
-        found.append( results)
-        paths.append(next_path)
-
-def get_object_from_config(nested,path=None,object_type='parameters'):
-    found, paths = [], []
-    if path is None:
-        path = []
-
-    if isinstance(nested, dict):
-        for key, value in nested.items():
-            next_path   = copy.copy(path)
-            next_path.append(key)
-
-            if isinstance(value, str):
-                check_value(value,found,paths,object_type,next_path)
-            elif isinstance(value, dict):
-                f, p = get_object_from_config(value, next_path,object_type)
-                found.extend(f)
-                paths.extend(p)
-            elif isinstance(value, list):
-                f, p = get_object_from_config(value, next_path,object_type)
-                found.extend(f)
-                paths.extend(p)
-    elif isinstance(nested, list):
-        for i, value in enumerate(nested):
-            next_path   = copy.copy(path)
-            next_path.append(i)
-
-            if isinstance(value, str):
-                check_value(value,found,paths,object_type,next_path)
-            elif isinstance(value, dict):
-                f, p = get_object_from_config(value, next_path,object_type)
-                found.extend(f)
-                paths.extend(p)
-            elif isinstance(value, list):
-                f, p = get_object_from_config(value, next_path,object_type)
-                found.extend(f)
-                paths.extend(p)
-    return found, paths
-
-def get_parameters_from_config(nested, path=None):
-    return get_object_from_config(nested,path=path,object_type='parameters')
-
-def get_configs_from_config(nested, path=None):
-    return get_object_from_config(nested,path=path,object_type='configs')
-
-def get_values_for_parameters(config, parameter_name,path=None):
-    """Get the values associated to the parameter in the configuration
-    
-    Arguments:
-        config {json dict} -- configuration as a json dict 
-        parameter_name {str} -- parameter_name to search
-    
-    Keyword Arguments:
-        path {list} -- the current path in the json dict as a list (default: {None})
-    
-    Returns:
-        tuple -- a tuple of the parameter values and the parameter path
-    """
-    found, paths = [], []
-    if path is None:
-        path = []
-
-    for key, value in config.items():
-        next_path   = copy.copy(path)
-        next_path.append(key)
-
-        if key == parameter_name:
-            found.append(value)
-            paths.append(path)
-        
-        if isinstance(value, dict):
-            f, p = search_it(value, parameter_name, next_path)
-            found.extend(f)
-            paths.extend(p)
-        elif isinstance(value, list):
-            i = 0
-            for item in value:
-                if isinstance(item, dict):
-                    path.append(i)
-                    f, p = search_it(item, parameter_name, next_path)
-                    found.extend(f)
-                    paths.extend(p)
-                i += 1
-    return found, paths
-
-LIMIT = 100
-def set_parameter_value(parameters_value,l):
-    if l > 10: 
-        print('ERROR: replacement limit exceed for parameter %s'%parameters_value)
-        exit()
-    l += 1
-
-    replaced    = False
-    keys        = list(parameters_value.keys())
-    for key, value in parameters_value.items():
-        for k in keys:
-            if "{{%s}}"%k in str(value) and "{{%s}}"%k != value:
-                i = 0
-                value       = replace_parameter(k,value,parameters_value[k],i)
-                replaced    = True
-        parameters_value[key] = value
-
-    if replaced:
-        set_parameter_value(parameters_value,l)
-
-def replace_parameter(key,value,replace_value,i):
-    if i > LIMIT: 
-        print('ERROR: replacement limit exceed for parameter %s'%key)
-        exit()
-    i += 1
-
-    if isinstance(value,dict):
-        replacements = {}
-        for k, v in value.items():
-            vr = replace_parameter(key,v,replace_value,i)
-            if v != vr:
-                replacements[k] = vr
-        for k, newv in replacements.items():
-            value[k] = newv
-    elif isinstance(value,list):
-        replacements = {}
-        i = 0
-        for v in value:
-            vr = replace_parameter(key,v,replace_value,i)
-            if v != vr:
-                replacements[i] = vr
-            i += 1
-        for i, newv in replacements.items():
-            value[i] = newv
-    else:
-        if "{{%s}}"%key == value:
-            value   = replace_value
-        elif "{{%s}}"%key in str(value):
-            value       = value.replace("{{%s}}"%key,replace_value)
-    return value
+CONFIGURATIONS = AlphaConfigurations()
