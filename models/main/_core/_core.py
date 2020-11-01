@@ -32,7 +32,7 @@ class AlphaCore(AlphaClass):
     def __init__(self,file:str,level:int=0,*args,**kwargs): 
         super().__init__(log=None)
 
-        self.root:str               = _get_relative_path(file, level=level)
+        self.root: str               = _get_relative_path(file, level=level)
         self.config:AlphaConfig     = None
 
         self.loggers: {AlphaLogger} = {}

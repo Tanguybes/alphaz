@@ -235,23 +235,29 @@ class AlphaDatabase(AlphaDatabaseCore):
             try:
                 self.commit()
             except Exception as ex:
-                #self.query_str = get_compiled_query(obj_) #TODO: modify - not working: get select query
-                #self.log.error("Error on query: "+self.query_str)
                 raise AlphaException('database_insert',description=str(ex))
         return obj
 
     def commit(self):
-        self.session.commit()
+        try:
+            self.session.commit()
+        except Exception as ex:
+            raise ex
+            LOG.error(ex=ex)
+            session.rollback()
+        finally:
+            session.close()
 
     def delete_obj(self):
         self.session.delete(obj)
-        if commit: self.commit()
+        if commit: 
+            self.commit()
 
     def delete(self,model,filters=None,commit=True):
         obj = self.select(model,filters=filters,first=True,json=False)
 
         if obj is not None:
-            self.session.commit()
+            self.commit()
             self.session.delete(obj)
             if commit: self.commit()
             return True
