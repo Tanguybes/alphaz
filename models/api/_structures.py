@@ -304,7 +304,7 @@ class AlphaFlask(Flask):
         # Convert
         self.returned['data'] = data
         if not check_format(data):
-            self.returned['data'] = _converters.jsonify_data(data)           
+            self.returned['data'] = _converters.jsonify_data(data)
 
         format_ = 'json'
         if 'format' in self.dataGet:
@@ -321,7 +321,7 @@ class AlphaFlask(Flask):
             response.headers['Content-Type'] = 'text/xml; charset=utf-8'            
             return response
         else:
-            returned = jsonify(self.returned)
+            returned = self.returned # jsonify(self.returned)
             if return_status is not None:
                 returned.status_code = return_status
 
