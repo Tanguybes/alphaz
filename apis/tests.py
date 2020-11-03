@@ -19,10 +19,10 @@ def insert():
         [type]: [description]
     """
     test = Test(
-        name='name',
-        number=0,
-        text='text',
-        date=datetime.datetime.now()
+        name_='name',
+        number_=0,
+        text_='text',
+        date_=datetime.datetime.now()
     )
 
     try:

@@ -188,9 +188,9 @@ class AlphaCore(AlphaClass):
     def create_table(self,schema:str,table_name:str):
         modules             = flask_lib.get_definitions_modules(self.models_sources, log=self.log)
         table_object        = self.get_table(schema, table_name)
-        table_object.__table__.create(table_object.bind.engine)
+        table_object.__table__.create(table_object.bind._engine)
         
     def drop_table(self,schema:str,table_name:str):
         modules             = flask_lib.get_definitions_modules(self.models_sources, log=self.log)
         table_object        = self.get_table(schema, table_name)
-        table_object.__table__.drop(table_object.bind.engine)
+        table_object.__table__.drop(table_object.bind._engine)

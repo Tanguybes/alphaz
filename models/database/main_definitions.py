@@ -96,22 +96,22 @@ class Request(db.Model,AlphaTable):
     platform = AlphaColumn(String(20))
     mimetype = AlphaColumn(String(30))
 
-class NewsLetter(db.Model,AlphaTableIdUpdateDate):
+class NewsLetter(db.Model, AlphaTableIdUpdateDate):
     __bind_key__        = 'main'
     __tablename__       = "newsletter"
     name  = AlphaColumn(String(100))
     mail  = AlphaColumn(String(50))
 
-class Test(db.Model,AlphaTableIdUpdateDate):
+class Test(db.Model, AlphaTableIdUpdateDate):
     __bind_key__        = 'main'
-    __tablename__ = 'test'
+    __tablename__       = 'test'
 
-    name            = AlphaColumn(String(30))
-    text            = AlphaColumn(String(300))
-    number          = AlphaColumn(Integer)
-    date            = AlphaColumn(DateTime)
+    name_             = AlphaColumn(String(30))
+    text_             = AlphaColumn(String(300))
+    number_           = AlphaColumn(Integer)
+    date_             = AlphaColumn(DateTime)
 
-class User(db.Model,AlphaTableId):
+class User(db.Model, AlphaTableId):
     __bind_key__        = 'main'
     __tablename__ = 'user'
 

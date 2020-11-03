@@ -266,8 +266,8 @@ class AlphaDatabase(AlphaDatabaseCore):
         return False
 
     def ensure(self,table_name:str,drop:bool=False):
-        inspector = Inspector.from_engine(self._engine)
-        tables = inspector.get_table_names() 
+        inspector   = Inspector.from_engine(self._engine)
+        tables      = inspector.get_table_names() 
         if not table_name.lower() in tables:
             request_model    = core.get_table(self, self.name, table_name)
 
@@ -300,7 +300,7 @@ class AlphaDatabase(AlphaDatabaseCore):
                     self.log.error(ex)
         """
 
-    def exist(self,model):
+    def exist(self, model):
         try:
             instance = self.session.query(model).first()
             return True
@@ -322,7 +322,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         ):
         #model_name = inspect.getmro(model)[0].__name__
 
-        query     = self._get_filtered_query(model,filters=filters)
+        query     = self._get_filtered_query(model, filters=filters)
 
         if distinct is not None:
             query = query.distinct(distinct) if type(distinct) != tuple else query.distinct(*distinct)
@@ -385,17 +385,17 @@ class AlphaDatabase(AlphaDatabaseCore):
                 return None if len(results_json) == 0 else list(results_json.values())[0]
         return results_json
 
-    def update(self,model,values={},filters=None,fetch=True):
-        query           = self._get_filtered_query(model,filters=filters)
-        values_update   = self.get_values(model,values,filters)
+    def update(self, model, values={}, filters=None, fetch=True):
+        query           = self._get_filtered_query(model, filters=filters)
+        values_update   = self.get_values(model, values, filters)
 
         if fetch:
-            query.update(values_update,synchronize_session='fetch')
+            query.update(values_update, synchronize_session='fetch')
         else:
             try:
-                query.update(values_update,synchronize_session='evaluate')
+                query.update(values_update, synchronize_session='evaluate')
             except:
-                query.update(values_update,synchronize_session='fetch')
+                query.update(values_update, synchronize_session='fetch')
 
         self.commit()
 
@@ -404,9 +404,8 @@ class AlphaDatabase(AlphaDatabaseCore):
         for key, value in values.items():
             if type(key) == InstrumentedAttribute and not key in filters:
                 values_update[key] = value
-            elif type(key) == str and hasattr(model,key) and not key in filters:
+            elif type(key) == str and hasattr(model, key) and not key in filters:
                 values_update[model.__dict__[key]] = value
-                    
         return values_update
 
 def get_filter_conditions(query,filters,verbose=True):

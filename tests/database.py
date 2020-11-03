@@ -51,10 +51,10 @@ class Dataframe(AlphaTest):
     @test(save=False)
     def insert3(self):
         return self.db.add(Test(
-            name=      self.parameters['name'],
-            number=    self.parameters['number'],
-            text=      self.parameters['text'],
-            date=      self.parameters['date']
+            name_=      self.parameters['name'],
+            number_=    self.parameters['number'],
+            text_=      self.parameters['text'],
+            date_=      self.parameters['date']
         ))
 
     @test(save=False)
