@@ -59,7 +59,7 @@ class AlphaJSONEncoder(JSONEncoder):
         else:
             self.log.error('Missing schema for model <%s>'%str(model.__name__))"""
 
-def jsonify_database_models(model: DefaultMeta,first=False):
+def jsonify_database_models(model: DefaultMeta, first=False):
     """Convert a database model structure to json
 
     Args:
@@ -91,7 +91,8 @@ def jsonify_data(data):
         result = {jsonify_data(x):jsonify_data(y) for x,y in data.items()}
     else:
         result = data
-        if hasattr(data,"schema"):
+
+        if hasattr(data,"schema") or hasattr(data,"get_schema"):
             result = jsonify_database_models(data)
         elif hasattr(data,'_fields'):
             result = {x:data[i] for i,x in enumerate(data._fields)}

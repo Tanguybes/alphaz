@@ -31,7 +31,7 @@ def insert():
         raise ex
 
     return DB.select(Test, filters=[
-        Test.name == "name"
-    ], first=True, order_by=Test.date.desc())
+        Test.name_ == "name"
+    ], first=True, order_by=Test.date_.desc())
 
     

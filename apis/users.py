@@ -44,7 +44,7 @@ def try_register_user(api,db,mail, username, password, password_confirmation):
 
     if sent:
         db.add(defs.User(username=username,mail=mail,password=password_hashed,role=-1,
-            date_registred=datetime.datetime.utcnow(),last_activity=datetime.datetime.utcnow(),
+            date_registred=datetime.datetime.now(),last_activity=datetime.datetime.now(),
             registration_token=token))
     else:
         api.set_error('sending')
@@ -124,7 +124,7 @@ def try_login(api,db,login, password, ip):
                 user_id=user_data['id'],
                 token=encoded_jwt,
                 ip=ip,
-                expire=datetime.datetime.utcnow() + datetime.timedelta(days=7)
+                expire=datetime.datetime.now() + datetime.timedelta(days=7)
             ))
             valid = True #TODO: edit
             if valid:

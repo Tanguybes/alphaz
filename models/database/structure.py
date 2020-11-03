@@ -246,9 +246,9 @@ class AlphaDatabase(AlphaDatabaseCore):
         except Exception as ex:
             raise ex
             LOG.error(ex=ex)
-            session.rollback()
+            self.session.rollback()
         finally:
-            session.close()
+            self.session.close()
 
     def delete_obj(self):
         self.session.delete(obj)

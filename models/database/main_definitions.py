@@ -124,8 +124,7 @@ class User(db.Model, AlphaTableId):
     role                        = AlphaColumn(Integer)
     expire                      = AlphaColumn(DateTime)
     date_registred              = AlphaColumn(DateTime)
-    last_activity               = AlphaColumn(DateTime,
-        onupdate=datetime.datetime.utcnow())
+    last_activity               = AlphaColumn(DateTime, onupdate=datetime.datetime.now())
     registration_token          = AlphaColumn(String(100))
     registration_code           = AlphaColumn(String(255))
 

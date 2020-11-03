@@ -30,7 +30,7 @@ class AlphaTable(object):
 
     @classmethod
     def get_schema(class_obj):
-        if class_obj.schema is not None:
+        if hasattr(class_obj,'schema') and class_obj.schema is not None:
             return class_obj.schema
         return get_schema(class_obj)
 
@@ -38,17 +38,14 @@ class AlphaTableId(AlphaTable):
     id =  AlphaColumn(Integer, primary_key=True, autoincrement=True)
 
 class AlphaTableUpdateDate(AlphaTable):
-    update_date  = AlphaColumn(DateTime,default=datetime.datetime.utcnow(),
-        onupdate=datetime.datetime.utcnow())
+    update_date  = AlphaColumn(DateTime,default=datetime.datetime.now,onupdate=datetime.datetime.now)
 
 class AlphaTableIdUpdateDate(AlphaTableId):
-    update_date  = AlphaColumn(DateTime,default=datetime.datetime.utcnow(),
-        onupdate=datetime.datetime.utcnow())
+    update_date  = AlphaColumn(DateTime,default=datetime.datetime.now,onupdate=datetime.datetime.now)
 
 class AlphaTableIdUpdateDateCreationDate(AlphaTableId):
-    update_date  = AlphaColumn(DateTime,default=datetime.datetime.utcnow(),
-        onupdate=datetime.datetime.utcnow())
-    creation_date  = AlphaColumn(DateTime,default=datetime.datetime.utcnow())
+    update_date  = AlphaColumn(DateTime,default=datetime.datetime.now, onupdate=datetime.datetime.now)
+    creation_date  = AlphaColumn(DateTime,default=datetime.datetime.now)
 
 class AlphaFloat(TypeDecorator):
     impl = String
