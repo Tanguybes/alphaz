@@ -4,7 +4,7 @@ import inspect, os
 
 from collections.abc import MutableMapping
 
-from sqlalchemy import update
+from sqlalchemy import update, create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.ext.declarative import declarative_base
@@ -80,6 +80,8 @@ class AlphaDatabaseCore(SQLAlchemy):
         self.db_type:str = config['type']
         if 'user' in config:
             self.user:str = config['user']
+        cnx = config['cnx']
+        self._engine = create_engine(cnx)
 
         timeout = 5 if self.db_type != 'oracle' else None
         engine_options = {}
@@ -109,7 +111,7 @@ class AlphaDatabaseCore(SQLAlchemy):
         if self.db_type == "oracle":
             query = "SELECT 1 FROM DUAL"
         try:
-            self.engine.execute(query)
+            self._engine.execute(query)
             return True
         except Exception as ex:
             if self.log: self.log.error('ex:',ex)
@@ -130,7 +132,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         super().__init__(*args,**kwargs)
 
     def drop(self,table_model):
-        table_model.__table__.drop(self.engine)
+        table_model.__table__.drop(self._engine)
 
     def execute(self,query,values=None):
         return self.execute_query(query,values)
@@ -150,9 +152,9 @@ class AlphaDatabase(AlphaDatabaseCore):
         try:
             if multi:
                 for V in values:
-                    self.engine.execute(query,V)
+                    self._engine.execute(query,V)
             else:
-                self.engine.execute(query, values)
+                self._engine.execute(query, values)
             self.query_str = get_compiled_query(query)
             return True
         except Exception as err:
@@ -264,18 +266,18 @@ class AlphaDatabase(AlphaDatabaseCore):
         return False
 
     def ensure(self,table_name:str,drop:bool=False):
-        inspector = Inspector.from_engine(self.engine)
+        inspector = Inspector.from_engine(self._engine)
         tables = inspector.get_table_names() 
         if not table_name.lower() in tables:
             request_model    = core.get_table(self, self.name, table_name)
 
             self.log.info('Creating <%s> table in <%s> database'%(table_name,self.name))
             try:
-                request_model.__table__.create(self.engine)
+                request_model.__table__.create(self._engine)
             except Exception as ex:
                 if drop:
                     self.log.info('Drop <%s> table in <%s> database'%(table_name,self.name))
-                    request_model.__table__.drop(self.engine)
+                    request_model.__table__.drop(self._engine)
                     self.ensure(table_name)
                 else:
                     self.log.error(ex)
@@ -288,11 +290,11 @@ class AlphaDatabase(AlphaDatabaseCore):
         if not self.exist(request_model):
             self.log.info('Creating <%s> table in <%s> database'%(table_name,self.name))
             try:
-                request_model.__table__.create(self.engine)
+                request_model.__table__.create(self._engine)
             except Exception as ex:
                 if drop:
                     self.log.info('Drop <%s> table in <%s> database'%(table_name,self.name))
-                    request_model.__table__.drop(self.engine)
+                    request_model.__table__.drop(self._engine)
                     self.ensure(table_name)
                 else:
                     self.log.error(ex)
