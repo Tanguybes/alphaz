@@ -15,7 +15,7 @@ def ensure_file(filename):
 
     if not os.path.exists(filename):
         # create file is not exist
-        with open(filename,"w") as f:
+        with open(filename, "w", encoding='utf-8') as f:
             f.write("")
 
 
@@ -31,19 +31,19 @@ def save_as_json(filename,data,log=None):
 
     # Writing JSON data
     json_content = json.dumps(data, default=myconverter).replace("NaN" , '"null"')
-    with open(filename, 'w') as f:
+    with open(filename, 'w', encoding='utf-8') as f:
         f.write(json_content)
         #json.dump(data, f)
 
 def read_json(file_path):
     data = {}
-    with open(file_path) as json_data_file:
+    with open(file_path, encoding='utf-8') as json_data_file:
         data = json.load(json_data_file)
     return data
 
     original = {}
 
-    with open(file_path,'r') as f:
+    with open(file_path, 'r', encoding='utf-8') as f:
         original = f.read()
     # save state
     states = []
