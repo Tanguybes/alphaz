@@ -46,26 +46,3 @@ class Event(object):
     def check(self, t):
         if self.matchtime(t):
             self.action(*self.args, **self.kwargs)
-
-"""
-c = CronTab(
-  Event(perform_backup, 0, 2, dow=6 ),
-  Event(purge_temps, 0, range(9,18,2), dow=range(0,5))
-)
-"""
-
-"""
-class CronTab(object):
-    def __init__(self, *events):
-        self.events = events
-
-    def run(self):
-        t=datetime(*datetime.now().timetuple()[:5])
-        while 1:
-            for e in self.events:
-                e.check(t)
-
-            t += timedelta(minutes=1)
-            while datetime.now() < t:
-                time.sleep((t - datetime.now()).seconds)
-"""
