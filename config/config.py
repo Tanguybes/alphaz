@@ -221,7 +221,8 @@ class AlphaConfig(AlphaClass):
                         cmd_output  = logger_config.get("cmd_output") or True,
                         level       = logger_config.get("level"),
                         colors      = colors,
-                        database    = logger_config.get("database")
+                        database    = logger_config.get("database"),
+                        excludes  = logger_config.get('excludes')
                     )
 
         main_logger_name = "main"

@@ -7,7 +7,7 @@ from sqlalchemy.orm import relationship, backref
 
 from .models import AlphaTable, AlphaTableId, AlphaColumn, AlphaFloat, AlphaInteger, AlphaTableIdUpdateDate, AlphaTableUpdateDate
 
-import datetime, inspect
+import datetime, inspect, ast
 
 from core import core
 
@@ -174,3 +174,31 @@ class MailBlacklist(db.Model,AlphaTableId):
 
     mail            = AlphaColumn(String(50))
     mail_type       = AlphaColumn(String(20))
+
+class Requests(db.Model, AlphaTableIdUpdateDate):
+    __bind_key__ = "main"
+    __tablename__ = "requests"
+
+    uuid = AlphaColumn(String(100))
+    process = AlphaColumn(Integer)
+    message = AlphaColumn(Text)
+    message_type = AlphaColumn(String(20))
+    lifetime = AlphaColumn(Integer)
+    creation_date = AlphaColumn(DateTime,default=datetime.datetime.now)
+
+    def get_message(self):
+        try:
+            message = ast.literal_eval(self.message)
+        except:
+            return None
+
+class Answers(db.Model, AlphaTableIdUpdateDate):
+    __bind_key__ = "main"
+    __tablename__ = "answers"
+
+    uuid = AlphaColumn(String(100))
+    process = AlphaColumn(Integer)
+    message = AlphaColumn(Text)
+    message_type = AlphaColumn(String(20))
+    lifetime = AlphaColumn(Integer)
+    creation_date = AlphaColumn(DateTime,default=datetime.datetime.now)

@@ -18,11 +18,21 @@ class AlphaLogger():
 
     monitoring_logger = None
 
-    def __init__(self,name,filename=None,root=None,cmd_output=True,level='INFO',colors=None,database=None):
+    def __init__(self, 
+            name: str,
+            filename:str = None,
+            root: str = None,
+            cmd_output: bool = True,
+            level:str = 'INFO',
+            colors=None,
+            database = None,
+            excludes = None
+        ):
         self.level: str          = level.upper()
         self.date_str: str       = ""
         self.database_name: str  = database
         self.database       = None
+        self.excludes = excludes
 
         if filename is None:
             filename        = name
@@ -72,6 +82,13 @@ class AlphaLogger():
         if module is not None:
             origin  = os.path.basename(module.__file__)
         """
+        if self.excludes and len(self.excludes):
+            for key, patterns in self.excludes.items():
+                if level.upper() == key.upper():
+                    for pattern in patterns:
+                        if len(re.findall(pattern, message)):
+                            return
+
         if message is None and ex is not None: 
             message = ex
             ex = None
