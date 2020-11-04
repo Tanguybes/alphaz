@@ -496,15 +496,15 @@ class AlphaConfig(AlphaClass):
 
         self._clean()
 
-        with open(self.filepath,'w') as json_data_file:
-            json.dump(self.data_origin,json_data_file, sort_keys=True, indent=4)
+        with open(self.filepath,'w', encoding='utf-8') as json_data_file:
+            json.dump(self.data_origin,json_data_file, sort_keys=True, indent=4, ensure_ascii = False)
 
     def show(self):
         show(self.data)
 
     def _load_raw(self):
         if not self.loaded:
-            with open(self.filepath) as json_data_file:
+            with open(self.filepath, encoding='utf-8') as json_data_file:
                 try:
                     self.data_origin = json.load(json_data_file)
                 except Exception as ex:
