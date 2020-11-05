@@ -35,7 +35,7 @@ def save_as_json(filename,data,log=None):
         f.write(json_content)
         #json.dump(data, f)
 
-def read_json(file_path):
+def read_json(file_path,log=None):
     data = {}
     with open(file_path, encoding='utf-8') as json_data_file:
         data = json.load(json_data_file)
