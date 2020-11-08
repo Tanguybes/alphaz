@@ -93,40 +93,48 @@ def search_it(nested, target,path=None):
     if path is None:
         path = []
 
-    for key, value in nested.items():
-        next_path   = copy.copy(path)
-        next_path.append(key)
+    if type(nested) == dict:
+        for key, value in nested.items():
+            next_path   = copy.copy(path)
+            next_path.append(key)
 
-        if isinstance(target,list) and len(target) == 1:
-            target = target[0]
-        
-        if isinstance(target,list):
-            if key == target[0]:
-                f, p = search_it(value, target[1:],next_path)
-                found.extend(f)
-                paths.extend(p)
-        else:
-            if key == target:
-                found.append(value)
-                paths.append(path)
-        
-        if isinstance(value, dict):
-            f, p = search_it(value, target,next_path)
-            found.extend(f)
-            paths.extend(p)
-        elif isinstance(value, list):
-            i = 0
-            for item in value:
-                if isinstance(item, dict):
-                    path.append(i)
-                    f, p = search_it(item, target, next_path)
+            if isinstance(target,list) and len(target) == 1:
+                target = target[0]
+            
+            if isinstance(target,list):
+                if key == target[0]:
+                    f, p = search_it(value, target[1:],next_path)
                     found.extend(f)
                     paths.extend(p)
-                """else:
-                    if key == target:
-                        path.append(key)
-                        found.append(value)"""
-                i += 1
+            else:
+                if key == target:
+                    found.append(value)
+                    paths.append(path)
+            
+            if isinstance(value, dict):
+                f, p = search_it(value, target,next_path)
+                found.extend(f)
+                paths.extend(p)
+            elif isinstance(value, list):
+                i = 0
+                for item in value:
+                    if isinstance(item, dict):
+                        path.append(i)
+                        f, p = search_it(item, target, next_path)
+                        found.extend(f)
+                        paths.extend(p)
+                    """else:
+                        if key == target:
+                            path.append(key)
+                            found.append(value)"""
+                    i += 1
+    """elif type(nested) == list:
+        for value in nested:
+            if isinstance(item, dict):
+                path.append(i)
+                f, p = search_it(item, target, next_path)
+                found.extend(f)
+                paths.extend(p)"""
     return found, paths
 
 def get_configs_matchs(string):
