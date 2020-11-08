@@ -51,7 +51,7 @@ class RequestsThread(Thread):    # PowerCounter class
                 self.running.set()
 
             if count == 0:
-                dt = datetime.now()
+                dt = datetime.datetime.now()
                 secs = (ceil(dt) - dt).total_seconds()
             else:
                 secs = self.interval - offset

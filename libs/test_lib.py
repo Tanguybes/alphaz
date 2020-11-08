@@ -37,7 +37,7 @@ def get_tests_auto(
 
     for tests_module in tests_modules:
         try:
-            log.info('Loading test module <%s>'%tests_module)
+            log.debug('Loading test module <%s>'%tests_module)
             module              = importlib.import_module(tests_module)
         except Exception as ex:
             log.error('Cannot load test module <%s>'%tests_module,ex=ex)
@@ -60,7 +60,7 @@ def get_tests_auto(
 
             if group is not None and group != test_group.name: continue
 
-            if log is not None: log.info('Found function group %s'%test_group.name)
+            if log is not None: log.debug('Found function group <%s>'%test_group.name)
 
             if run and name is None:
                 test_group.test_all()
