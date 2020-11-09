@@ -1,3 +1,5 @@
+from .libs import config_lib
+
 def launch_cmds_web(cmds,base_href):
     if len(cmds) == 0:
         return
@@ -23,9 +25,7 @@ def send_files(ftp,target, source, folder_list,root_ftp=''):
 
     to_upload = []
     for file in files:
-        filename    = file.replace(path_from,'')[1:]
-        #filepath    = CoreP.WEB_API_PATH + root_ftp + os.sep + root_path + os.sep + filename
-        
+        filename    = file.replace(path_from,'')[1:]        
         filepath    = file.replace(path_from,path_to)
 
         if os.path.isfile(file):
@@ -48,11 +48,6 @@ def upload(target, source, folder_list, root_ftp=''):
         user=core.config.get('ftp/public/user')
         key =core.config.get('ftp/public/key')
     )
-
-    #root_ftp_folder = CoreP.WEB_API_PATH + os.sep + root_ftp + path.replace(root_source,'')
-    #ftp.makedirs(root_ftp_folder)
-    #print('      init: ',root_ftp_folder)
-
     send_files(ftp,target, source, folder_list,root_ftp=root_ftp)
 
 def mep_web(configuration,base_href=''):
@@ -117,5 +112,5 @@ def mep(config_name,restore=False,action=True):
             upload(target,Core.WEB_API_PATH,folder_list,root_ftp='')
 
     if config_name == 'api':
-        os.system('/home/truegolliath/prodIO/GolliathPrivate/tools.sh --upgrade_api_build')
+        config_lib.upgrade_api_build(DB_PRIVATE,Constants,CoreW)
         restart_api()

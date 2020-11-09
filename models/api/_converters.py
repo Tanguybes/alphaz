@@ -39,7 +39,12 @@ class AlphaJSONEncoder(JSONEncoder):
     def default(self, o): # pylint: disable=E0202
         try:
             if hasattr(o,'to_json'):
-                return o.to_json()
+                try:
+                    output = o.to_json()
+                    return output
+                except Exception as ex:
+                    print(ex)
+                    return None
             for key_type, fct in self.rules.items():
                 if isinstance(o, key_type):
                     returned_value = fct(o)

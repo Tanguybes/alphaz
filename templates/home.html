@@ -8,6 +8,9 @@
 
     <title>Alpha</title>
 
+    <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.no-icons.min.css" rel="stylesheet">
+    <link href="//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css" rel="stylesheet">
+
     <link rel="stylesheet" href="/assets/home.css">
     <link rel="icon" type="image/png" href="/assets/alpha.png" />
     <script src="/assets/jquery.min.js"></script>
@@ -41,6 +44,7 @@
                   {% if statistics %}
                     <a class="button button-primary" href="/dashboard" target="_blank">Dashboard</a>
                   {% endif %}
+                  <a class="button button-primary" onclick="runLastTest()" id="run-test">Run last test</a>
                   {% if admin %}
                   <a class=button href="/admin" target="_blank">Databases</a>
                   {% endif %}
@@ -153,33 +157,33 @@
                 <div class="feature text-center is-revealing" style=visibility:visible id="test-{{category}}">
                   <div class=feature-inner>
                     <div class=feature-icon></div>
-
-                      <h3 class="feature-title mt-24"><a class="button button-primary" onclick="executeTest('{{category}}','','')" style="padding: 2px 2px 2px 2px;height: 20px;">Run</a>&nbsp;{{category}}</h3>
+                      <div class="test-category">
+                        <i class="icon-play run" onclick="executeTest('{{category}}','','')"></i>
+                        <h3 class="feature-title mt-24">{{category}}</h3>
+                      </div>
 
                       <p class="text-sm mb-0"></p>
 
                       <div class="feature-routes">
                         {% for group in tests.categories[category].groups %}
-
-                          <h4><a class="button button-primary" onclick="executeTest('{{category}}','{{group}}','')" style="padding: 2px 2px 2px 2px;height: 20px;">Run</a>&nbsp;{{group}}</h4>
+                          <div class="test-category">
+                            <i class="icon-play run" onclick="executeTest('{{category}}','{{group}}','')"></i>
+                            <h4>{{group}}</h4>
+                          </div>
 
                           {% for test in tests.categories[category].groups[group].tests %}
-                            <hr/>
-                            <div class="feature-route">
-                              <a class="button button-primary" onclick="executeTest('{{category}}','{{group}}','{{test}}')" style="padding: 2px 2px 2px 2px;height: 20px;">Run</a>&nbsp;
+                            <div class="feature-route test-block">
+                              <i class="icon-play run" {% if tests.categories[category].groups[group].tests[test].status %} style="color:#27ae60" {% else %} style="color:#c0392b;" {%endif %} onclick="executeTest('{{category}}','{{group}}','{{test}}')"></i>
 
-                              <span {% if tests.categories[category].groups[group].tests[test].status %} style="color:green" {% else %} style="color:red;font-size: 0.8em;" {%endif %}>{{test}}</span>
-                              
-                              {% if tests.categories[category].groups[group].tests[test].elapsed %}
-                                <sub style="color:orange">{{tests.categories[category].groups[group].tests[test].elapsed}}s</sub>
-                              {% endif %}
+                              <div class="test"><b>{{test}}</b>
+                                {% if tests.categories[category].groups[group].tests[test].elapsed %}
+                                  <span class="elapsed">{{tests.categories[category].groups[group].tests[test].elapsed}}s</span>
+                                {% endif %}
+                                {% if tests.categories[category].groups[group].tests[test].start_time %}
+                                  <span class="last-elapsed">{{tests.categories[category].groups[group].tests[test].last_run_elapsed}}</span>
+                                {% endif %}
+                              </div>
                             </div>
-
-                            <br/>
-                            {% if tests.categories[category].groups[group].tests[test].start_time %}
-                              > {{tests.categories[category].groups[group].tests[test].start_time}}
-                            {% endif %}
-
 
                           {% endfor %}
 
@@ -275,12 +279,35 @@
 </html>
 
 <script>
+  function isRunTest() {
+    var exist = localStorage.hasOwnProperty('category') || localStorage.hasOwnProperty('group') || localStorage.hasOwnProperty('test');
+    var no_null = localStorage.getItem('category') != null || localStorage.getItem('group') != null || localStorage.getItem('test') != null;
+    return exist && no_null;
+  }
+
+  function runLastTest() {
+    executeTest(localStorage.getItem('category'), localStorage.getItem('group'), localStorage.getItem('test'))
+  }
+
   function executeTest(category, group, test) {
     $(window).scrollTop(0);
     setVisible('#loading', true);
     
+    category = category ? category : "";
+    group = group ? group : "";
+    test = test ? test : "";
     parameters = "run=Y&category=" + category
-    if (test != '') {
+    
+    if (!category || category == 'null') localStorage.removeItem('category');
+    else localStorage.setItem('category', category);
+
+    if (!group || group == 'null') localStorage.removeItem('group');
+    else localStorage.setItem('group', group);
+    
+    if (!test || test == 'null') localStorage.removeItem('test');
+    else localStorage.setItem('test', test);
+
+    if (group != '') {
       parameters = parameters + "&group=" + group
     }
     if (test != '') {
@@ -312,6 +339,12 @@ function setVisible(selector, visible) {
 
 onReady(function() {
   setVisible('#loading', false);
+
+  if(isRunTest())
+      document.getElementById("run-test").style.visibility = 'visible';
+  else
+      document.getElementById("run-test").style.visibility = 'hidden';
+
 });
 
 </script>
