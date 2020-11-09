@@ -1062,3 +1062,41 @@ sup {
     height: auto;
     font-size: 0.5em;
   }
+
+  .test-category {
+	  display: block ruby;
+  }
+
+  .run {
+	margin-right: 10px;
+	border: solid 2px;
+	border-radius: 10px;
+	padding: 5px;
+	cursor: pointer;
+  }
+
+  .run:hover {
+	transform: scale(1.2); /* (150% zoom - Note: if the zoom is too large, it will go outside of the viewport) */
+  }
+
+  .test-block {
+	  margin-bottom: 5px;
+  }
+
+  .test{ 
+	  position:relative;
+  }
+
+  .elapsed {
+	position: absolute;
+	top: -5px;
+	font-size: 0.8em;
+	color: #e67e22;
+  }
+
+  .last-elapsed {
+	top: 5px;
+	font-size: 0.8em;
+	color: #3498db;
+	position: inherit;
+  }
