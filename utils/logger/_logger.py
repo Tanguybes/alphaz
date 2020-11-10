@@ -1,5 +1,4 @@
-import os, datetime, inspect, sys, re, traceback, uuid, time
-import logging
+import os, datetime, inspect, sys, re, traceback, uuid, time, logging
 from logging.handlers import TimedRotatingFileHandler
 
 import platform
@@ -11,6 +10,9 @@ if PLATFORM == "windows":
     from concurrent_log_handler import ConcurrentRotatingFileHandler
 
 PROCESSES = {}
+TIMINGS = []
+
+base_time = datetime.datetime.now()
 
 class AlphaLogger():   
     date_format             = "%Y-%m-%d %H:%M:%S"
@@ -82,6 +84,7 @@ class AlphaLogger():
         if module is not None:
             origin  = os.path.basename(module.__file__)
         """
+
         if self.excludes and len(self.excludes):
             for key, patterns in self.excludes.items():
                 if level.upper() == key.upper():
@@ -108,7 +111,7 @@ class AlphaLogger():
             text            = traceback.format_exc()
             full_message    += "/n" + text
 
-        fct = getattr(self.logger,level.lower())
+        fct = getattr(self.logger, level.lower())
         fct(full_message)
         if monitor is not None:
             fct_monitor = getattr(self.monitoring_logger,level.lower())
@@ -117,7 +120,14 @@ class AlphaLogger():
         self.last_level = level.upper()
         self.last_message = message
 
-        """if save:
+        """if len(TIMINGS) > TIMINGS_LIMIT:
+            TIMINGS = TIMINGS[:TIMINGS_LIMIT]
+        TIMINGS.insert(0,{
+            "elasped": datetime.datetime.now() - base_time
+        })
+        base_time = datetime.datetime.now()"""
+
+        """if save: #TODO :activate
             self.__log_in_db(text, origin=origin, type="error")"""
 
     def get_formatted_message(self,message,stack,stack_level:int,level):

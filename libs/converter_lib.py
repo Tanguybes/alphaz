@@ -6,6 +6,8 @@ Created on 13 janv. 2019
 
 import math, xmltodict, re
 
+from . import number_lib
+
 def to_int(value):
     try:
         return int(value), True
@@ -49,3 +51,6 @@ def xml_content_to_orderdict(content):
     content = re.sub('<\?.*\?>','',content).replace('\\r\\n','')
     content_dict = xmltodict.parse(content)
     return content_dict
+
+def get_percentage(percentage):
+    return number_lib.myround(int(percentage*100) / 100,1)
