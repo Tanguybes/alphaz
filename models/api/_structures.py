@@ -1,10 +1,13 @@
-import os, configparser, datetime, copy, jwt, logging, re, itertools, sys, importlib
+import os, configparser, datetime, copy, jwt, logging, re, itertools, sys, importlib, warnings
 
 from dicttoxml import dicttoxml
 
 from flask import Flask, jsonify, request, Response, make_response
 from flask_mail import Mail
-from flask_marshmallow import Marshmallow
+
+with warnings.catch_warnings():
+     from flask_marshmallow import Marshmallow
+     
 from flask_statistics import Statistics
 from flask_debugtoolbar import DebugToolbarExtension
 from flask_admin import Admin
@@ -61,8 +64,6 @@ class AlphaFlask(Flask):
         self.conf           = None
         self.config_path    = ''
 
-        self.verbose        = False
-
         self.current_route  = None
         self.routes         = {}
         self.routes_values  = {}
@@ -78,6 +79,8 @@ class AlphaFlask(Flask):
 
         self.file_to_get   = (None, None)
         self.file_to_set    = (None, None)
+
+        self.models_sources: List[str] = []
 
         # need to put it here to avoid warnings
         self.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True #TODO modify
@@ -174,6 +177,7 @@ class AlphaFlask(Flask):
             flask_monitoringdashboard.bind(self)
 
         if self.conf.get('admin_databases'):
+            modules             = flask_lib.get_definitions_modules(self.models_sources, log=self.log)
             self.init_admin_view()
 
         #Base.prepare(self.db.engine, reflect=True)
@@ -192,12 +196,15 @@ class AlphaFlask(Flask):
         if self.conf.get('routes_no_log'):
             _colorations.WerkzeugColorFilter.routes_exceptions = self.conf.get('routes_no_log')
 
-    def init_admin_view(self):
-        #models_sources      = self.conf.get('models') or []
-        #models_sources.append("alphaz.models.database.main_definitions")
-        #modules             = flask_lib.get_definitions_modules(models_sources,log=self.log)
+        self.models_sources = self.conf.get('directories/database_models')
+        if not self.models_sources:
+            self.log.error('Missing <directories/database_models> entry in configuration %s'%self.conf.filepath)
+            exit()
 
-        views               = flask_lib.load_views()
+        self.models_sources.append("alphaz.models.database.main_definitions")
+
+    def init_admin_view(self):
+        views               = flask_lib.load_views(self.log)
         endpoints           = [x.endpoint for x in views]
 
         from ..database.views import views as alpha_views
@@ -206,7 +213,6 @@ class AlphaFlask(Flask):
                 views.append(view)
 
         self.admin_db       = Admin(self, name=self.get_config('name'), template_mode='bootstrap3')
-        
         self.admin_db.add_views(*views)
 
     def start(self):
@@ -353,7 +359,7 @@ class AlphaFlask(Flask):
         if type(message) == AlphaException:
             description = message.description 
             message     = message.name
-            self.log.error(message + ' - ' + description)
+            self.log.error(message + ' - ' + description,level=2)
             
         self.returned['status']                 = message
         self.returned['status_description']     = description
@@ -475,7 +481,7 @@ class AlphaFlask(Flask):
                 admin = True
         return admin
 
-    def is_time(self,timeout, verbose=False):
+    def is_time(self,timeout):
         is_time = False
         if timeout is not None:
             now         = datetime.datetime.now()

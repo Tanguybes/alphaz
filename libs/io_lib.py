@@ -99,7 +99,6 @@ def archive_object(object_to_save,filename:str, ext:str=None,log=None) -> None:
         object_to_save ([type]): [Python object to save]
         filename (str): [output filename]
         ext (str, optional): [file extension]. Defaults to 'dmp'.
-        verbose (bool, optional): [ouput in cmd]. Default to 'False'.
     """
     ensure_dir(filename)
     if '.' in filename:
@@ -195,3 +194,6 @@ def get_list_file(output) -> List[AlphaFile]:
             date)
         files.append(file_)
     return files
+
+def clear_terminal():
+    print(chr(27)+"[2J")

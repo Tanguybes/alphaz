@@ -2,16 +2,18 @@
 import traceback
 from core import core
 
+import pandas as pd
+
 from ._save import AlphaSave
 
 LOG = core.get_logger('tests')
 
 class AlphaTest():
+    _test = True
     category = ''
 
-    def __init__(self,verbose=False):
-        self.verbose = verbose
-        self.output = True
+    def __init__(self):
+        self.output: bool = None
 
     def test(self,name):
         status = False
@@ -42,6 +44,18 @@ class AlphaTest():
             for i in range(len(a)):
                 if a[i] != b[i]: 
                     equal = False
-        elif self.verbose:
-            LOG.warning("Arrays size are not equal: <%s> and <%s>"%(len(a),len(b)))
-        return equal
+
+        LOG.debug("Arrays size are not equal: <%s> and <%s>"%(len(a),len(b)))
+        self.output = equal
+
+    def assert_is_not_empty(self, a, conditions = []):
+        if isinstance(a,pd.DataFrame):
+            self.output = a is not None and not a.empty
+        else:
+            self.output = a is not None and len(a) != 0
+
+        if len(conditions) != 0 and type(conditions) == list:
+            self.output = self.output and all(conditions)
+
+    def assert_length(self, a, length):
+        self.output = a is not None and len(a) != 0 and len(a) == length

@@ -1,19 +1,9 @@
 import subprocess, os, psutil, logging
 from logging.handlers import TimedRotatingFileHandler
 
-log_file    = '/home/truegolliath/logs/ensure_golliath.log'
-logger      = logging.getLogger('EnsureGolliath')
-logger.setLevel(logging.DEBUG)
+from core import core
 
-formatter = logging.Formatter(
-    "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-
-log_handler = TimedRotatingFileHandler(
-    log_file, when='midnight', backupCount=30
-)
-log_handler.setFormatter(formatter)
-logger.addHandler(log_handler)
+LOG = core.get_logger('ensure')
 
 screens = {
     'telegram_dev': {
@@ -60,12 +50,6 @@ screens = {
     }
 }
 
-def error(message):
-    logger.error(message)
-
-def info(message):
-    logger.info(message)
-
 def get_cmd_output(cmd):
     result = subprocess.check_output(cmd, shell=True)
     lines = str(result).split("\\n")
@@ -95,11 +79,11 @@ for name, screen in screens.items():
     if pid is None:
         os.chdir(screen['dir'])
         cmd = "screen -dm -S %s bash -c '%s; exec bash'"%(screen['name'],screen['shell_cmd'])
-        error('   ==> Restart screen for %s'%name)
+        LOG.error('   ==> Restart screen for %s'%name)
         if active:
             get_cmd_output(cmd)
     else:
-        info('Screen %s %s is running ...'%(pid,name))
+        LOG.info('Screen %s %s is running ...'%(pid,name))
 
     p = psutil.Process(pid)
     if len(p.children()) != 0:
@@ -112,6 +96,6 @@ for name, screen in screens.items():
             cmd = "screen -S %s -X stuff '%s'$(echo '\015')"%(pid,screen['shell_cmd'])
             if active:
                 get_cmd_output(cmd)
-            error('   ==> Restart process %s %s in screen %s'%(screen['shell_cmd'],pid,name))
+            LOG.error('   ==> Restart process %s %s in screen %s'%(screen['shell_cmd'],pid,name))
         else:
-            info('Process %s %s in screen %s is running ...'%(screen['shell_cmd'],pid,name))
+            LOG.info('Process %s %s in screen %s is running ...'%(screen['shell_cmd'],pid,name))

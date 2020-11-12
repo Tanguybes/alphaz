@@ -1,6 +1,7 @@
-import os, sys, datetime, glob, importlib, inspect
+import os, sys, datetime, glob, importlib, inspect, warnings
 from typing import List, Dict
-from flask_marshmallow import Marshmallow
+with warnings.catch_warnings():
+     from flask_marshmallow import Marshmallow
 
 from ....models.main import AlphaClass
 from ....utils.logger import AlphaLogger
@@ -43,7 +44,6 @@ class AlphaCore(AlphaClass):
         self.ma:Marshmallow         = None
         self.db:AlphaDatabase       = None
         self.api:AlphaFlask         = None
-        self.models_sources: List[str] = []
         
         configuration = None
         if 'ALPHA_CONF' in os.environ:
@@ -123,13 +123,6 @@ class AlphaCore(AlphaClass):
             root=api_root if api_root is not None else self.root
         )
         self.api.db = self.db
-
-        self.models_sources = self.api.conf.get('directories/database_models')
-        if not self.models_sources:
-            self.api.log.error('Missing <directories/database_models> entry in configuration %s'%self.api.conf.filepath)
-            exit()
-
-        self.models_sources.append("alphaz.models.database.main_definitions")
         
         """# ensure tests
         self.db.ensure("tests", drop=True)
@@ -164,6 +157,8 @@ class AlphaCore(AlphaClass):
 
     def get_table(self,schema:str, table:str):
         table = table.upper()
+        if type(schema) != str and hasattr(schema,"name"):
+            schema = schema.name
         if not schema in flask_lib.TABLES:
             raise AlphaException('schema_not_loaded', parameters={'schema':schema})
 
@@ -177,6 +172,11 @@ class AlphaCore(AlphaClass):
             raise AlphaException('cannot_find_table', parameters={'table':table})
 
         table_object = tables[table]
+        if table_object is None and table in flask_lib.TABLES["main"]['tables']:
+            table_object = flask_lib.TABLES["main"]['tables'][table]
+        if table_object is None:
+            raise AlphaException('cannot_find_table', parameters={'table':table})
+
         table_object.bind = flask_lib.TABLES[schema]['db']
         
         """if not table in db.metadata.tables:
@@ -186,11 +186,11 @@ class AlphaCore(AlphaClass):
         return table_object
 
     def create_table(self,schema:str,table_name:str):
-        modules             = flask_lib.get_definitions_modules(self.models_sources, log=self.log)
+        modules             = flask_lib.get_definitions_modules(self.api.models_sources, log=self.log)
         table_object        = self.get_table(schema, table_name)
         table_object.__table__.create(table_object.bind._engine)
         
     def drop_table(self,schema:str,table_name:str):
-        modules             = flask_lib.get_definitions_modules(self.models_sources, log=self.log)
+        modules             = flask_lib.get_definitions_modules(self.api.models_sources, log=self.log)
         table_object        = self.get_table(schema, table_name)
         table_object.__table__.drop(table_object.bind._engine)

@@ -26,7 +26,6 @@ def get_tests_auto(
         group (str, optional): the name of the group to select. Defaults to None.
         category (str, optional): the name of the category to select. Defaults to None.
         log (AlphaLogger, optional): the logger. Defaults to None.
-        verbose (bool, optional): [description]. Defaults to False.
 
     Returns:
         TestCategories: [description]
@@ -48,10 +47,19 @@ def get_tests_auto(
         class_list = []
         for o in getmembers(module):
             is_class    = isclass(o[1])
-            if is_class:
-                is_test = 'AlphaTest' in str(o[1].__bases__[0])
-                if is_test:
-                    class_list.append(o)
+            if not is_class: continue
+
+            """classes = o[1].__mro__
+            tests = [type(x) == AlphaTest for x in classes]
+            tests_z = [x == AlphaTest for x in classes]
+            is_test_simple = issubclass(o[1], AlphaTest)
+            is_test = any(tests)"""
+
+            #is_test = 'AlphaTest' in str(o[1].__bases__[0])
+            is_test = issubclass(o[1], AlphaTest) and (not hasattr(o[1],"_test") or o[1]._test) and not o[1] == AlphaTest
+            if not is_test: continue
+            
+            class_list.append(o)
 
         for el in class_list:
             test_group = TestGroup(el[0],el[1])
@@ -74,22 +82,22 @@ def get_tests_auto(
     return test_categories
 
 
-def execute_all_tests_auto(directory,output=True,verbose=False,refresh=True,name=None,log=None):
-    return operate_all_tests_auto(directory,output=output,verbose=verbose,refresh=refresh,name=name,log=log,
+def execute_all_tests_auto(directory,output=True,refresh=True,name=None,log=None):
+    return operate_all_tests_auto(directory,output=output,refresh=refresh,name=name,log=log,
         action='execute')
 
-def save_all_tests_auto(directory,output=True,verbose=False,refresh=True,name=None):
-    return operate_all_tests_auto(directory,output=output,verbose=verbose,refresh=refresh,name=name,log=log,
+def save_all_tests_auto(directory,output=True,refresh=True,name=None):
+    return operate_all_tests_auto(directory,output=output,refresh=refresh,name=name,log=log,
         action='save')
 
-def operate_all_tests_auto(directory,output=True,verbose=False,refresh=True,name=None,action='execute',group=None,import_path=None,log=None):
+def operate_all_tests_auto(directory,output=True,refresh=True,name=None,action='execute',group=None,import_path=None,log=None):
     if refresh:
-        reload_modules(os.getcwd(),verbose=False)
+        reload_modules(os.getcwd())
 
     test_categories = get_tests_auto(directory,group=group,import_path=import_path,log=log)
 
     if action == 'execute':
-        tests_groups.test_all(verbose=verbose)
+        tests_groups.test_all()
         return tests_groups.print(output=output)
     elif action == 'save':
-        tests_groups.save_all(verbose=verbose)
+        tests_groups.save_all()

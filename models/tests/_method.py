@@ -21,10 +21,9 @@ class TestMethod:
         self.elapsed:int                    = None
         self.last_run_elapsed               = None
         
-    def test(self,classObject=None,verbose=False):
+    def test(self,classObject=None):
         if classObject is None:
             classObject             = self.classObject()
-        classObject.verbose     = verbose
 
         self.start_time         = datetime.datetime.now()
         
@@ -71,9 +70,8 @@ class TestMethod:
             order_by=Tests.start_time.desc(),first=True)
         self.update_from(test)
 
-    def save(self,verbose=False):
+    def save(self):
         classObject         = self.classObject()
-        classObject.verbose = verbose
         classObject.save(self.name)
 
     def is_valid(self):

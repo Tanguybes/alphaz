@@ -11,17 +11,13 @@ class TestCategory():
     def add_test_group(self,testGroup:TestGroup):
         self.groups[testGroup.name]   = testGroup 
 
-    def test_all(self,verbose=False):
+    def test_all(self):
         for group_name, test_group in self.groups.items():   
-            if test_group.is_verbose():
-                print('\n__________ %s __________\n\n'%group_name)
-            test_group.test_all(verbose=verbose)
+            test_group.test_all()
 
-    def save_all(self,verbose=False):
+    def save_all(self):
         for group_name, test_group in self.groups.items():   
-            if test_group.is_verbose():
-                print('\n__________ %s __________\n\n'%group_name)
-            test_group.save_all(verbose=verbose)
+            test_group.save_all()
 
     def print(self,output=True):
         txt = ""

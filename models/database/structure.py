@@ -371,7 +371,7 @@ class AlphaDatabase(AlphaDatabaseCore):
                 values_update[model.__dict__[key]] = value
         return values_update
 
-def get_filter_conditions(query,filters,verbose=True):
+def get_filter_conditions(query,filters):
     equals, ins, likes, sups, infs, sups_st, infs_st = {}, {}, {}, {}, {}, {}, {}
     
     conditions = []
@@ -417,7 +417,7 @@ def get_filter_conditions(query,filters,verbose=True):
     query       = query.filter(filter_cond)
     return query
 
-def get_filter(query,filters,model,verbose=True):
+def get_filter(query,filters,model):
     equals, ins, likes, sups, infs, sups_st, infs_st = {}, {}, {}, {}, {}, {}, {}
 
     for key, value in filters.items():

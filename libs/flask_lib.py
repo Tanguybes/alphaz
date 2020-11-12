@@ -10,6 +10,20 @@ from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 TABLES = {}
 
+def add_to_tables(db, obj):
+    from alphaz.models.database.models import AlphaTable
+    is_class = inspect.isclass(obj)
+    if not is_class: return 
+
+    alpha_model = issubclass(obj,AlphaTable)
+    has_table   = hasattr(obj,'__tablename__')
+    if alpha_model and has_table:
+        db_name = db.name
+        table_name = obj.__tablename__.upper()
+        TABLES[db_name]['tables'][table_name] = obj
+        return True
+    return False
+
 def get_definitions_modules(modules_list:List[ModuleType],log:AlphaLogger) -> List[ModuleType]:
     """[Get database table definitions from parent or children module list]
 
@@ -21,9 +35,10 @@ def get_definitions_modules(modules_list:List[ModuleType],log:AlphaLogger) -> Li
         List[ModuleType]: [description]
     """
 
-    from alphaz.models.database.models import AlphaTable
     main = None
+
     modules = []
+    modules_db = {}
 
     loaded_modules = []
     # TODO replace ?
@@ -64,48 +79,27 @@ def get_definitions_modules(modules_list:List[ModuleType],log:AlphaLogger) -> Li
                 
                 if not 'db' in sub_module.__dict__: continue
                 db = sub_module.__dict__['db']
-                if db.main and db.name != "main": main = db.name
 
-                if not db.name in TABLES:
-                    TABLES[db.name] = {'db':db,'tables':{}}
-
-                found = False
-                for name, obj in sub_module.__dict__.items():
-                    if inspect.isclass(obj) and issubclass(obj,AlphaTable) and hasattr(obj,'__tablename__'):
-                        table = obj
-                        found = True
-
-                        TABLES[db.name]['tables'][obj.__tablename__.upper()] = obj
-                
-                if found:
-                    modules.append(sub_module)
+                modules_db[sub_module] = db
         else:
             elements = module.__dict__
             if "alphaz" in module_r and "core" in elements:
                 db = elements["core"].db
-            elif not 'db' in elements: continue
+            elif not 'db' in elements: 
+                LOG.error('Cannot initialise module <%s>, <db> parameter is missing'%module_r)
+                continue
             else:
                 db = elements['db']
+            modules_db[module] = db
 
-            if db.main and db.name != "main": main = db.name
+    for module, db in modules_db.items():
+        if db.main and db.name != "main": main = db.name
+        if not db.name in TABLES:
+            tables = db._engine.table_names()
+            TABLES[db.name] = {'db':db,'tables':{x.upper():None for x in tables}}
 
-            if not db.name in TABLES:
-                tables = db.engine.table_names()
-                TABLES[db.name] = {'db':db,'tables':{x.upper():None for x in tables}}
-
-            for name, obj in elements.items():
-                is_class = inspect.isclass(obj)
-                if not is_class: continue 
-
-                alpha_model = issubclass(obj,AlphaTable)
-                has_table = hasattr(obj,'__tablename__')
-                if alpha_model and has_table:
-                    table = obj
-                    found = True
-
-                    TABLES[db.name]['tables'][obj.__tablename__.upper()] = obj
-            
-            if found:
+        for name, obj in module.__dict__.items():
+            if add_to_tables(db, obj):
                 modules.append(module)
 
     if main and main in TABLES:
@@ -113,14 +107,15 @@ def get_definitions_modules(modules_list:List[ModuleType],log:AlphaLogger) -> Li
             TABLES['main'] = TABLES[main]
         else:
             for table, obj in TABLES[main]["tables"].items():
-                TABLES["main"]["tables"][table] = obj 
+                if not table in TABLES["main"]["tables"]:
+                    TABLES["main"]["tables"][table] = obj 
 
     return modules
 
 class AlphaModelView(ModelView):
     column_display_pk = True
 
-def load_views() -> List[ModelView]:
+def load_views(log) -> List[ModelView]:
     """[Load view from tables definitions module]
 
     Args:
@@ -135,6 +130,10 @@ def load_views() -> List[ModelView]:
         db, tables = cf['db'], cf['tables']
 
         for table_name, class_object in tables.items():
+            if class_object is None:
+                #log.error('Cannot get class for table <%s>'%table_name)
+                continue
+
             attributes                  = [x for x,y in class_object.__dict__.items() if isinstance(y,InstrumentedAttribute)]
 
             name        = '%s:%s'%(schema,class_object.__tablename__)

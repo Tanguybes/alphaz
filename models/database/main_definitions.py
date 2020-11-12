@@ -1,5 +1,5 @@
 from sqlalchemy.ext.automap import automap_base
-from sqlalchemy import Table, Column, ForeignKey, Integer, String, Text, DateTime, UniqueConstraint, Float
+from sqlalchemy import Table, Column, ForeignKey, Integer, String, Text, DateTime, UniqueConstraint, Float, BLOB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.ext.declarative import declared_attr
@@ -202,3 +202,17 @@ class Answers(db.Model, AlphaTableIdUpdateDate):
     message_type = AlphaColumn(String(20))
     lifetime = AlphaColumn(Integer)
     creation_date = AlphaColumn(DateTime,default=datetime.datetime.now)
+
+class Constants(db.Model,AlphaTableIdUpdateDate):
+    __tablename__ = "constants"
+    __bind_key__ = "main"
+
+    name = AlphaColumn(String(30))
+    value = AlphaColumn(String(100))
+
+class Parameters(db.Model,AlphaTableIdUpdateDate):
+    __tablename__ = "parameters"
+    __bind_key__ = "main"
+
+    name = AlphaColumn(String(30))
+    value = AlphaColumn(BLOB)

@@ -108,7 +108,6 @@ def get_mail_content(mail_root, mail_type,log):
     with open(mail_root + os.sep + 'generated_mail.html','w') as f:
         f.write(content)
 
-    #return set_parameters(content,CoreW.CONSTANTS)
     return content
 
 def get_mail_token(key):
@@ -256,7 +255,7 @@ def set_mail_history(db, mail_type,uuidValue,parameters,log=None):
 def get_unique_parameters(parameter):
     unique_parameters = {}
     for key, value in parameter.items():
-        if key[0:5] != 'page_': #key not in CoreW.CONSTANTS.keys() #TODO: check
+        if key[0:5] != 'page_': #TODO: check
             unique_parameters[key] = value
     return unique_parameters
 

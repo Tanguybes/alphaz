@@ -9,7 +9,6 @@ from collections import OrderedDict
 
 class TestGroup():
     def __init__(self,name,classObject):
-        self.verbose        = False
         self.name           = name.replace('_Tests','').replace('_tests','')
         self.classObject    = classObject
         self.tests: OrderedDict[str,TestMethod] = OrderedDict()
@@ -17,10 +16,10 @@ class TestGroup():
         if self.category == '':
             self.category = classObject.__module__.split('.')[-1].capitalize() 
 
-        for method_name, method in classObject.__dict__.items():
+        for method_name, method in inspect.getmembers(classObject):
             if '__' in method_name: continue
             if not  inspect.isfunction(method): continue
-            if not hasattr(classObject,method.__name__): continue
+            if not hasattr(classObject, method.__name__): continue
 
             method_name = method.__name__
             qual_name = method.__qualname__
@@ -36,15 +35,14 @@ class TestGroup():
         if name in self.tests:
             self.tests[name].test()
 
-    def test_all(self,verbose=False):
-        self.classObject.verbose = verbose
+    def test_all(self):
         classObject = self.classObject()
         for method in self.tests.values():
-            method.test(classObject=classObject,verbose=verbose)
+            method.test(classObject=classObject)
 
-    def save_all(self,verbose=False):
+    def save_all(self):
         for method in self.tests.values():
-            method.save(verbose=verbose)
+            method.save()
 
     def get_tests_names(self):
         return list(self.tests.keys())
@@ -56,9 +54,6 @@ class TestGroup():
         if output:
             print(txt)
         return txt
-
-    def is_verbose(self):
-        return self.classObject.verbose
 
     def to_json(self):
         return self.tests

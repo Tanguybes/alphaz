@@ -2,6 +2,8 @@ import datetime
 from sqlalchemy import Table, Column, ForeignKey, Integer, String, Text, DateTime, UniqueConstraint
 from sqlalchemy.types import TypeDecorator
 
+from ...libs import flask_lib
+
 from .utils import get_schema
 
 from core import core
@@ -15,6 +17,9 @@ class AlphaColumn(Column):
     show = True
 
 class AlphaTable(object):
+    #def __new__(class_, *args, **kwargs):
+    #    return object.__new__(class_, *args, **kwargs)
+
     def __init__(self):
         self.schema = None
         self.ensure = False

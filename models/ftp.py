@@ -122,7 +122,7 @@ class AlphaFtp():
             self.log.info('File %s downloaded to %s'%(remotepath,localpath))
             return True
         except Exception as ex:
-            self.log.error(str(ex))
+            self.log.error(ex)
             return False
 
     def uploads(self,files_list):

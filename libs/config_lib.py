@@ -26,7 +26,7 @@ def get_db_constants(db:AlphaDatabase) -> OrderedDict:
     Returns:
         OrderedDict: constants in a dict with <name> key and <value> value
     """
-    model = core.get_table(db,db.name,'constants')
+    model = core.get_table(db,'constants')
 
     rows = db.select(model, json=True)
     values = {x['name']:x['value'] for x in rows}
@@ -51,7 +51,7 @@ def get_db_parameters(db:AlphaDatabase) -> OrderedDict:
     Returns:
         [type]: [description]
     """
-    model = core.get_table(db,db.name,'parameters')
+    model = core.get_table(db,'parameters')
 
     rows = db.select(model, json=True)
     values = {x['name']:x['value'] for x in rows}
