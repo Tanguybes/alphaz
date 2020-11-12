@@ -1,5 +1,5 @@
 #from functools import wraps
-
+import sys
 #test_method_name = 'test_call'
 """class test(object):
     def __init__ (self, *args, **kwargs):
@@ -34,7 +34,13 @@ TEST_METHOD_NAME = "test_alpha_in"
 def test(save=False, description=None, stop=True):
     def test_alpha_in(func):
         def test_wrapper(*args,**kwargs):
-            return func(*args, **kwargs)
+            class_ = args[0]
+            class_.output = None
+
+            output = func(*args, **kwargs)
+            if class_.output is not None:
+                return class_.output
+            return output
 
         if hasattr(func,'__name__'):
             test_wrapper.__name__ = func.__name__

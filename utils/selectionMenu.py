@@ -9,13 +9,13 @@ from ..libs.converter_lib import to_int
 from ..libs import py_lib, io_lib
 from .logger import AlphaLogger
 
-def reload_modules(verbose=False):
+def reload_modules():
     reload_path = os.getcwd()
     #print('Reload modules at %s'%reload_path)
-    py_lib.reload_modules(reload_path,verbose=verbose)
+    py_lib.reload_modules(reload_path)
     reload_path = os.sep.join(os.path.dirname(os.path.abspath(__file__)).split(os.sep)[:-1])
     #print('Reload modules at %s'%reload_path)
-    py_lib.reload_modules(reload_path,verbose=verbose)
+    py_lib.reload_modules(reload_path)
 
 def replace_name(name):
     return name.lower().replace(' ','_')

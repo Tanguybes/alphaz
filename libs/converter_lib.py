@@ -54,3 +54,28 @@ def xml_content_to_orderdict(content):
 
 def get_percentage(percentage):
     return number_lib.myround(int(percentage*100) / 100,1)
+
+def encrypt(s):
+    s = bytes(s, 'utf-8')
+    return ascii_compress(s)[0]
+
+def decrypt(b):
+    c = ascii_decompress(b)[0]
+    c = c.decode('utf-8')
+    return c
+
+def ascii_compress(data, level=9):
+    """ compress data to printable ascii-code """
+
+    code = zlib.compress(data,level)
+    csum = zlib.crc32(code)
+    code = base64.encodestring(code)
+    return code, csum
+
+def ascii_decompress(code):
+    """ decompress result of asciiCompress """
+
+    code = base64.decodestring(code)
+    csum = zlib.crc32(code)
+    data = zlib.decompress(code)
+    return data, csum

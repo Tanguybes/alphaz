@@ -11,7 +11,7 @@ def launch_cmds_web(cmds,base_href):
     os.system(cmd)
     if base_href != '':
         print('Copy from %s to %s'%(source, target + base_href))
-        copy_files(source,target + base_href,[],verbose=False,action=not args.test)  
+        copy_files(source,target + base_href,[],action=not args.test)  
     os.chdir(current_folder) 
 
 def send_files(ftp,target, source, folder_list,root_ftp=''):
@@ -89,7 +89,7 @@ def mep(config_name,restore=False,action=True):
             cmd                 = "zip -r %s %s"%(root_backup + zip_name, source_path)
             current_folder      = os.getcwd()
             os.chdir(root_prod)
-            infos = copy_files(source,target,folder_list,verbose=True,action=False,infos={})
+            infos = copy_files(source,target,folder_list,action=False,infos={})
 
             if infos['nb'] != 0:
                 answer = input('Move files ? [Y/N]')
@@ -97,7 +97,7 @@ def mep(config_name,restore=False,action=True):
                     print('zip %s to %s'%(source_path,root_backup + zip_name))
                     get_output(os.system,[cmd],{})
                     print('\n')
-                    copy_files(source,target,folder_list,verbose=True,action=action)
+                    copy_files(source,target,folder_list,action=action)
             else:
                 print('   {:40} Nothing to update ...'.format(folder_path))
 

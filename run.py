@@ -40,8 +40,8 @@ GOLLIATH_MENU_PARAMETERS = {
 }
 
 if __name__ == "__main__":
-    #test_lib.save_all_tests_auto('tests/auto',output=True,verbose=False,refresh=True,name='api')
-    #test_lib.execute_all_tests_auto('tests/auto',output=True,verbose=False,refresh=True,name='api')
+    #test_lib.save_all_tests_auto('tests/auto',output=True,refresh=True,name='api')
+    #test_lib.execute_all_tests_auto('tests/auto',output=True,refresh=True,name='api')
     #exit()
 
     parser          = argparse.ArgumentParser(description='Alpha')
@@ -58,7 +58,6 @@ if __name__ == "__main__":
         directory   = core.config.get(['tests','auto_directory']), 
         import_path = core.config.get(['tests','auto_import']),
         output      = True,
-        verbose     = True,
         action      = 'execute',
         log         = core.log
         )

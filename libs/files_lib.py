@@ -5,7 +5,7 @@ sep = os.sep
 def folders_list(root,path):
     return [x for x in path.replace(root,'').split(sep) if x != '']
 
-def copy_files(root_source, root_dest, folders, verbose=False,action=False,infos={},exts_excludes={},dirs_excludes={}):
+def copy_files(root_source, root_dest, folders,action=False,infos={},exts_excludes={},dirs_excludes={}):
     if not 'nb' in infos:
         infos['nb'] = 0
 
@@ -23,12 +23,12 @@ def copy_files(root_source, root_dest, folders, verbose=False,action=False,infos
             if not ext in exts_excludes:
                 new_folders = folders_list(root_source,file_name)
                 infos = copy_file(root_source, root_dest, new_folders[:-1], new_folders[-1],
-                    verbose=verbose,action=action,infos=infos)
+                    action=action,infos=infos)
         else:
             new_folders = folders_list(root_source,file_name)
             new_folder  = file_name.split(os.sep)[-1]
             if not new_folder in dirs_excludes:
-                copy_files(root_source, root_dest, new_folders,verbose=verbose,action=action,infos=infos)
+                copy_files(root_source, root_dest, new_folders,action=action,infos=infos)
     return infos
 
 def copy_file(root_source, root_dest, folders, file_name,log=None,action=False,infos={}):
@@ -69,3 +69,14 @@ def copy_file(root_source, root_dest, folders, file_name,log=None,action=False,i
     except Exception as ex:
         if log: log.error(ex)
     return infos
+
+def get_all_files_from_directory(path, files=[], recursive=False, extension=[]):
+    for p in glob.glob("%s/*"%path):
+        if os.path.isdir(p):
+            if recursive:
+                get_all_files_from_directory(p,files,recursive=recursive,extension=extension)
+        else:
+            ext = pathlib.Path(p).suffix.replace('.','')
+            if ext in extension:
+                files.append(p)
+    return files

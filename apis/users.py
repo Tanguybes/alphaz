@@ -48,7 +48,6 @@ def try_register_user(api,db,mail, username, password, password_confirmation):
             registration_token=token))
     else:
         api.set_error('sending')
-    #sender      = CoreW.CONSTANTS['email-registration']
 
 def ask_password_reset(api,username_or_mail,db):
     user_by_mail        = user_lib.get_user_data_by_mail(db,username_or_mail)
