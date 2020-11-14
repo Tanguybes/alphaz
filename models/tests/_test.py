@@ -16,6 +16,7 @@ class AlphaTest():
         self.output: bool = None
 
     def test(self,name):
+        self.output = None
         status = False
         fct = getattr(self,name)
         if fct is None:
@@ -23,6 +24,8 @@ class AlphaTest():
             return False
         try:
             status = fct()
+            if self.output is not None:
+                status = self.output
         except Exception as ex:
             text    = traceback.format_exc()
             LOG.error(text)
@@ -38,6 +41,12 @@ class AlphaTest():
             object_name_to_save = fct(get_name=True)
             AlphaSave.save(object_to_save,object_name_to_save)
 
+    def _set_output(self,status):
+        if self.output is not None:
+            self.output = status and self.output
+        else:
+            self.output = status
+
     def array_equal(self,a,b):
         equal = len(a) == len(b)
         if equal:
@@ -45,17 +54,24 @@ class AlphaTest():
                 if a[i] != b[i]: 
                     equal = False
 
-        LOG.debug("Arrays size are not equal: <%s> and <%s>"%(len(a),len(b)))
-        self.output = equal
+        if not equal:
+            LOG.debug("Arrays size are not equal: <%s> and <%s>"%(len(a),len(b)))
+        self._set_output(equal)
 
-    def assert_is_not_empty(self, a, conditions = []):
-        if isinstance(a,pd.DataFrame):
-            self.output = a is not None and not a.empty
+    def assert_is_not_empty(self, a, conditions = [], attribute=None):
+        if attribute is not None:
+            if not hasattr(a,attribute):
+                LOG.error('Object of type <%s> does not have an attribute named <%s>'%(type(a),attribute))
+            status = a is not None and not len(getattr(a,attribute)) == 0
+        elif isinstance(a,pd.DataFrame):
+            status = a is not None and not a.empty
         else:
-            self.output = a is not None and len(a) != 0
+            status = a is not None and len(a) != 0
 
         if len(conditions) != 0 and type(conditions) == list:
-            self.output = self.output and all(conditions)
-
+            status = status and all(conditions)
+        self._set_output(status)
+        
     def assert_length(self, a, length):
-        self.output = a is not None and len(a) != 0 and len(a) == length
+        status = a is not None and len(a) != 0 and len(a) == length
+        self._set_output(status)

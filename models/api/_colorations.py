@@ -1,6 +1,6 @@
 import re
 
-from ...utils.logger._colorations import colored_term
+from ...models.logger._colorations import colored_term
 
 class WerkzeugColorFilter:
     P_REQUEST_LOG = re.compile(r'^(.*?) - - \[(.*?)\] "(.*?)" (\d+) (\d+|-)$')

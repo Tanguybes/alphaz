@@ -6,11 +6,13 @@ from typing import List, Dict
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
-from .utils import *
+from ._utils import *
 
-from ..libs import converter_lib, sql_lib, io_lib
-from ..utils.logger import AlphaLogger
-from ..models.main import AlphaClass
+from ..main import AlphaClass
+from ..main._exception import EXCEPTIONS
+from ..logger import AlphaLogger
+
+from ...libs import converter_lib, sql_lib, io_lib
 
 class AlphaConfig(AlphaClass):
     reserved    =  ['user','configuration','project','ip','platform']
@@ -24,7 +26,8 @@ class AlphaConfig(AlphaClass):
             configuration: str = None,
             logger_root: str = None,
             data: dict = None,
-            origin = None
+            origin = None,
+            core = None
             ):
         if hasattr(self, 'tmp'): return
 
@@ -38,6 +41,7 @@ class AlphaConfig(AlphaClass):
         self.logger_root = logger_root
         self.origin = origin
         self.sub_configurations = {}
+        self.core = core
 
         super().__init__(log=log)
 
@@ -64,16 +68,29 @@ class AlphaConfig(AlphaClass):
         self.log            = log
 
         if data is None:
-            try:
-                self._load_raw()
-            except Exception as ex:
-                print('Cannot read configuration file %s:%s'%(self.filepath,ex))
-                exit()
+            self._load_raw()
 
         if data is None and configuration is not None:
             self.set_configuration(configuration)
         else:
             self._load()
+
+    def _load_raw(self):
+        if not self.loaded:
+            with open(self.filepath, encoding='utf-8') as json_data_file:
+                try:
+                    self.data_origin = json.load(json_data_file)
+                except Exception as ex:
+                    print('Configuration file %s is invalid: %s'%(self.filepath, ex))
+                    exit()
+                self.loaded = True
+        """if os.path.isfile(self.filepath):
+            self.exist = True
+            #self._add_tmp('configuration',configuration)
+        else:
+            self.error('Config file %s does not exist !'%self.filepath)
+            exit()"""
+
 
     def set_configuration(self, configuration):
         if configuration is None:
@@ -83,7 +100,7 @@ class AlphaConfig(AlphaClass):
         self._clean()
 
         self.configuration = configuration
-        self.info('Setting <%s> configuration for file %s'%(configuration, self.filepath))
+        self.info('Set <%s> configuration for file %s'%(configuration, self.filepath))
         self._load()
 
     def _clean(self):
@@ -113,13 +130,12 @@ class AlphaConfig(AlphaClass):
 
         # check if loaded
         if not CONFIGURATIONS.load_configuration(self):
+            self.info('Reload configuration')
             self._process_tmps()
             self._init_data()
             CONFIGURATIONS.set_configuration(self)
 
         self._check_required()
-
-        self._set_sub_configurations()
 
         self._configure()
 
@@ -148,12 +164,32 @@ class AlphaConfig(AlphaClass):
         if not self.core_configuration:
             return
 
+        self._set_sub_configurations()
+
         self._set_loggers()
         self._configure_databases()
 
         if self.core_configuration: 
             sequence = ', '.join(["%s=<%s>%s"%(tmp, tmp_value, '*' if tmp+'s' in self.data_tmp else '') for tmp, tmp_value in self.tmp.items() ])
             self.info('Configuration %s initiated for: %s'%(self.filepath,sequence))
+
+        # SET ENVIRONMENT VARIABLES
+        if self.core is not None:
+            set_environment_variables(self.get('environment'))
+
+        #loggers_config      = self.config.get("loggers")
+
+            self.core.loggers        = self.loggers
+            self.core.log            = self.get_logger('main')
+
+            exceptions              = self.get('exceptions')
+            if exceptions is not None:
+                for exception_group in exceptions:
+                    for exception_name, exception_configuration in exception_group.items():
+                        if not exception_name in EXCEPTIONS:
+                            EXCEPTIONS[exception_name] = exception_configuration
+                        else:
+                            self.log.error('Duplicate exception name for %s'%exception_name)
 
     def _set_sub_configurations(self):
         config = self.data
@@ -501,21 +537,6 @@ class AlphaConfig(AlphaClass):
 
     def show(self):
         show(self.data)
-
-    def _load_raw(self):
-        if not self.loaded:
-            with open(self.filepath, encoding='utf-8') as json_data_file:
-                try:
-                    self.data_origin = json.load(json_data_file)
-                except Exception as ex:
-                    print('Configuration file %s is invalid: %s'%(self.filepath, ex))
-                self.loaded = True
-        """if os.path.isfile(self.filepath):
-            self.exist = True
-            #self._add_tmp('configuration',configuration)
-        else:
-            self.error('Config file %s does not exist !'%self.filepath)
-            exit()"""
 
     def _check_required(self):
         if not 'required' in self.data:

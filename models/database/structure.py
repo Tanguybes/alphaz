@@ -15,7 +15,7 @@ from sqlalchemy.engine.reflection import Inspector
 from .row import Row
 from .utils import get_schema
 
-from ...utils.logger import AlphaLogger
+from ...models.logger import AlphaLogger
 
 #from ...libs import database_lib
 from ...models.main import AlphaException
