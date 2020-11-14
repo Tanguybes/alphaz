@@ -5,7 +5,7 @@ from flask import Markup
 
 from ..utils import *
 
-from ..utils.logger import AlphaLogger
+from ..models.logger import AlphaLogger
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 TABLES = {}

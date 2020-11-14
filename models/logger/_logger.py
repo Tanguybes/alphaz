@@ -98,7 +98,7 @@ class AlphaLogger():
         if monitor: save = True
 
         if isinstance(message, Exception):
-            text    = traceback.format_exc()
+            message    = traceback.format_exc()
 
         if monitor is not None and self.monitoring_logger is None:
             self.monitoring_logger  = AlphaMonitorLogger('monitoring',root=self.root,cmd_output=False)
@@ -108,8 +108,7 @@ class AlphaLogger():
         full_message                = self.get_formatted_message(message,stack,stack_level,level)
 
         if ex is not None:
-            text            = traceback.format_exc()
-            full_message    += "/n" + text
+            full_message    += "/n" + traceback.format_exc()
 
         fct = getattr(self.logger, level.lower())
         fct(full_message)

@@ -4,17 +4,15 @@ with warnings.catch_warnings():
      from flask_marshmallow import Marshmallow
 
 from ....models.main import AlphaClass
-from ....utils.logger import AlphaLogger
-from ....config.config import AlphaConfig
+from ....models.logger import AlphaLogger
 from ....libs import io_lib, flask_lib
+
+from ....models.config import AlphaConfig
 from ....models import database as database_models
-from ....models.main._exception import EXCEPTIONS
 from ....models.main import AlphaException
 from ...api import AlphaFlask
 
 from ...database.structure import AlphaDatabase
-
-from . import _utils
 
 import alphaz
 
@@ -51,31 +49,12 @@ class AlphaCore(AlphaClass):
 
         self.config:AlphaConfig     = AlphaConfig('config',
             root=self.root,
-            configuration=configuration
+            configuration=configuration,
+            core=self
         )
 
     def set_configuration(self,configuration_name):
         self.config.set_configuration(configuration_name)
-        self.configuration  = self.config.configuration
-        self.configuration_name = configuration_name
-
-        # SET ENVIRONMENT VARIABLES
-        _utils.set_environment_variables(self.config.get('environment'))
-
-        loggers_config      = self.config.get("loggers")
-
-        self.loggers        = self.config.loggers
-
-        self.log            = self.config.get_logger('main')
-
-        exceptions          = self.config.get('exceptions')
-        if exceptions is not None:
-            for exception_group in exceptions:
-                for exception_name, exception_configuration in exception_group.items():
-                    if not exception_name in EXCEPTIONS:
-                        EXCEPTIONS[exception_name] = exception_configuration
-                    else:
-                        self.log.error('Duplicate exception name for %s'%exception_name)
 
     def prepare_api(self,configuration):
         self.set_configuration(configuration)

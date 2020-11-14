@@ -10,7 +10,7 @@ sys.path.append(os.getcwd())
 from alphaz.libs import test_lib, py_lib, files_lib, nav_lib
 from alphaz.utils.selectionMenu import SelectionMenu
 from alphaz.libs import test_lib, py_lib, files_lib, nav_lib
-from alphaz.config.config import AlphaConfig
+from alphaz.models.config import AlphaConfig
 
 from core import core
 api = core.api

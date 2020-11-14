@@ -2,6 +2,11 @@ import re, os, copy
 
 PAREMETER_PATTERN = '{{%s}}'
 
+def set_environment_variables(environs:dict):
+    if environs:
+        for key, value in environs.items():
+            os.environ[key] = convert_value_for_environment(value)
+
 def merge_configuration(configuration, source_configuration,replace=False,path=[]):
     for key2, value2 in source_configuration.items():
         if not key2 in configuration:

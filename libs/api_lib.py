@@ -2,9 +2,9 @@
 import sys, os, inspect, copy
 
 from ..libs import dict_lib
-from ..utils.logger import AlphaLogger
 from ..utils.api import ROUTES
 
+from ..models.logger import AlphaLogger
 from ..models.api._converters import jsonify_database_models
 from ..models.api._converters import jsonify_data
 

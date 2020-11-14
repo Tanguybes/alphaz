@@ -4,7 +4,7 @@ import importlib
 from inspect import getmembers, isfunction, isclass
 from .py_lib import reload_modules
 
-from ..utils.logger import AlphaLogger
+from ..models.logger import AlphaLogger
 from typing import List
 
 from core import core

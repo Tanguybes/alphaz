@@ -1,5 +1,5 @@
 import pandas as pd
-from ..config.config import AlphaConfig
+from ..models.config import AlphaConfig
 
 class AlphaExcel():
     file_raw    = None

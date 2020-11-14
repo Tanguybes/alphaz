@@ -1,6 +1,6 @@
 import requests
-from alphaz.config.config import AlphaConfig
-from alphaz.utils.logger import AlphaLogger
+from alphaz.models.config import AlphaConfig
+from alphaz.models.logger import AlphaLogger
 
 from core import core
 LOG = core.get_logger('http')

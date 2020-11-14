@@ -21,9 +21,9 @@ from ...libs import mail_lib
 from ...libs import flask_lib
 from ...libs import io_lib
 
-from ...utils.logger import AlphaLogger
+from ...models.logger import AlphaLogger
 from ...models.main import AlphaException
-from ...config.config import AlphaConfig
+from ...models.config import AlphaConfig
 
 from ...utils.time import tic, tac
 

@@ -1,4 +1,4 @@
-from ...utils.logger import AlphaLogger
+from ..logger import AlphaLogger
 
 class AlphaClass:
     def __init__(self,log:AlphaLogger = None):

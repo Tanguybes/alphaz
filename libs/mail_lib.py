@@ -7,7 +7,7 @@ from flask_mail import Message
 import uuid
 
 from . import sql_lib
-from ..config.utils import merge_configuration, get_mails_parameters
+from ..models.config._utils import get_mails_parameters
 
 REQUIRED_PARAMETERS         = ['mail']
 KEY_SIGNATURE               = '<alpha mail>'
