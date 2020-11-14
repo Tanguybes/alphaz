@@ -103,7 +103,7 @@ def archive_object(object_to_save,filename:str, ext:str=None,log=None) -> None:
     ensure_dir(filename)
     if '.' in filename:
         ext = filename.split('.')[-1]
-        filename = filename.replace(ext,'')
+        filename = filename.replace("."+ext,'')
     if ext is None:
         ext = 'dmp'
     if ext is not None and pathlib.Path(filename).suffix == '':
@@ -126,7 +126,7 @@ def unarchive_object(filename:str, ext:str=None):
     """
     if '.' in filename and ext is None:
         ext = filename.split('.')[-1]
-        filename = filename.replace(ext,'')
+        filename = filename.replace("." + ext,'')
     if ext is None:
         ext = 'dmp'
     if ext is not None and pathlib.Path(filename).suffix == '':
