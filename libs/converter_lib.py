@@ -14,14 +14,14 @@ def to_int(value):
     except ValueError:
         return value, False
     
-def to_num(s):
+def to_num(s,default=None):
     try:
         return int(s)
     except ValueError:
         try:
             return float(s)
         except ValueError:
-            return None
+            return default
         
 def is_num(s):
     if s is None:
