@@ -125,7 +125,7 @@ class AlphaDatabase(AlphaDatabaseCore):
             return False
 
     def get(self,query,values=None,unique=False,log=None):
-        return self.get_query_results(query,values=None,unique=False,log=None)
+        return self.get_query_results(query,values=values,unique=unique,log=log)
 
     def get_query_results(self,query,values=None,unique=False,log=None):
         session = self.get_engine(self.app, self.name)
