@@ -130,7 +130,7 @@ class AlphaConfig(AlphaClass):
 
         # check if loaded
         if not CONFIGURATIONS.load_configuration(self):
-            self.info('Reload configuration')
+            self.info('Reload configuration: %s'%self.filepath)
             self._process_tmps()
             self._init_data()
             CONFIGURATIONS.set_configuration(self)

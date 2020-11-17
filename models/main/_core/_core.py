@@ -37,8 +37,7 @@ class AlphaCore(AlphaClass):
         self.loggers: {AlphaLogger} = {}
         self.initiated: bool        = False
         self.databases: dict        = {}
-        self.configuration: str     = None
-        self.configuration_name: str = None
+
         self.ma:Marshmallow         = None
         self.db:AlphaDatabase       = None
         self.api:AlphaFlask         = None
@@ -46,6 +45,8 @@ class AlphaCore(AlphaClass):
         configuration = None
         if 'ALPHA_CONF' in os.environ:
             configuration = os.environ['ALPHA_CONF']
+        self.configuration: str     = configuration
+        self.configuration_name: str = configuration
 
         self.config:AlphaConfig     = AlphaConfig('config',
             root=self.root,
@@ -55,6 +56,8 @@ class AlphaCore(AlphaClass):
 
     def set_configuration(self,configuration_name):
         self.config.set_configuration(configuration_name)
+        self.configuration     = configuration_name
+        self.configuration_name = configuration_name
 
     def prepare_api(self,configuration):
         self.set_configuration(configuration)
