@@ -5,6 +5,7 @@ Created on 13 janv. 2019
 '''
 
 import math, xmltodict, re
+from dicttoxml import dicttoxml
 
 from . import number_lib
 
@@ -79,3 +80,23 @@ def ascii_decompress(code):
     csum = zlib.crc32(code)
     data = zlib.decompress(code)
     return data, csum
+
+from functools import singledispatch
+
+@singledispatch
+def keys_to_strings(ob):
+    return ob
+
+@keys_to_strings.register
+def _handle_dict(ob: dict):
+    return {str(k): keys_to_strings(v) for k, v in ob.items()}
+
+@keys_to_strings.register
+def _handle_list(ob: list):
+    return [keys_to_strings(v) for v in ob]
+
+def dict_to_xml(D, attr_type=True):
+    # dicttoxml fail is keys are number - need to convert them to string
+    D   = keys_to_strings(D)
+    xml = dicttoxml(D,attr_type=attr_type)
+    return xml

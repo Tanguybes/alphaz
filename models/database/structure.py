@@ -64,6 +64,8 @@ class AlphaDatabaseCore(SQLAlchemy):
         self.config = config
         self.log: AlphaLogger = log 
 
+        self.error = None
+
     def test(self):
         """[Test the connection]
 
@@ -200,6 +202,7 @@ class AlphaDatabase(AlphaDatabaseCore):
             try:
                 self.commit()
             except Exception as ex:
+                self.error = str(ex)
                 raise AlphaException('database_insert',description=str(ex))
         return obj
 

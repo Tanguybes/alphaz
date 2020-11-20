@@ -1,7 +1,5 @@
 import os, configparser, datetime, copy, jwt, logging, re, itertools, sys, importlib, warnings
 
-from dicttoxml import dicttoxml
-
 from flask import Flask, jsonify, request, Response, make_response
 from flask_mail import Mail
 
@@ -17,9 +15,7 @@ from werkzeug.debug import DebuggedApplication
 
 import flask_monitoringdashboard
 
-from ...libs import mail_lib
-from ...libs import flask_lib
-from ...libs import io_lib
+from ...libs import mail_lib, flask_lib, io_lib, converter_lib, os_lib
 
 from ...models.logger import AlphaLogger
 from ...models.main import AlphaException
@@ -242,7 +238,7 @@ class AlphaFlask(Flask):
         if mode == "wsgi":
             self.log.info("Running %sWSGI mode"%("debug " if self.debug else ""))
             application = DebuggedApplication(self, True) if self.debug else self
-            server = WSGIServer(('', port), application)
+            server = WSGIServer((host, port), application)
             server.serve_forever()
         else:
             self.run(host=host,port=port,debug=self.debug,threaded=threaded,ssl_context=ssl_context)
@@ -323,7 +319,7 @@ class AlphaFlask(Flask):
             data."""
 
         if 'xml' in format_:
-            xml_output = dicttoxml(self.returned,attr_type=not 'no_type' in format_)                                              
+            xml_output = converter_lib.dict_to_xml(self.returned,attr_type=not 'no_type' in format_)                                              
             response = make_response(xml_output)                                           
             response.headers['Content-Type'] = 'text/xml; charset=utf-8'            
             return response
