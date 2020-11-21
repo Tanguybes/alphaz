@@ -42,6 +42,9 @@ class AlphaCore(AlphaClass):
         self.ma:Marshmallow         = None
         self.db:AlphaDatabase       = None
         self.api:AlphaFlask         = None
+
+        self.models_sources: List[str] = []
+        self.models_source_loaded:bool = False
         
         configuration = None
         if 'ALPHA_CONF' in os.environ:
@@ -135,10 +138,13 @@ class AlphaCore(AlphaClass):
                 exit()
 
     def get_table(self,schema:str, table:str):
+        self.load_models_sources()
+        
         table = table.upper()
         if type(schema) != str and hasattr(schema,"name"):
             schema = schema.name
         if not schema in flask_lib.TABLES:
+
             raise AlphaException('schema_not_loaded', parameters={'schema':schema})
 
         """if table in flask_lib.TABLES:
@@ -173,3 +179,13 @@ class AlphaCore(AlphaClass):
         modules             = flask_lib.get_definitions_modules(self.api.models_sources, log=self.log)
         table_object        = self.get_table(schema, table_name)
         table_object.__table__.drop(table_object.bind._engine)
+
+    def load_models_sources(self):
+        if not self.models_source_loaded:
+            self.models_sources = self.config.get('directories/database_models')
+            if not self.models_sources:
+                self.log.error('Missing <directories/database_models> entry in configuration %s'%self.conf.filepath)
+                exit()
+
+            self.models_sources.append("alphaz.models.database.main_definitions")
+            modules             = flask_lib.get_definitions_modules(self.models_sources, log=self.log)

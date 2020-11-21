@@ -2,8 +2,9 @@
 import inspect, os
 #from ...libs.oracle_lib import Connection 
 
+from pymysql.err import IntegrityError
 
-
+from sqlalchemy import inspect
 from sqlalchemy import update, create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.orm.attributes import InstrumentedAttribute
@@ -179,14 +180,16 @@ class AlphaDatabase(AlphaDatabaseCore):
     def add_or_update(self,obj,parameters=None,commit=True,test=False,update=False):
         return self.add(obj=obj,parameters=parameters,commit=commit,test=test,update=True)
 
-    def add(self,obj,parameters=None,commit=True,test=False,update=False):
+    def add(self,model,parameters=None,commit=True,test=False,update=False):
         if test:
-            self.log.info('Insert %s with values %s'%(obj,parameters))
+            self.log.info('Insert %s with values %s'%(model,parameters))
             return None
 
         if parameters is not None:
             parameters  = {x if not '.' in str(x) else str(x).split('.')[-1]:y for x,y in parameters.items()}
-            obj         = obj(**parameters)
+            obj         = model(**parameters)
+        else:
+            obj         = model
 
         if type(obj) == list:
             obj_ = self.session.add_all(obj)
@@ -199,9 +202,45 @@ class AlphaDatabase(AlphaDatabaseCore):
         if commit: 
             try:
                 self.commit()
+
             except Exception as ex:
+                primaryKeyColName = inspect(obj)
+
                 raise AlphaException('database_insert',description=str(ex))
         return obj
+
+    def upsert(self, model, rows):
+        session = self.session
+
+        table = model.__table__
+        stmt = postgresql.insert(table)
+        primary_keys = [key.name for key in inspect(table).primary_key]
+        update_dict = {c.name: c for c in stmt.excluded if not c.primary_key}
+
+        if not update_dict:
+            raise ValueError("insert_or_update resulted in an empty update_dict")
+
+        stmt = stmt.on_conflict_do_update(index_elements=primary_keys,
+                                        set_=update_dict)
+
+        seen = set()
+        foreign_keys = {col.name: list(col.foreign_keys)[0].column for col in table.columns if col.foreign_keys}
+        unique_constraints = [c for c in table.constraints if isinstance(c, UniqueConstraint)]
+        def handle_foreignkeys_constraints(row):
+            for c_name, c_value in foreign_keys.items():
+                foreign_obj = row.pop(c_value.table.name, None)
+                row[c_name] = getattr(foreign_obj, c_value.name) if foreign_obj else None
+
+            for const in unique_constraints:
+                unique = tuple([const,] + [row[col.name] for col in const.columns])
+                if unique in seen:
+                    return None
+                seen.add(unique)
+
+            return row
+
+        rows = list(filter(None, (handle_foreignkeys_constraints(row) for row in rows)))
+        session.execute(stmt, rows)
 
     def commit(self):
         try:

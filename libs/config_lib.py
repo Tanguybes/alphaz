@@ -26,7 +26,7 @@ def get_db_constants(db:AlphaDatabase) -> OrderedDict:
     Returns:
         OrderedDict: constants in a dict with <name> key and <value> value
     """
-    model = core.get_table(db,'constants')
+    model = core.get_table(db.name,'constants')
 
     rows = db.select(model, json=True)
     values = {x['name']:x['value'] for x in rows}
@@ -51,7 +51,7 @@ def get_db_parameters(db:AlphaDatabase) -> OrderedDict:
     Returns:
         [type]: [description]
     """
-    model = core.get_table(db,'parameters')
+    model = core.get_table(db.name,'parameters')
 
     rows = db.select(model, json=True)
     values = {x['name']:x['value'] for x in rows}
@@ -116,7 +116,7 @@ def set_db_constant(db:AlphaDatabase,name:str,value):
         value ([type]): [description]
     """
     CONSTANTS[name] = value
-    model = core.get_table(db,db.name,'constants')
+    model = core.get_table(db.name,'constants')
     db.insert_or_update(model,values={'name':name,'value':value})
 
 def set_db_parameter(db:AlphaDatabase,name:str,value): # TODO: set core
@@ -129,7 +129,7 @@ def set_db_parameter(db:AlphaDatabase,name:str,value): # TODO: set core
         value ([type]): [description]
     """
     PARAMETERS[name] = value
-    model = core.get_table(db,db.name,'parameters')
+    model = core.get_table(db.name,'parameters')
     db.insert_or_update(model,values={'name':name,'value':value})
 
 def is_db_constant(db:AlphaDatabase,name:str):
