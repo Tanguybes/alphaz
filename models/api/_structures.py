@@ -76,8 +76,6 @@ class AlphaFlask(Flask):
         self.file_to_get   = (None, None)
         self.file_to_set    = (None, None)
 
-        self.models_sources: List[str] = []
-
         # need to put it here to avoid warnings
         self.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True #TODO modify
 
@@ -120,7 +118,7 @@ class AlphaFlask(Flask):
         # check request
         # ! freeze - dont know why
         """db              = core.get_database('main')
-        request_model    = database_lib.get_table(db,'main', 'request')
+        request_model    = database_lib.get_table('main', 'request')
         try:
             self.log.debug('Check <request> table')
             obj = db.exist(request_model)
@@ -173,7 +171,6 @@ class AlphaFlask(Flask):
             flask_monitoringdashboard.bind(self)
 
         if self.conf.get('admin_databases'):
-            modules             = flask_lib.get_definitions_modules(self.models_sources, log=self.log)
             self.init_admin_view()
 
         #Base.prepare(self.db.engine, reflect=True)
@@ -191,13 +188,6 @@ class AlphaFlask(Flask):
         
         if self.conf.get('routes_no_log'):
             _colorations.WerkzeugColorFilter.routes_exceptions = self.conf.get('routes_no_log')
-
-        self.models_sources = self.conf.get('directories/database_models')
-        if not self.models_sources:
-            self.log.error('Missing <directories/database_models> entry in configuration %s'%self.conf.filepath)
-            exit()
-
-        self.models_sources.append("alphaz.models.database.main_definitions")
 
     def init_admin_view(self):
         views               = flask_lib.load_views(self.log)

@@ -203,16 +203,24 @@ class Answers(db.Model, AlphaTableIdUpdateDate):
     lifetime = AlphaColumn(Integer)
     creation_date = AlphaColumn(DateTime,default=datetime.datetime.now)
 
-class Constants(db.Model,AlphaTableIdUpdateDate):
+class Constants(db.Model,AlphaTableUpdateDate):
     __tablename__ = "constants"
     __bind_key__ = "main"
 
-    name = AlphaColumn(String(30))
+    __table_args__  = (
+        UniqueConstraint('name', name='constant_name'),
+    )
+
+    name = AlphaColumn(String(30), primary_key=True)
     value = AlphaColumn(String(100))
 
-class Parameters(db.Model,AlphaTableIdUpdateDate):
+class Parameters(db.Model,AlphaTableUpdateDate):
     __tablename__ = "parameters"
     __bind_key__ = "main"
 
-    name = AlphaColumn(String(30))
-    value = AlphaColumn(BLOB)
+    __table_args__  = (
+        UniqueConstraint('name', name='parameter_name'),
+    )
+
+    name = AlphaColumn(String(30), primary_key=True)
+    value = AlphaColumn(Text)

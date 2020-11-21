@@ -213,7 +213,8 @@ class AlphaLogger():
         stackraw    = traceback.format_stack()
         stack       = ''.join(stackraw) if stackraw is not None else ''
 
-        self.database.insert(Logs, values={
+        if self.database is not None:
+            self.database.insert(Logs, values={
             Logs.type_:type_, Logs.origin:origin, Logs.message:message, Logs.stack:stack})
 
     def print_error(self, error_msg, raise_exception=True):
@@ -233,8 +234,9 @@ class AlphaLogger():
         if type(parameters) != str:
             parameters = ';'.join([str(x) for x in parameters])
 
-        self.database.insert(Processes, values={
-            Processes.uuid:uuid_process, Processes.name:name, Processes.parameters:parameters, Processes.status:status})
+        if self.database is not None:
+            self.database.insert(Processes, values={
+                Processes.uuid:uuid_process, Processes.name:name, Processes.parameters:parameters, Processes.status:status})
 
 class AlphaMonitorLogger(AlphaLogger):
     format_log              = "$message"
