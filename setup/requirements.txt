@@ -32,3 +32,5 @@ concurrent_log_handler
 xmltodict
 flask-bcrypt
 py-bcrypt
+celery
+watchdog

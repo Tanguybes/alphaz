@@ -1,22 +1,23 @@
 from threading import Thread, Event
-import os, datetime, uuid, time
+import os, datetime, uuid, time, math, ast
 from typing import List, Dict
 
 from alphaz.models.database.structure import AlphaDatabase
+from alphaz.models.main import AlphaClass, AlphaTransaction
 
-from ..libs import request_lib
+from ..libs import transactions_lib
 
 from core import core
 
 LOG = core.get_logger('requests')
 DB = core.db
 
-class RequestsThread(Thread):    # PowerCounter class
+class TransactionsThread(Thread):    # PowerCounter class
     def __init__(self, function, 
-            requests_types:List[str] = [], 
+            message_types:List[str] = [], 
             database: AlphaDatabase = DB, 
             interval: int = 2,
-            limit: int = 0, 
+            timeout: int = 0, 
             pool_size:int = 20, 
             answer_lifetime = 3600,
             args = [], 
@@ -25,17 +26,19 @@ class RequestsThread(Thread):    # PowerCounter class
 
         Thread.__init__(self)
 
-        self.interval = interval
         self.function = function
-        self.requests_types = requests_types
-        self.limit = limit
-        self.args = args
-        self.kwargs = kwargs
-        self.started: Event = Event()
-        self.running : Event= Event()
-        self.finished: Event = Event()
+        self.message_types:List[str]  = message_types
         self.database: AlphaDatabase = database
+        self.interval:str = interval
+        self.timeout = timeout
+        self.pool_size:int = pool_size
         self.answer_lifetime: int = answer_lifetime
+        self.args:list = args
+        self.kwargs:dict = kwargs
+
+        self.started: Event = Event()
+        self.running: Event= Event()
+        self.finished: Event = Event()        
 
     def ensure(self):
         if not self.started.is_set() and not self.running.is_set():
@@ -46,13 +49,17 @@ class RequestsThread(Thread):    # PowerCounter class
 
         count = 0
         offset = 0
-        while not self.finished.is_set() and (self.limit <= 0 or count < self.limit):
+        elapsed = 0
+        dts = datetime.datetime.now()
+        while not self.finished.is_set() and (self.timeout <= 0 or elapsed < self.timeout):
+            dt = datetime.datetime.now()
+            
             if not self.running.is_set():
                 self.running.set()
 
             if count == 0:
-                dt = datetime.datetime.now()
-                secs = (ceil(dt) - dt).total_seconds()
+                #secs = (math.ceil(dt) - dt).total_seconds()
+                secs = 0
             else:
                 secs = self.interval - offset
                 
@@ -64,22 +71,32 @@ class RequestsThread(Thread):    # PowerCounter class
 
                 offset = time.time() - t
                 count += 1
+            
+            elapsed = (dt - dts).total_seconds()
+
+        if self.timeout > 0 and elapsed > self.timeout:
+            LOG.info("Thread reachs its limit")
+        else:
+            LOG.info("Thread ended")
 
     def process(self):
-        requests = request_lib.get_requests(self.database, requests_types=self.requests_types, limit=self.pool_size)
+        requests = transactions_lib.get_requests(self.database, message_types=self.message_types, limit=self.pool_size)
 
-        if len(results) == 0:
+        if len(requests) == 0:
             return
 
-        LOG.info('Processing %s requests ...'%len(results))
+        requests = [AlphaTransaction(x) for x in requests]
+
+        LOG.info('Processing %s requests ...'%len(requests))
 
         uuids   = []
         for request in requests:
             answer = ''
             try:
-                uuid, parameters        = request.uuid, request.get_message()
+                uuid = request.uuid
+                parameters = request.message
                 uuids.append(uuid)
-                LOG.debug('REQUEST: \n\n',parameters,'\n')
+                LOG.debug('REQUEST: \n\n'+str(parameters)+'\n')
 
                 if type(parameters) is not dict:
                     LOG.error('Answer is of the wrong type')
@@ -89,13 +106,14 @@ class RequestsThread(Thread):    # PowerCounter class
                         
                 if answer is not None:
                     answer            = str(answer)
-                    LOG.debug('Sending answer: ',answer)
-            except Exception as e:
+                    LOG.debug('Sending answer: '+answer)
+            except Exception as ex:
                 LOG.error("Cannot send answser",ex=ex)
             finally:
-                request_lib.send_answer(self.database, uuid, answer, message_type=request.message_type, answer_lifetime=self.answer_lifetime)
+                transactions_lib.send_answer(self.database, uuid, answer, 
+                    message_type=str(request.message_type), answer_lifetime=self.answer_lifetime)
 
-        delete_requests(self.database, uuids)
+        transactions_lib.delete_requests(self.database, uuids)
 
     def cancel(self):
         self.finished.set()

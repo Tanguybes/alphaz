@@ -9,13 +9,9 @@ import numpy as np
 
 from _collections_abc import dict_keys
 
-from flask import jsonify, request
 from flask.json import JSONEncoder
 
-from flask_sqlalchemy.model import DefaultMeta
 from sqlalchemy.exc import OperationalError
-
-from ...utils.decorators import overrides
 
 class AlphaJSONEncoder(JSONEncoder):
     rules = {}
@@ -24,6 +20,7 @@ class AlphaJSONEncoder(JSONEncoder):
         super(AlphaJSONEncoder, self).__init__(*args, **kwargs)
 
         self.rules[np.int64] = int
+        self.rules[np.bool_] = lambda o: o is True
         self.rules[datetime.datetime] = lambda o: str(o.strftime("%Y-%m-%d %H:%M:%S"))
         self.rules[pd.DataFrame] = lambda o: o.to_json(orient='index')
         self.rules[bytes] = lambda o: o.decode('utf-8')
@@ -63,43 +60,3 @@ class AlphaJSONEncoder(JSONEncoder):
             results_json    = structures.dump(results)
         else:
             self.log.error('Missing schema for model <%s>'%str(model.__name__))"""
-
-def jsonify_database_models(model: DefaultMeta, first=False):
-    """Convert a database model structure to json
-
-    Args:
-        model (DefaultMeta): database mode structure
-        first (bool, optional): [description]. Defaults to False.
-
-    Returns:
-        [type]: [description]
-    """
-    schema          = model.get_schema()
-
-    structures      = schema() #schema(many=True) if not first else 
-    results_json    = structures.dump(model) # ? wtf why does it works 
-    return results_json
-
-
-def jsonify_data(data):
-    """Convert any data to a json structure
-
-    Args:
-        data ([type]): data to convert
-
-    Returns:
-        [type]: data converted as a json structure
-    """
-    if type(data) == list:
-        result = [jsonify_data(x) for x in data]
-    elif type(data) == dict:
-        result = {jsonify_data(x):jsonify_data(y) for x,y in data.items()}
-    else:
-        result = data
-
-        if hasattr(data,"schema") or hasattr(data,"get_schema"):
-            result = jsonify_database_models(data)
-        elif hasattr(data,'_fields'):
-            result = {x:data[i] for i,x in enumerate(data._fields)}
-            
-    return result

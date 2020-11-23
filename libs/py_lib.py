@@ -61,3 +61,7 @@ def getsize(obj):
                 need_referents.append(obj)
         objects = get_referents(*need_referents)
     return size
+
+def get_attributes(obj):
+    attributes = inspect.getmembers(obj, lambda a:not(inspect.isroutine(a)))
+    return [a for a in attributes if not(a[0].startswith('__') and a[0].endswith('__'))]

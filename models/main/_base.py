@@ -1,11 +1,30 @@
 from ..logger import AlphaLogger
+import inspect
+
+from ...libs import py_lib
 
 class AlphaClass:
-    def __init__(self,log:AlphaLogger = None):
+    def __init__(self, *args, log:AlphaLogger = None, **kwargs):
+        self.init_args = {'args':args, 'kwargs':kwargs}
+        self.children = list()
+
         self.log: AlphaLogger       = log
+
         self._infos = []
         self._errors = []
         self._warnings = []
+
+    def make_child(self, child_cls, *args, **kwargs):
+        if args is None:
+            args = self.init_args['args']
+        if kwargs is None:
+            kwargs = self.init_args['kwargs']
+        child = child_cls(self, *args, **kwargs)
+        self.children.append(child)
+        return child
+
+    def get_attributes(self):
+        return py_lib.get_attributes()
 
     def info(self,message):
         if self.log is not None:

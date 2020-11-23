@@ -5,8 +5,8 @@ from ..libs import dict_lib
 from ..utils.api import ROUTES
 
 from ..models.logger import AlphaLogger
-from ..models.api._converters import jsonify_database_models
-from ..models.api._converters import jsonify_data
+
+from ..libs.json_lib import jsonify_database_models, jsonify_data
 
 MODULES = {}
 

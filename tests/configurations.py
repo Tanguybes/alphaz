@@ -1,6 +1,8 @@
 from ..models.tests import test, AlphaTest
 from ..libs import config_lib
 
+from core import core
+
 DB = core.get_database()
 
 class ConfigConstants(AlphaTest):
@@ -10,12 +12,12 @@ class ConfigConstants(AlphaTest):
         pass
 
     @test(stop=True)
-    def is_db_constants():
-        config_lib.is_db_constants(DB,self.constant_name)
+    def is_db_constant(self):
+        return config_lib.is_db_constant(DB,self.constant_name)
 
     @test(stop=True)
     def get_db_constants(self):
-        return len(config_lib.get_db_constants(DB)) != 0
+        self.assert_is_not_empty(config_lib.get_db_constants(DB))
         
     @test()
     def get_db_constant(self):
@@ -33,12 +35,12 @@ class ConfigParameters(AlphaTest):
         pass
 
     @test(stop=True)
-    def is_db_parameters():
-        config_lib.is_db_parameters(DB,self.parameter_name)
+    def is_db_parameter(self):
+        return config_lib.is_db_parameter(DB,self.parameter_name)
 
     @test(stop=True)
     def get_db_parameters(self):
-        return len(config_lib.get_db_parameters(DB)) != 0
+        self.assert_is_not_empty(config_lib.get_db_parameters(DB))
         
     @test()
     def get_db_parameter(self):

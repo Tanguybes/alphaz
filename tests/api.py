@@ -1,7 +1,7 @@
 from core import core
 
 from alphaz.utils.api import api
-from alphaz.models.tests import AlphaTest
+from alphaz.models.tests import AlphaTest, test
 
 import requests, os
 
