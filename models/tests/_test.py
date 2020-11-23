@@ -75,3 +75,7 @@ class AlphaTest():
     def assert_length(self, a, length):
         status = a is not None and len(a) != 0 and len(a) == length
         self._set_output(status)
+
+    def assert_transaction(self,tr):
+        status = tr is not None and tr != "timeout"
+        self._set_output(status)

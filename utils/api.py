@@ -40,7 +40,7 @@ def route(path,
 
             api.reset()
             if request.args:
-                api.dataGet = {x:y for x,y in request.args.items()}
+                api.dataGet         = {x:y for x,y in request.args.items()}
 
             if logged:
                 api.user            = api.get_logged_user()
@@ -91,7 +91,11 @@ def route(path,
                 api.init_return()
                 if not missing:
                     try:
-                        func(*args, **kwargs)
+                        output = func(*args, **kwargs)
+                        if output == 'timeout':
+                            api.timeout()
+                        elif output is not None:
+                            api.set_data(output)
                     except Exception as ex:
                         if 'error_format' in api.dataGet and api.dataGet['error_format'].lower() == "exception":
                             raise ex

@@ -14,6 +14,8 @@ from ...api import AlphaFlask
 
 from ...database.structure import AlphaDatabase
 
+from ....utils.tasks import start_celery
+
 import alphaz
 
 def _get_relative_path(file: str, level = 0, add_to_path=True):

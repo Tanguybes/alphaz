@@ -186,12 +186,6 @@ class Requests(db.Model, AlphaTableIdUpdateDate):
     lifetime = AlphaColumn(Integer)
     creation_date = AlphaColumn(DateTime,default=datetime.datetime.now)
 
-    def get_message(self):
-        try:
-            message = ast.literal_eval(self.message)
-        except:
-            return None
-
 class Answers(db.Model, AlphaTableIdUpdateDate):
     __bind_key__ = "main"
     __tablename__ = "answers"

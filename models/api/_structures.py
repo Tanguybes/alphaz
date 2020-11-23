@@ -15,15 +15,16 @@ from werkzeug.debug import DebuggedApplication
 
 import flask_monitoringdashboard
 
-from ...libs import mail_lib, flask_lib, io_lib, converter_lib, os_lib
+from ...libs import mail_lib, flask_lib, io_lib, converter_lib, os_lib, json_lib
 
 from ...models.logger import AlphaLogger
 from ...models.main import AlphaException
 from ...models.config import AlphaConfig
+from ...models.json import AlphaJSONEncoder
 
 from ...utils.time import tic, tac
 
-from . import _converters, _utils, _colorations
+from . import _utils, _colorations
 
 SEPARATOR = '::'
 
@@ -133,9 +134,9 @@ class AlphaFlask(Flask):
             for key, value in confs.items():
                 self.config[key] = value
 
-        self.json_encoder = _converters.AlphaJSONEncoder
+        self.json_encoder = AlphaJSONEncoder
         for key_rule, fct in encode_rules.items():
-            _converters.AlphaJSONEncoder.rules[key_rule] = fct
+            AlphaJSONEncoder.rules[key_rule] = fct
 
         self.config['SECRET_KEY'] = b'_5#y2L"F4Q8z\n\xec]/'
 
@@ -297,7 +298,7 @@ class AlphaFlask(Flask):
         # Convert
         self.returned['data'] = data
         if not check_format(data):
-            self.returned['data'] = _converters.jsonify_data(data)
+            self.returned['data'] = json_lib.jsonify_data(data)
 
         format_ = 'json'
         if 'format' in self.dataGet:

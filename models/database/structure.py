@@ -4,7 +4,7 @@ import inspect, os
 
 from pymysql.err import IntegrityError
 
-from sqlalchemy import inspect
+from sqlalchemy import inspect as inspect_sqlalchemy
 from sqlalchemy import update, create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.orm.attributes import InstrumentedAttribute
@@ -206,7 +206,7 @@ class AlphaDatabase(AlphaDatabaseCore):
                 self.commit()
 
             except Exception as ex:
-                primaryKeyColName = inspect(obj)
+                primaryKeyColName = inspect_sqlalchemy(obj)
 
                 raise AlphaException('database_insert',description=str(ex))
         return obj
@@ -216,7 +216,7 @@ class AlphaDatabase(AlphaDatabaseCore):
 
         table = model.__table__
         stmt = postgresql.insert(table)
-        primary_keys = [key.name for key in inspect(table).primary_key]
+        primary_keys = [key.name for key in inspect_sqlalchemy(table).primary_key]
         update_dict = {c.name: c for c in stmt.excluded if not c.primary_key}
 
         if not update_dict:
