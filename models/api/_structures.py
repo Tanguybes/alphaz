@@ -238,6 +238,9 @@ class AlphaFlask(Flask):
         if mode == "wsgi":
             self.log.info("Running %sWSGI mode"%("debug " if self.debug else ""))
             application = DebuggedApplication(self, True) if self.debug else self
+
+            if host == "0.0.0.0" or host == "localhost" and os_lib.is_linux():
+                host = ""
             server = WSGIServer((host, port), application)
             server.serve_forever()
         else:
