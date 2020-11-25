@@ -7,9 +7,6 @@ from alphaz.libs import converter_lib
 from ..models.database.structure import AlphaDatabase
 
 import numpy as np
-from core import core
-
-LOG = core.get_logger("config")
 
 CONSTANTS = {}
 PARAMETERS = {}
@@ -18,6 +15,7 @@ def order(D: dict) -> OrderedDict:
     return OrderedDict(sorted(D.items(), key=lambda x: len(x[0]),reverse=True))
 
 def get_db_constants(db:AlphaDatabase) -> OrderedDict:
+    from core import core
     """Get constants from database
 
     Args:
@@ -42,6 +40,7 @@ def get_db_constants(db:AlphaDatabase) -> OrderedDict:
     return order(values)
 
 def get_db_parameters(db:AlphaDatabase) -> OrderedDict:
+    from core import core
     """[summary]
 
     Args:
@@ -107,6 +106,7 @@ def get_db_parameter(db:AlphaDatabase,name:str,update:bool=False):
         return PARAMETERS[name]
 
 def set_db_constant(db:AlphaDatabase,name:str,value):
+    from core import core
     """[summary]
 
     Args:
@@ -120,6 +120,7 @@ def set_db_constant(db:AlphaDatabase,name:str,value):
     db.insert_or_update(model,values={'name':name,'value':value})
 
 def set_db_parameter(db:AlphaDatabase,name:str,value): # TODO: set core
+    from core import core
     """[summary]
 
     Args:
@@ -190,6 +191,8 @@ def get_config_filename(fileName,directory,test=False):
     return parametersFileName
     
 def get_config_from_file(fileName,directory,test=False):
+    from core import core
+    LOG = core.get_logger("config")
     config                                      = configparser.RawConfigParser()
     config.optionxform                          = str
     
@@ -334,3 +337,28 @@ def write_defaults_config_files(fileName,values,directory):
         
     parameters = read_parameters_from_config(fileName,existingConfig,sectionHeader=True,directory=directory,test=False)
 
+def write_config_file(filename, values, directory,upper_keys:bool = False):
+    config = configparser.ConfigParser()
+
+    for key, values in values.items():
+        config[key] = {x.upper() if upper_keys else x:y for x,y in values.items()}
+
+    if not '.' in filename:
+        filename = filename + ".ini"
+
+    with open(directory + os.sep + filename , 'w') as configfile:
+        config.write(configfile)
+
+def write_flask_dashboard_configuration():
+    from core import core
+    LOG = core.get_logger("config")
+    filename = "dashboard.cfg"
+    directory = core.config.get("directories/tmp")
+    dashboard = core.api.conf.get('dashboard')
+
+    try:
+        write_config_file(filename, dashboard, directory, upper_keys=True)
+        return directory + os.sep + filename
+    except Exception as ex:
+        LOG.error(ex) 
+        return None

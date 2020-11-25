@@ -15,7 +15,7 @@ from werkzeug.debug import DebuggedApplication
 
 import flask_monitoringdashboard
 
-from ...libs import mail_lib, flask_lib, io_lib, converter_lib, os_lib, json_lib
+from ...libs import mail_lib, flask_lib, io_lib, converter_lib, os_lib, json_lib, config_lib
 
 from ...models.logger import AlphaLogger
 from ...models.main import AlphaException
@@ -41,7 +41,7 @@ def check_format(data,depth=3):
    return False
 class AlphaFlask(Flask):
 
-    def __init__(self,*args,no_log:bool=False,**kwargs):
+    def __init__(self,*args,no_log:bool=True,**kwargs):
         super().__init__(*args,**kwargs)
 
         # Get werkzueg logger
@@ -106,7 +106,7 @@ class AlphaFlask(Flask):
         #self.api.config['EXPLAIN_TEMPLATE_LOADING']         = True
         self.config['UPLOAD_FOLDER']                    = self.root_path
 
-    def init(self,encode_rules={}):
+    def init(self, encode_rules={}):
         #from core import core
 
         routes = self.conf.get("routes")
@@ -164,11 +164,10 @@ class AlphaFlask(Flask):
         if toolbar:
             toolbar = DebugToolbarExtension(self)
 
-        #config_dashboard = os.path.join(self.root,'apis','config.cfg')
-
-        #flask_monitoringdashboard.config.init_from(file=config_dashboard)
-        monitoring = self.conf.get('monitoring')
-        if monitoring:
+        filepath = config_lib.write_flask_dashboard_configuration()
+        if filepath is not None:
+            self.log.info("Dashboard configured from %s"%filepath)
+            flask_monitoringdashboard.config.init_from(file=filepath)
             flask_monitoringdashboard.bind(self)
 
         if self.conf.get('admin_databases'):
@@ -227,11 +226,13 @@ class AlphaFlask(Flask):
 
         #try:
         if mode == "wsgi":
-            self.log.info("Running %sWSGI mode"%("debug " if self.debug else ""))
             application = DebuggedApplication(self, True) if self.debug else self
 
             if host == "0.0.0.0" or host == "localhost" and os_lib.is_linux():
                 host = ""
+            self.log.info("Running %sWSGI mode on host <%s> and port %s"%(
+                "debug " if self.debug else "", host, port
+            ))
             server = WSGIServer((host, port), application)
             server.serve_forever()
         else:
