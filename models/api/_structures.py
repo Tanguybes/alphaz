@@ -41,13 +41,8 @@ def check_format(data,depth=3):
    return False
 class AlphaFlask(Flask):
 
-    def __init__(self,*args,no_log:bool=True,**kwargs):
+    def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
-
-        # Get werkzueg logger
-        log = logging.getLogger('werkzeug')
-        log.addFilter(_colorations.WerkzeugColorFilter()) #TODO: set in configuration
-        log.disabled        = no_log
 
         self.pid            = None
         self.html           = {'page':None,'parameters':None}
@@ -107,8 +102,6 @@ class AlphaFlask(Flask):
         self.config['UPLOAD_FOLDER']                    = self.root_path
 
     def init(self, encode_rules={}):
-        #from core import core
-
         routes = self.conf.get("routes")
         if routes is None:
             self.log.error('Missing <routes> parameters in api configuration')
@@ -233,9 +226,14 @@ class AlphaFlask(Flask):
             self.log.info("Running %sWSGI mode on host <%s> and port %s"%(
                 "debug " if self.debug else "", host, port
             ))
-            server = WSGIServer((host, port), application)
+            server = WSGIServer((host, port), application, log=self.conf.get("log"))
             server.serve_forever()
         else:
+            # Get werkzueg logger
+            log = logging.getLogger('werkzeug')
+            log.addFilter(_colorations.WerkzeugColorFilter()) #TODO: set in configuration
+            log.disabled        = self.conf.get("log") is not None
+
             self.run(host=host,port=port,debug=self.debug,threaded=threaded,ssl_context=ssl_context)
 
         #except SystemExit:
