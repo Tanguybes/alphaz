@@ -254,11 +254,11 @@ class AlphaConfig(AlphaClass):
                         logger_name,
                         filename    = logger_config.get("filename"),
                         root        = root if root is not None else self.logger_root,
-                        cmd_output  = logger_config.get("cmd_output") or True,
+                        cmd_output  = logger_config.get("cmd_output", default=True),
                         level       = logger_config.get("level"),
                         colors      = colors,
                         database    = logger_config.get("database"),
-                        excludes  = logger_config.get('excludes')
+                        excludes    = logger_config.get('excludes')
                     )
 
         main_logger_name = "main"

@@ -14,6 +14,21 @@ TIMINGS = []
 
 base_time = datetime.datetime.now()
 
+class NoParsingFilter(logging.Filter):
+    def __init__(self, excludes = {}, level=None, *args, **kwargs):
+        super().__init__(self, *args, **kwargs)
+        self.excludes = excludes
+        self.level = level
+
+    def filter(self, record):
+        message = record.getMessage()
+
+        for key, patterns in self.excludes.items():
+            if level.upper() == key.upper() or key.upper() == "ALL":
+                for pattern in patterns:
+                    if len(re.findall(pattern, message)):
+                        return False
+
 class AlphaLogger():   
     date_format             = "%Y-%m-%d %H:%M:%S"
     format_log              = "{$date} - {$level:7} - {$pid:5} - {$file:>20}.{$line:<4} - {$name:<10}: $message" # %(processName)s %(filename)s:%(lineno)s
@@ -69,6 +84,9 @@ class AlphaLogger():
                 handler.addFilter(_colorations.ColorFilter(colors))
             self.logger.addHandler(handler)
 
+        if self.excludes and len(self.excludes):
+            self.logger.addFilter(NoParsingFilter(excludes=self.excludes, level=self.level))
+
         self.pid            = os.getpid()
         self.name           = name
         #self.cmd_output     = cmd_output if cmd_output is not None else True
@@ -84,13 +102,6 @@ class AlphaLogger():
         if module is not None:
             origin  = os.path.basename(module.__file__)
         """
-
-        if self.excludes and len(self.excludes):
-            for key, patterns in self.excludes.items():
-                if level.upper() == key.upper():
-                    for pattern in patterns:
-                        if len(re.findall(pattern, message)):
-                            return
 
         if message is None and ex is not None: 
             message = ex

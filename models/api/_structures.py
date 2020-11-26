@@ -11,6 +11,8 @@ from flask_debugtoolbar import DebugToolbarExtension
 from flask_admin import Admin
 
 from gevent.pywsgi import WSGIServer
+from geventwebsocket.handler import WebSocketHandler
+
 from werkzeug.debug import DebuggedApplication
 
 import flask_monitoringdashboard
@@ -64,6 +66,7 @@ class AlphaFlask(Flask):
         self.dataGet        = {}
 
         self.log            = None
+        self.log_requests   = None
         self.db             = None
 
         self.admin_db       = None
@@ -226,7 +229,8 @@ class AlphaFlask(Flask):
             self.log.info("Running %sWSGI mode on host <%s> and port %s"%(
                 "debug " if self.debug else "", host, port
             ))
-            server = WSGIServer((host, port), application, log=self.conf.get("log"))
+
+            server = WSGIServer((host, port), application, log=self.log_requests.logger)
             server.serve_forever()
         else:
             # Get werkzueg logger
