@@ -15,8 +15,8 @@ TIMINGS = []
 base_time = datetime.datetime.now()
 
 class NoParsingFilter(logging.Filter):
-    def __init__(self, excludes = {}, level=None, *args, **kwargs):
-        super().__init__(self, *args, **kwargs)
+    def __init__(self, name='', excludes = {}, level=None):
+        super().__init__(name)
         self.excludes = excludes
         self.level = level
 
@@ -24,10 +24,11 @@ class NoParsingFilter(logging.Filter):
         message = record.getMessage()
 
         for key, patterns in self.excludes.items():
-            if level.upper() == key.upper() or key.upper() == "ALL":
+            if self.level.upper() == key.upper() or key.upper() == "ALL":
                 for pattern in patterns:
                     if len(re.findall(pattern, message)):
                         return False
+        return True
 
 class AlphaLogger():   
     date_format             = "%Y-%m-%d %H:%M:%S"
