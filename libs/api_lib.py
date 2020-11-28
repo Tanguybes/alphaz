@@ -21,7 +21,7 @@ def get_columns_values_output(objects:list,columns:list=None) -> dict:
         dict: [description]
     """
     if len(objects) == 0:
-        return {}
+        return {"columns":[], "values":[], "values_nb":0}
 
     results = jsonify_data(objects)
 

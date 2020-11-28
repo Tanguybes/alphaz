@@ -236,7 +236,7 @@ class AlphaFlask(Flask):
             # Get werkzueg logger
             log = logging.getLogger('werkzeug')
             log.addFilter(_colorations.WerkzeugColorFilter()) #TODO: set in configuration
-            log.disabled        = self.conf.get("log") is not None
+            log.disabled        = self.conf.get("log") is None
 
             self.run(host=host,port=port,debug=self.debug,threaded=threaded,ssl_context=ssl_context)
 
