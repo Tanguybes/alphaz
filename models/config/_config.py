@@ -381,10 +381,15 @@ class AlphaConfig(AlphaClass):
             exit()
         return value
 
-    def get(self,path=[],root=True,default=None,force_exit=False,configuration=None):
+    def get(self,path=[],root=True,default=None,force_exit=False,configuration=None,type_=None):
         value       = self._get_parameter_path(path)
         if value is None and root:
             value   = self._get_value_from_main_config(path,force_exit=force_exit)
+        if type_ is not None:
+            try:
+                value = type_(value)
+            except:
+                value = None
         return value if value is not None else default
 
     def _get_parameter_path(self,parameters,data=None,level=1):

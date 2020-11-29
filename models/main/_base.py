@@ -26,6 +26,9 @@ class AlphaClass:
     def get_attributes(self):
         return py_lib.get_attributes()
 
+    def to_json(self):
+        return self.get_attributes()
+
     def info(self,message):
         if self.log is not None:
             if len(self._infos) != 0:
