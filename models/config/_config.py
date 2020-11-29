@@ -254,11 +254,11 @@ class AlphaConfig(AlphaClass):
                         logger_name,
                         filename    = logger_config.get("filename"),
                         root        = root if root is not None else self.logger_root,
-                        cmd_output  = logger_config.get("cmd_output") or True,
+                        cmd_output  = logger_config.get("cmd_output", default=True),
                         level       = logger_config.get("level"),
                         colors      = colors,
                         database    = logger_config.get("database"),
-                        excludes  = logger_config.get('excludes')
+                        excludes    = logger_config.get('excludes')
                     )
 
         main_logger_name = "main"
@@ -381,16 +381,18 @@ class AlphaConfig(AlphaClass):
             exit()
         return value
 
-    def get(self,path=[],root=True,default=None,force_exit=False,configuration=None,type_=None):
+    def get(self,path=[],root:bool=True,default=None,force_exit:bool=False,configuration:str=None,type_=None):
         value       = self._get_parameter_path(path)
         if value is None and root:
             value   = self._get_value_from_main_config(path,force_exit=force_exit)
         if type_ is not None:
             try:
                 value = type_(value)
-            except:
-                value = None
-        return value if value is not None else default
+            except Exception as ex:
+                self.error(ex)
+        if value is None:
+            return default
+        return value
 
     def _get_parameter_path(self,parameters,data=None,level=1):
         parameters = self._get_path(parameters)

@@ -11,11 +11,13 @@ from flask_debugtoolbar import DebugToolbarExtension
 from flask_admin import Admin
 
 from gevent.pywsgi import WSGIServer
+from geventwebsocket.handler import WebSocketHandler
+
 from werkzeug.debug import DebuggedApplication
 
 import flask_monitoringdashboard
 
-from ...libs import mail_lib, flask_lib, io_lib, converter_lib, os_lib, json_lib
+from ...libs import mail_lib, flask_lib, io_lib, converter_lib, os_lib, json_lib, config_lib
 
 from ...models.logger import AlphaLogger
 from ...models.main import AlphaException
@@ -41,13 +43,8 @@ def check_format(data,depth=3):
    return False
 class AlphaFlask(Flask):
 
-    def __init__(self,*args,no_log:bool=False,**kwargs):
+    def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
-
-        # Get werkzueg logger
-        log = logging.getLogger('werkzeug')
-        log.addFilter(_colorations.WerkzeugColorFilter()) #TODO: set in configuration
-        log.disabled        = no_log
 
         self.pid            = None
         self.html           = {'page':None,'parameters':None}
@@ -69,6 +66,7 @@ class AlphaFlask(Flask):
         self.dataGet        = {}
 
         self.log            = None
+        self.log_requests   = None
         self.db             = None
 
         self.admin_db       = None
@@ -106,9 +104,7 @@ class AlphaFlask(Flask):
         #self.api.config['EXPLAIN_TEMPLATE_LOADING']         = True
         self.config['UPLOAD_FOLDER']                    = self.root_path
 
-    def init(self,encode_rules={}):
-        #from core import core
-
+    def init(self, encode_rules={}):
         routes = self.conf.get("routes")
         if routes is None:
             self.log.error('Missing <routes> parameters in api configuration')
@@ -164,11 +160,10 @@ class AlphaFlask(Flask):
         if toolbar:
             toolbar = DebugToolbarExtension(self)
 
-        #config_dashboard = os.path.join(self.root,'apis','config.cfg')
-
-        #flask_monitoringdashboard.config.init_from(file=config_dashboard)
-        monitoring = self.conf.get('monitoring')
-        if monitoring:
+        filepath = config_lib.write_flask_dashboard_configuration()
+        if filepath is not None:
+            self.log.info("Dashboard configured from %s"%filepath)
+            flask_monitoringdashboard.config.init_from(file=filepath)
             flask_monitoringdashboard.bind(self)
 
         if self.conf.get('admin_databases'):
@@ -227,11 +222,22 @@ class AlphaFlask(Flask):
 
         #try:
         if mode == "wsgi":
-            self.log.info("Running %sWSGI mode"%("debug " if self.debug else ""))
             application = DebuggedApplication(self, True) if self.debug else self
-            server = WSGIServer((host, port), application)
+
+            if host == "0.0.0.0" or host == "localhost" and os_lib.is_linux():
+                host = ""
+            self.log.info("Running %sWSGI mode on host <%s> and port %s"%(
+                "debug " if self.debug else "", host, port
+            ))
+
+            server = WSGIServer((host, port), application, log=self.log_requests.logger)
             server.serve_forever()
         else:
+            # Get werkzueg logger
+            log = logging.getLogger('werkzeug')
+            log.addFilter(_colorations.WerkzeugColorFilter()) #TODO: set in configuration
+            log.disabled        = self.conf.get("log") is None
+
             self.run(host=host,port=port,debug=self.debug,threaded=threaded,ssl_context=ssl_context)
 
         #except SystemExit:

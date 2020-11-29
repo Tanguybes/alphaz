@@ -103,6 +103,7 @@ class AlphaCore(AlphaClass):
 
         # configuration
         self.api.log: AlphaLogger    = self.get_logger('api')
+        self.api.log_requests: AlphaLogger    = self.get_logger('http')
 
         api_root = self.config.get('api_root')
         self.api.set_config(name='api',
