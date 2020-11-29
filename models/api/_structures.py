@@ -11,7 +11,6 @@ from flask_debugtoolbar import DebugToolbarExtension
 from flask_admin import Admin
 
 from gevent.pywsgi import WSGIServer
-from geventwebsocket.handler import WebSocketHandler
 
 from werkzeug.debug import DebuggedApplication
 
