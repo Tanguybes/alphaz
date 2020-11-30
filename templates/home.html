@@ -326,7 +326,8 @@
             success: function(data, status) {
               location.reload();
               $("#loading_" + category).addClass("hide");
-            }
+            },
+            error: function () { console.log(err); $("#loading_" + category).addClass("hide"); }
          });
   }
 
