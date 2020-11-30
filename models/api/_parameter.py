@@ -63,3 +63,9 @@ class Parameter():
                 self.value = float(self.value)
             except:
                 raise AlphaException('api_wrong_parameter_value',parameters={'parameter':self.name,'type':'float'})
+
+        if self.ptype == list and self.value is not None:
+            try: 
+                self.value = self.value.split(";")
+            except:
+                raise AlphaException('api_wrong_parameter_value',parameters={'parameter':self.name,'type':'list'})

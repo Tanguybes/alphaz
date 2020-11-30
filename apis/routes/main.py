@@ -1,5 +1,7 @@
 import datetime
 
+from alphaz.libs import dict_lib
+
 from flask import request, send_from_directory
 
 from ...libs import test_lib, database_lib, api_lib
@@ -67,7 +69,7 @@ def home():
         'users':0,
         'ip': request.environ['REMOTE_ADDR'],
         'admin': config.get('admin_databases'),
-        'routes': api_lib.get_routes_infos(log=LOG),
+        'routes': dict_lib.sort_dict(api_lib.get_routes_infos(log=LOG)),
         'compagny': config.get('parameters/compagny'),
         'compagny_website': config.get('parameters/compagny_website'),
         'dashboard':debug,
