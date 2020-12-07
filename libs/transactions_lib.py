@@ -61,7 +61,7 @@ def send_raw_request_and_wait_answer(db: AlphaDatabase, request: Dict[str,object
     )
     return send_request_and_wait_answer(db,request,timeout=timeout)
 
-def send_request_and_wait_answer(db: AlphaDatabase, request: AlphaTransaction, timeout:int = None) -> Answers:
+def send_request_and_wait_answer(db: AlphaDatabase, request: AlphaTransaction, timeout:int = None, wait_time:int = None) -> Answers:
     send_request(db,request)
 
     answer = None
@@ -89,10 +89,10 @@ def send_request_and_wait_answer(db: AlphaDatabase, request: AlphaTransaction, t
     waited_time = 0
     while waited_time < timeout and answer is None:
         time.sleep(wait_time)
-        answer = get_answer(db, uuid_request)
+        answer = get_answer(db, request.uuid)
         waited_time += wait_time
 
     if answer.message is None and waited_time > timeout:
         answer.message = 'timeout'
-        LOG.error('Timeout for request %s'%(uuid_request))
+        LOG.error('Timeout for request %s'%(request.uuid))
     return answer.message

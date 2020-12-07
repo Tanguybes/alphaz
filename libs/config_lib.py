@@ -356,6 +356,9 @@ def write_flask_dashboard_configuration():
     directory = core.config.get("directories/tmp")
     dashboard = core.api.conf.get('dashboard')
 
+    if dashboard is None:
+        return None
+        
     try:
         write_config_file(filename, dashboard, directory, upper_keys=True)
         return directory + os.sep + filename

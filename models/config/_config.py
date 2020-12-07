@@ -27,7 +27,8 @@ class AlphaConfig(AlphaClass):
             logger_root: str = None,
             data: dict = None,
             origin = None,
-            core = None
+            core = None,
+            core_configuration = None
             ):
         if hasattr(self, 'tmp'): return
 
@@ -67,6 +68,8 @@ class AlphaConfig(AlphaClass):
 
         self.log            = log
 
+        self.core_configuration = core_configuration
+
         if data is None:
             self._load_raw()
 
@@ -84,24 +87,25 @@ class AlphaConfig(AlphaClass):
                     print('Configuration file %s is invalid: %s'%(self.filepath, ex))
                     exit()
                 self.loaded = True
-        """if os.path.isfile(self.filepath):
-            self.exist = True
-            #self._add_tmp('configuration',configuration)
-        else:
-            self.error('Config file %s does not exist !'%self.filepath)
-            exit()"""
 
+    def set_configuration(self, configuration, force = False):
+        if CONFIGURATIONS.is_configured(self, configuration) and not force:
+            return
 
-    def set_configuration(self, configuration):
-        if configuration is None:
+        if configuration is None and self.configuration is None:
             self.error('Configuration need to be explicitely specified in configuration call or config file for %s file'%self.filepath)
-            return 
+            return
+        elif configuration is None and self.configuration is not None:
+            configuration = self.configuration
             
         self._clean()
 
         self.configuration = configuration
-        self.info('Set <%s> configuration for file %s'%(configuration, self.filepath))
+
         self._load()
+
+        CONFIGURATIONS.configured(self, configuration)
+
 
     def _clean(self):
         # remove tmp from data_origin
@@ -113,7 +117,29 @@ class AlphaConfig(AlphaClass):
         
         self._set_tmps()
 
-        # configuration
+        self._set_configuration()
+
+        self.core_configuration = self.get('core_configuration', root=False) if self.core_configuration is None else self.core_configuration
+
+        # check if loaded
+        if not CONFIGURATIONS.load_configuration(self) or not self.core_configuration:
+            if self.core_configuration:
+                self.info('Reload configuration: %s'%self.filepath)
+            self._process_tmps()
+            self._init_data()
+            self._configure_sub_configurations()
+            CONFIGURATIONS.save_configuration(self)
+        else:
+            self._configure_sub_configurations()
+
+        if self.core_configuration:
+            self._check_required()
+            self._configure()
+
+    """def set_data(self,value,paths=[]):
+        ensure_path(self.data_origin,paths,value=value)"""
+
+    def _set_configuration(self):
         if "configurations" in self.data_origin:
             configurations = self.data_origin["configurations"]
             
@@ -125,22 +151,8 @@ class AlphaConfig(AlphaClass):
                 self.data_tmp['configurations'] = configurations[self.configuration]
             elif default_configuration is not None and default_configuration in configurations:
                 self.data_tmp['configurations'] = configurations[default_configuration]
-
+                self.configuration = default_configuration
         self._add_tmp('configuration', self.configuration)
-
-        # check if loaded
-        if not CONFIGURATIONS.load_configuration(self):
-            self.info('Reload configuration: %s'%self.filepath)
-            self._process_tmps()
-            self._init_data()
-            CONFIGURATIONS.set_configuration(self)
-
-        self._check_required()
-
-        self._configure()
-
-    """def set_data(self,value,paths=[]):
-        ensure_path(self.data_origin,paths,value=value)"""
 
     def _init_data(self):
         config          = copy.deepcopy(self.data_origin)
@@ -160,18 +172,12 @@ class AlphaConfig(AlphaClass):
             for env, value in self.get("envs").items():
                 os.environ[env] = value
 
-        self.core_configuration = self.get('core_configuration', root=False)
-        if not self.core_configuration:
-            return
-
-        self._set_sub_configurations()
-
         self._set_loggers()
         self._configure_databases()
 
         if self.core_configuration: 
             sequence = ', '.join(["%s=<%s>%s"%(tmp, tmp_value, '*' if tmp+'s' in self.data_tmp else '') for tmp, tmp_value in self.tmp.items() ])
-            self.info('Configuration %s initiated for: %s'%(self.filepath,sequence))
+            self.info('Configuration %s initiated for: %s'%(self.filepath.split(os.sep)[-1],sequence))
 
         # SET ENVIRONMENT VARIABLES
         if self.core is not None:
@@ -191,24 +197,29 @@ class AlphaConfig(AlphaClass):
                         else:
                             self.log.error('Duplicate exception name for %s'%exception_name)
 
-    def _set_sub_configurations(self):
+    def _configure_sub_configurations(self):
+        if not self.core_configuration:
+            return 
+
         config = self.data
         # get sub configurations
         self.sub_configurations = {}
         configs_values, paths = get_configs_from_config(config, path=None)
+
         for i, values in enumerate(configs_values):
             config_path = values[0]
             if not config_path in self.sub_configurations:
                 name                            = config_path.split(os.sep)[-1]
+
                 self.sub_configurations[config_path] = AlphaConfig(name=name,filepath=config_path,
                     log=self.log,
-                    configuration=self.configuration,
                     logger_root=self.logger_root,
-                    origin=self
+                    origin=self,
+                    configuration = self.configuration
                 )
 
         # replace sub configurations
-        set_paths(config,paths,configs_values,self.sub_configurations,types='configs')
+        set_configs_paths(config, paths, configs_values,self.sub_configurations)
         self.data = config
 
     def get_config(self,path=[],configuration=None):
@@ -228,10 +239,10 @@ class AlphaConfig(AlphaClass):
         )
         return config
 
-
-
-
     def _set_loggers(self):
+        if not self.core_configuration:
+            return
+
         # loggers
         self.logger_root = self.get("directories/logs")
         if self.logger_root is None:
@@ -330,7 +341,7 @@ class AlphaConfig(AlphaClass):
         set_parameter_value(parameters_value,l)
 
         # Replace parameters values
-        set_paths(config,paths,parameters_name,parameters_value,types='parameters')
+        set_paths(config,paths,parameters_name,parameters_value)
 
         # check parameters
         parameters_name, paths = get_parameters_from_config(config, path=None)
@@ -389,7 +400,7 @@ class AlphaConfig(AlphaClass):
             try:
                 value = type_(value)
             except Exception as ex:
-                self.error(ex)
+                self.error("Cannot convert parameter <%s> to type <%s> for value <%s>"%(path, type_,value),ex=ex)
         if value is None:
             return default
         return value
@@ -599,6 +610,18 @@ class AlphaConfig(AlphaClass):
                     self.data_tmp[name + 's'] = self.data_origin[name + 's'][self.get_tmp(name)]
 
 
+def load_raw_sub_configurations(data):
+    sub_configurations = {}
+
+    configs_values, paths = get_configs_from_config(data, path=None)
+    for i, values in enumerate(configs_values):
+        config_path = values[0]
+        if not config_path in sub_configurations:
+            name                            = config_path.split(os.sep)[-1]
+
+            sub_configurations[config_path] = AlphaConfig(name=name,filepath=config_path)
+    return sub_configurations
+
 class AlphaConfigurations(object):
     _name = 'configs'
     _instance = None
@@ -609,7 +632,7 @@ class AlphaConfigurations(object):
         return cls._instance
 
     def __init__(self):
-        self._configurations = {}
+        self._configurations: Dict[str, AlphaConfig] = {}
         loaded_configurations = io_lib.unarchive_object(self._name)
         if type(loaded_configurations) == dict:
             for key, values in loaded_configurations.items():
@@ -635,22 +658,51 @@ class AlphaConfigurations(object):
                 for key in loaded_configuration:
                     if hasattr(config, key):
                         setattr(config, key, loaded_configuration[key])
-                return True
+
+                # check sub configurations
+                """
+                sub_configurations          = load_raw_sub_configurations(config.data)
+                sub_configurations_loaded   = load_raw_sub_configurations(loaded_configuration['data'])
+
+                for path, sub_config in sub_configurations.items():
+                    if not path in sub_configurations_loaded.items():
+                        print('Need to reload %s'%path)
+                        return False
+                    if sub_config.data_origin != sub_configurations_loaded[path].data_origin:
+                        print('Need to reload %s'%path)
+                        return False
+
+                for path, sub_config in sub_configurations_loaded.items():
+                    if not path in sub_configurations.items():
+                        print('Need to reload %s'%path)
+                        return False
+                    if sub_config.data_origin != sub_configurations[path].data_origin:
+                        print('Need to reload %s'%path)
+                        return False
+
+                return True"""
+                return False
 
         return False
 
-    def set_configuration(self, config: AlphaConfig):
+    def save_configuration(self, config: AlphaConfig):
         key = config.get_key()
         dataset = {
             'data_origin': config.data_origin,
             'data_tmp': config.data_tmp,
             "data": config.data,
-            "sub_configurations_paths": {x.filepath:x.data_origin for x in config.sub_configurations.values()}
+            "sub_configurations": {x.filepath: {"data_origin":x.data_origin,"data_tmp":x.data_tmp,"data":x.data} for x in config.sub_configurations.values()}
         }
         try:
             self._configurations[key] = dataset
         except:
             self._configurations: Dict[str,object] = {key: dataset}
         io_lib.archive_object(self._configurations, self._name)
+
+    def configured(self, config, configuration: str):
+        return True
+
+    def is_configured(self, config, configuration: str) -> bool:
+        return True
 
 CONFIGURATIONS = AlphaConfigurations()

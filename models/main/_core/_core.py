@@ -60,6 +60,9 @@ class AlphaCore(AlphaClass):
         )
 
     def set_configuration(self,configuration_name):
+        if configuration_name is None and self.config.configuration is not None:
+            configuration_name = self.config.configuration
+            
         self.config.set_configuration(configuration_name)
         self.configuration     = configuration_name
         self.configuration_name = configuration_name
