@@ -89,7 +89,7 @@ class AlphaConfig(AlphaClass):
                 self.loaded = True
 
     def set_configuration(self, configuration, force = False):
-        if CONFIGURATIONS.is_configured(self, configuration) and not force:
+        if CONFIGURATIONS.is_configured(self) and not force:
             return
 
         if configuration is None and self.configuration is None:
@@ -103,9 +103,6 @@ class AlphaConfig(AlphaClass):
         self.configuration = configuration
 
         self._load()
-
-        CONFIGURATIONS.configured(self, configuration)
-
 
     def _clean(self):
         # remove tmp from data_origin
@@ -660,28 +657,12 @@ class AlphaConfigurations(object):
                         setattr(config, key, loaded_configuration[key])
 
                 # check sub configurations
-                """
-                sub_configurations          = load_raw_sub_configurations(config.data)
-                sub_configurations_loaded   = load_raw_sub_configurations(loaded_configuration['data'])
-
-                for path, sub_config in sub_configurations.items():
-                    if not path in sub_configurations_loaded.items():
-                        print('Need to reload %s'%path)
-                        return False
-                    if sub_config.data_origin != sub_configurations_loaded[path].data_origin:
+                for path, sub_config in loaded_configuration["sub_configurations"].items():
+                    if os.path.getsize(path) != sub_config["size"]:
                         print('Need to reload %s'%path)
                         return False
 
-                for path, sub_config in sub_configurations_loaded.items():
-                    if not path in sub_configurations.items():
-                        print('Need to reload %s'%path)
-                        return False
-                    if sub_config.data_origin != sub_configurations[path].data_origin:
-                        print('Need to reload %s'%path)
-                        return False
-
-                return True"""
-                return False
+                return True
 
         return False
 
@@ -691,7 +672,7 @@ class AlphaConfigurations(object):
             'data_origin': config.data_origin,
             'data_tmp': config.data_tmp,
             "data": config.data,
-            "sub_configurations": {x.filepath: {"data_origin":x.data_origin,"data_tmp":x.data_tmp,"data":x.data} for x in config.sub_configurations.values()}
+            "sub_configurations": {x.filepath: {"data_origin":x.data_origin,"data_tmp":x.data_tmp,"data":x.data,"size":os.path.getsize(x.filepath)} for x in config.sub_configurations.values()}
         }
         try:
             self._configurations[key] = dataset
@@ -699,10 +680,8 @@ class AlphaConfigurations(object):
             self._configurations: Dict[str,object] = {key: dataset}
         io_lib.archive_object(self._configurations, self._name)
 
-    def configured(self, config, configuration: str):
-        return True
-
-    def is_configured(self, config, configuration: str) -> bool:
-        return True
+    def is_configured(self, config) -> bool:
+        path = config.get_key()
+        return path in self._configurations
 
 CONFIGURATIONS = AlphaConfigurations()
