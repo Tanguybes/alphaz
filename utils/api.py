@@ -70,8 +70,9 @@ def route(path,
                 api.access_denied() 
                 return api.get_return(return_status=401)
 
-            if admin:
-                return api.check_is_admin(log=log)
+            if admin and not api.check_is_admin(log=log):
+                api.access_denied()
+                return api.get_return(return_status=401)
 
             api.configure_route(path,parameters=parameters,cache=cache)
             reset_cache = request.args.get('reset_cache', None) is not None or api.is_time(timeout)
