@@ -462,17 +462,24 @@ class AlphaFlask(Flask):
             token = dataPost['token']
         return token
 
-    def check_is_admin(self):
+    def check_is_admin(self, log=None):
         admin = False
         user_data = self.get_logged_user()
         if user_data is not None:
             if user_data['role'] >= 9:
                 admin = True
+            else:
+                log.warning('Wrong permission: %s is not an admin'%user_data)
         if not admin:
             ip = request.remote_addr
             if self.conf.get('admins') and ip in self.conf.get('admins'):
                 admin = True
-        return admin
+            else:
+                log.warning('Wrong permission: %s is not an admin'%ip)
+        if not admin:
+            self.access_denied()
+            
+        return self.get_return(return_status=401)
 
     def is_time(self,timeout):
         is_time = False

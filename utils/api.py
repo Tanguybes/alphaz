@@ -50,13 +50,6 @@ def route(path,
             dataPost                = request.get_json()
             api.dataPost            = {} if dataPost is None else {x:y for x,y in dataPost.items()}
 
-            """if api.debug:
-                log.debug('POST: %s'%dataPost)
-                log.debug('GET: %s'%request.args)
-                log.debug('JSON: %s'%request.get_json())
-                log.debug('VALUES: %s'%request.values)
-                log.debug('PARAMETERS: %s'%parameters)"""
-
             # Check parameters
             for parameter in parameters:
                 try:
@@ -76,10 +69,8 @@ def route(path,
                 api.access_denied() 
                 return api.get_return(return_status=401)
 
-            if admin and not api.check_is_admin():
-                log.warning('Wrong permission: not an admin')
-                api.access_denied() 
-                return api.get_return(return_status=401)
+            if admin:
+                return api.check_is_admin(log=log)
 
             api.configure_route(path,parameters=parameters,cache=cache)
             reset_cache = request.args.get('reset_cache', None) is not None or api.is_time(timeout)
