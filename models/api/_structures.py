@@ -388,9 +388,11 @@ class AlphaFlask(Flask):
         if self.current_route is None:
             return None
         parameter = self.current_route.get(name)
-        value = None if parameter is None else parameter.value
+        value = None if parameter is None or parameter.value is None else parameter.value
         if str(value) == 'false': return False
         if str(value) == 'true': return True
+        if str(value).startswith('*') or str(value).endswith('*'):
+            value = value.replace('*','%')
         return value
 
     def configure_route(self,api_route,parameters,cache=False):
