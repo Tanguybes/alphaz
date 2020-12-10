@@ -29,7 +29,7 @@ class Parameter():
         if self.value is None and dataPost is not None and self.name in dataPost:
             self.value          = dataPost[self.name]
 
-        if self.options is not None and self.value not in self.options:
+        if self.options is not None and self.value not in self.options and not (not self.required and self.value is None):
             raise AlphaException('api_wrong_value_parameter',parameters=
                 {'parameter':self.name,'options':str(self.options),'value':self.value}
             )
@@ -63,3 +63,9 @@ class Parameter():
                 self.value = float(self.value)
             except:
                 raise AlphaException('api_wrong_parameter_value',parameters={'parameter':self.name,'type':'float'})
+
+        if self.ptype == list and self.value is not None:
+            try: 
+                self.value = self.value.split(";")
+            except:
+                raise AlphaException('api_wrong_parameter_value',parameters={'parameter':self.name,'type':'list'})

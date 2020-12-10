@@ -1,6 +1,7 @@
 
 import traceback
 from core import core
+from typing import List, Dict
 
 import pandas as pd
 
@@ -47,7 +48,7 @@ class AlphaTest():
         else:
             self.output = status
 
-    def array_equal(self,a,b):
+    def assert_array_equal(self,a,b, conditions: List[bool]=[]):
         equal = len(a) == len(b)
         if equal:
             for i in range(len(a)):
@@ -56,9 +57,18 @@ class AlphaTest():
 
         if not equal:
             LOG.debug("Arrays size are not equal: <%s> and <%s>"%(len(a),len(b)))
-        self._set_output(equal)
+        self._assert(status, conditions)
 
-    def assert_is_not_empty(self, a, conditions = [], attribute=None):
+    def _assert(self,status, conditions: List[bool]=[]):
+        if len(conditions) != 0 and type(conditions) == list:
+            status = status and all(conditions)
+        self._set_output(status)
+
+    def assert_is_not_none(self,a, conditions: List[bool]=[]):
+        status = a is not None
+        self._assert(status, conditions)
+
+    def assert_is_not_empty(self, a, conditions: List[bool]=[], attribute=None):
         if attribute is not None:
             if not hasattr(a,attribute):
                 LOG.error('Object of type <%s> does not have an attribute named <%s>'%(type(a),attribute))
@@ -68,14 +78,12 @@ class AlphaTest():
         else:
             status = a is not None and len(a) != 0
 
-        if len(conditions) != 0 and type(conditions) == list:
-            status = status and all(conditions)
-        self._set_output(status)
+        self._assert(status, conditions)
         
-    def assert_length(self, a, length):
+    def assert_length(self, a, length, conditions: List[bool]=[]):
         status = a is not None and len(a) != 0 and len(a) == length
-        self._set_output(status)
+        self._assert(status, conditions)
 
-    def assert_transaction(self,tr):
+    def assert_transaction(self,tr, conditions: List[bool]=[]):
         status = tr is not None and tr != "timeout"
-        self._set_output(status)
+        self._assert(status, conditions)

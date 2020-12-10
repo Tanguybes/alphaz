@@ -1,4 +1,8 @@
 
+def sort_dict(x, value = False):
+    sorted_x = {x:y for x,y in sorted(x.items(), key=lambda kv: kv[1 if value else 0])}
+    return sorted_x 
+
 def get_nested_dict_from_list(in_list) -> dict:
     """Convert list ['a','b','c'] to a nested dict {'a':{'b':{'c':{}}}}
 
