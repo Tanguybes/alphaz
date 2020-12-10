@@ -123,7 +123,8 @@ def route(path,
                 else:
                     api.set_error('missing_file')
 
-            return api.get_return()
+            output = api.get_return()
+            return output
         api_wrapper.__name__ = func.__name__
 
         if cache:

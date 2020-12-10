@@ -14,6 +14,9 @@ class AlphaTransaction(AlphaClass):
         self.uuid           = str(uuid.uuid4())
 
     def map(self, obj):
+        if obj is None:
+            return self
+            
         self.uuid:str    = obj.uuid
         self.process:int = obj.process
 
@@ -29,4 +32,4 @@ class AlphaTransaction(AlphaClass):
     @staticmethod
     def get_type(class_):
         name = class_ if type(class_) == str else class_.__class__.__name__
-        return [(c if c.upper() != c or i == 0 else "_" + c) for i, c in enumerate(name)]
+        return "".join([(c if c.upper() != c or i == 0 else "_" + c) for i, c in enumerate(name)])

@@ -60,14 +60,18 @@ class AlphaCore(AlphaClass):
         )
 
     def set_configuration(self,configuration_name):
+        if configuration_name is None and self.config.configuration is not None:
+            configuration_name = self.config.configuration
+            
         self.config.set_configuration(configuration_name)
         self.configuration     = configuration_name
         self.configuration_name = configuration_name
 
     def prepare_api(self,configuration):
-        self.set_configuration(configuration)
+        if self.api is not None:
+            return 
 
-        self.config.info('Configurating API from configuration %s ...'%self.config.filepath)
+        self.set_configuration(configuration)
 
         template_path = alphaz.__file__.replace('__init__.py','') + 'templates'
         self.api            = AlphaFlask(__name__,
@@ -117,9 +121,7 @@ class AlphaCore(AlphaClass):
         self.db.ensure("files_process")"""
 
     def get_database(self, name=None) -> AlphaDatabase:
-        if self.api is None:
-            # required for database cnx
-            self.prepare_api(self.configuration)
+        self.prepare_api(self.configuration)
 
         if name is None or name == 'main':
             return self.db

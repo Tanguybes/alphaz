@@ -29,31 +29,31 @@ class AlphaClass:
     def to_json(self):
         return self.get_attributes()
 
-    def info(self,message):
+    def info(self,message,ex=None):
         if self.log is not None:
             if len(self._infos) != 0:
                 for info in self._infos:
-                    self.log.info(info)
+                    self.log.info(info,ex=ex)
                 self._infos = []
-            self.log.info(message)
+            self.log.info(message,ex=ex)
         else:
             self._infos.append(message)
 
-    def warning(self,message):
+    def warning(self,message,ex=None):
         if self.log is not None:
             if len(self._warnings) != 0:
                 for msg in self._warnings:
-                    self.log.warning(msg)
+                    self.log.warning(msg,ex=ex)
                 self._warnings = []
-            self.log.warning(message)
+            self.log.warning(message,ex=ex)
         else:
             self._warnings.append(message)
 
-    def error(self,message,out=False):
+    def error(self,message,out=False,ex=None):
         for info in self._infos:
             print('   INFO: %s'%info)
         if self.log is not None:
-            self.log.error(message)
+            self.log.error(message,ex=ex)
         else:
             print('   ERROR: %s'%message)
         if out: exit()

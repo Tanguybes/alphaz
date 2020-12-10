@@ -32,7 +32,7 @@ class NoParsingFilter(logging.Filter):
 
 class AlphaLogger():   
     date_format             = "%Y-%m-%d %H:%M:%S"
-    format_log              = "{$date} - {$level:7} - {$pid:5} - {$file:>20}.{$line:<4} - {$name:<10}: $message" # %(processName)s %(filename)s:%(lineno)s
+    format_log              = "{$date} - {$level:7} - {$pid:5} - {$file:>15}.{$line:<4} - {$name:<14}: $message" # %(processName)s %(filename)s:%(lineno)s
 
     monitoring_logger = None
 

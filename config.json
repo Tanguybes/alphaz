@@ -52,5 +52,9 @@
     "api": {
         "generate":true,
         "name": "{{project_name}}"
+    },
+    "transactions" : {
+        "pool_size": 10,
+        "wait_time": 5
     }
 }

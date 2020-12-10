@@ -43,42 +43,55 @@ def show(config,level=0):
         if type(cf) == dict:
             show(cf,level + 1)
 
-# config,paths,configs_values,sub_configurations,types='configs'
-def set_paths(config,paths,parameters_values,parameters_value,types=None):
+def set_configs_paths(config,paths,parameters_values,configurations):
     levels = list(set([len(x) for x in paths]))
 
     for level in levels:
         for i in range(len(parameters_values)):
             if len(paths[i]) == level:
-                set_path(config, paths[i], parameters_values[i], parameters_value,types)
+                set_configurations_path(config, paths[i], parameters_values[i], configurations)
 
-def set_path(config,path,parameters,parameters_values,types=None):
+def set_configurations_path(config,path,parameters,parameters_values):
     if len(path) == 1:
-        if types == 'parameters':
-            value   = config[path[0]]
-            for parameter in parameters:
-                if parameter in parameters_values:
-                    parameter_value     = parameters_values[parameter]
-                    if value == PAREMETER_PATTERN%parameter:
-                        value           = parameter_value
-                    elif PAREMETER_PATTERN%parameter in str(value):
-                        value           = value.replace(PAREMETER_PATTERN%parameter,str(parameter_value))
-                
-            config[path[0]]         = value
-
-        elif types == 'configs':
-            matchs = get_configs_matchs(config[path[0]])
-            if len(matchs) != 0 and matchs[0] in parameters_values:
-                sub_configuration       = parameters_values[matchs[0]]
-                replacement_data        = {x:y for x,y in sub_configuration.data.items() if x not in sub_configuration.tmp}
-                config[path[0]]         = replacement_data
-            
+        matchs = get_configs_matchs(config[path[0]])
+        if len(matchs) != 0 and matchs[0] in parameters_values:
+            sub_configuration       = parameters_values[matchs[0]]
+            replacement_data        = {x:y for x,y in sub_configuration.data.items() if x not in sub_configuration.tmp}
+            config[path[0]]         = replacement_data
         return
 
     sub_config  = config[path[0]]
     path        = path[1:]
 
-    set_path(sub_config,path,parameters,parameters_values,types)
+    set_configurations_path(sub_config,path,parameters,parameters_values)
+    
+def set_paths(config,paths,parameters_values,parameters_value):
+    levels = list(set([len(x) for x in paths]))
+
+    for level in levels:
+        for i in range(len(parameters_values)):
+            if len(paths[i]) == level:
+                set_path(config, paths[i], parameters_values[i], parameters_value)
+
+def set_path(config,path,parameters,parameters_values):
+    if len(path) == 1:
+        value   = config[path[0]]
+        for parameter in parameters:
+            if parameter in parameters_values:
+                parameter_value     = parameters_values[parameter]
+                if value == PAREMETER_PATTERN%parameter:
+                    value           = parameter_value
+                elif PAREMETER_PATTERN%parameter in str(value):
+                    value           = value.replace(PAREMETER_PATTERN%parameter,str(parameter_value))
+            
+        config[path[0]]         = value
+
+        return
+
+    sub_config  = config[path[0]]
+    path        = path[1:]
+
+    set_path(sub_config,path,parameters,parameters_values)
 
 def fill_config(configuration,source_configuration):
     for key, value in configuration.items():
