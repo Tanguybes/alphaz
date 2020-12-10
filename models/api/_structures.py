@@ -320,7 +320,7 @@ class AlphaFlask(Flask):
             response.headers['Content-Type'] = 'text/xml; charset=utf-8'            
             return response
         else:
-            returned = self.returned # jsonify(self.returned)
+            returned = jsonify(self.returned)
             if return_status is not None:
                 returned.status_code = return_status
 

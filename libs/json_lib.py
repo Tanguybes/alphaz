@@ -1,5 +1,7 @@
 from flask_sqlalchemy.model import DefaultMeta
 
+from ..models.database.row import Row
+
 def jsonify_database_models(model: DefaultMeta, first=False):
     """Convert a database model structure to json
 
@@ -30,6 +32,8 @@ def jsonify_data(data):
         result = [jsonify_data(x) for x in data]
     elif type(data) == dict:
         result = {jsonify_data(x):jsonify_data(y) for x,y in data.items()}
+    elif type(data) == Row:
+        result = dict(data)
     else:
         result = data
 

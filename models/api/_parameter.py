@@ -52,13 +52,13 @@ class Parameter():
                 raise AlphaException('api_wrong_parameter_value',parameters={'parameter':self.name,'type':'bool'})
             self.value = value
 
-        if self.ptype == int:
+        if self.ptype == int and not self.value is None:
             try: 
                 self.value = int(self.value)
             except:
                 raise AlphaException('api_wrong_parameter_value',parameters={'parameter':self.name,'type':'int'})
 
-        if self.ptype == float:
+        if self.ptype == float and not self.value is None:
             try: 
                 self.value = float(self.value)
             except:
