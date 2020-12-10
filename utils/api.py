@@ -36,7 +36,8 @@ def route(path,
     def api_in(func):
         @api.route(path, methods = methods, endpoint=func.__name__)
         def api_wrapper(*args,**kwargs):
-            log.debug('get api route {:10} with method <{}>'.format(path,func.__name__))
+            if path not in ["/", "/status"]:
+                log.debug('get api route {:10} with method <{}>'.format(path,func.__name__))
 
             api.reset()
             if request.args:

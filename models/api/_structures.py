@@ -472,13 +472,14 @@ class AlphaFlask(Flask):
                 log.warning('Wrong permission: %s is not an admin'%user_data)
         if not admin:
             ip = request.remote_addr
-            if self.conf.get('admins') and ip in self.conf.get('admins'):
+            admins_ips =  self.conf.get('admins')
+            if admins_ips and (ip in admins_ips or "::ffff:%s"%ip in admins_ips):
                 admin = True
             else:
                 log.warning('Wrong permission: %s is not an admin'%ip)
         if not admin:
             self.access_denied()
-            
+
         return self.get_return(return_status=401)
 
     def is_time(self,timeout):
