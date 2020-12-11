@@ -16,7 +16,7 @@ from werkzeug.debug import DebuggedApplication
 
 import flask_monitoringdashboard
 
-from ...libs import mail_lib, flask_lib, io_lib, converter_lib, os_lib, json_lib, config_lib
+from ...libs import mail_lib, flask_lib, io_lib, converter_lib, os_lib, json_lib, config_lib, secure_lib
 
 from ...models.logger import AlphaLogger
 from ...models.main import AlphaException
@@ -469,6 +469,11 @@ class AlphaFlask(Flask):
                 return True
             else:
                 log.warning('Wrong permission: %s is not an admin'%user_data)
+
+        admin_password = self.conf.get("admin_password")
+        if "admin" in self.dataGet and admin_password is not None:
+            if secure_lib.check_magic_code(self.dataGet["admin"], admin_password):
+                return True
 
         ip = request.remote_addr
         admins_ips =  self.conf.get('admins')
