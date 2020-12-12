@@ -5,13 +5,18 @@ from ._base import AlphaClass
 class AlphaTransaction(AlphaClass):
     task = None
     name = "TRANSACTION"
+    error = False
     lifetime = 60*60
 
     def __init__(self,message=None,message_type=None):
-        self.message        = message
         self.message_type   = message_type.upper() if message_type is not None else self.name
         self.process        = os.getpid()
         self.uuid           = str(uuid.uuid4())
+
+        if type(message) == dict:
+            self.message        = message
+        else:
+            self.map(message)
 
     def map(self, obj):
         if obj is None:

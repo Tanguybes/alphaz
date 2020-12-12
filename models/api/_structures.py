@@ -363,6 +363,7 @@ class AlphaFlask(Flask):
 
     def timeout(self):
         self.returned['status'] = 'timeout'
+        self.returned['error']      = 1
         
     def access_denied(self):
         self.returned['token_status'] = 'denied'

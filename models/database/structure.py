@@ -263,7 +263,6 @@ class AlphaDatabase(AlphaDatabaseCore):
         obj = self.select(model,filters=filters,first=True,json=False)
 
         if obj is not None:
-            self.commit()
             self.session.delete(obj)
             if commit: self.commit()
             return True
