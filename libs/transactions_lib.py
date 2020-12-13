@@ -12,11 +12,11 @@ LOG = core.get_logger('requests')
 def delete_requests(db: AlphaDatabase, uuids: List[str]):
     db.delete(Requests,filters=[Requests.uuid.in_(uuids)])
 
-def get_requests(db: AlphaDatabase, message_types:List[str]=[], limit=20) -> List[Requests]:
+def get_requests(db: AlphaDatabase, message_types:List[str]=[], limit=20, close=True) -> List[Requests]:
     filters = []
     if len(message_types) != 0:
         filters.append(Requests.message_type.in_(message_types))
-    return db.select(Requests, filters=filters, limit=limit, order_by=Requests.creation_date.desc())
+    return db.select(Requests, filters=filters, limit=limit, order_by=Requests.creation_date.desc(),close=close)
 
 def send_raw_request(db: AlphaDatabase, message_type:str, request: Dict[str,object], request_lifetime: int = 3600, uuid_:str = None, pid=None):
     uuid_request = str(uuid.uuid4()) if uuid_ == False else uuid_
@@ -30,14 +30,14 @@ def send_raw_request(db: AlphaDatabase, message_type:str, request: Dict[str,obje
     })
     return uuid_request
 
-def send_request(db: AlphaDatabase, transaction):
+def send_request(db: AlphaDatabase, transaction, close=True):
     db.insert(Requests, values={
         Requests.uuid: transaction.uuid,
         Requests.message: str(transaction.message),
         Requests.process: transaction.process,
         Requests.message_type: transaction.message_type.upper(),
         Requests.lifetime: transaction.lifetime
-    })
+    }, close=True)
 
 def send_answer(db: AlphaDatabase, transaction):
     db.insert(Answers, values={
@@ -53,7 +53,7 @@ def send_answer(db: AlphaDatabase, transaction):
 def get_answer(db: AlphaDatabase, answer):
     answer_uuid = answer if type(answer) == str else answer.uuid
     
-    answer_db   = db.select(Answers, filters = [Answers.uuid==answer_uuid], first=True)
+    answer_db   = db.select(Answers, filters = [Answers.uuid==answer_uuid], first=True, close=True)
     answer      = AlphaTransaction()
     return answer.map(answer_db)
 
@@ -64,7 +64,7 @@ def send_raw_request_and_wait_answer(db: AlphaDatabase, request: Dict[str,object
     return send_request_and_wait_answer(db,request,timeout=timeout)
 
 def send_request_and_wait_answer(db: AlphaDatabase, request: AlphaTransaction, timeout:int = None, wait_time:int = None) -> Answers:
-    send_request(db,request)
+    send_request(db,request, close=True)
 
     answer = None
 
@@ -101,28 +101,22 @@ def send_request_and_wait_answer(db: AlphaDatabase, request: AlphaTransaction, t
         LOG.error('Timeout for request %s'%(request.uuid))
     return answer.message
 
-def process_requests(db: AlphaDatabase, fct):
-    requests = get_requests(db, limit=core.config.get("transactions/pool_size"))
+def process_requests(db: AlphaDatabase, fct, delete=True):
+    requests = get_requests(db, limit=core.config.get("transactions/pool_size"),close=True)
 
     if len(requests) == 0:
+        LOG.info('<%s> mode - No requests ...'%core.configuration)
         return
 
     requests = [AlphaTransaction(x) for x in requests]
-    LOG.info('b%s'%requests[0])
     LOG.info('Processing %s requests ...'%len(requests))
 
     uuids   = []
     for request in requests:
         uuids.append(request.uuid)
-        LOG.debug('REQUEST: \n\n'+str(request.message)+'\n')
-
-        """if type(request.message) is not dict:
-            LOG.error('Answer is of the wrong type')
-            continue"""
 
         try:
             answer = fct(request)
-            LOG.debug('Sending answer: %s'%answer.message)
         except Exception as ex:
             request.message = ""
             answer = request
@@ -130,4 +124,5 @@ def process_requests(db: AlphaDatabase, fct):
         
         send_answer(db, answer)
 
-    delete_requests(db, uuids)
+    if delete:
+        delete_requests(db, uuids)
