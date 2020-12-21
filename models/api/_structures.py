@@ -394,6 +394,9 @@ class AlphaFlask(Flask):
         if str(value) == 'true': return True
         return value
 
+    def __getitem__(self, key):
+        return self.get(key)
+
     def configure_route(self,api_route,parameters,cache=False):
         self.routes[api_route]   = Route(api_route,parameters,cache=cache)
         self.current_route       = self.routes[api_route]

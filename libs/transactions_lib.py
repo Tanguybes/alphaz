@@ -105,7 +105,6 @@ def process_requests(db: AlphaDatabase, fct, delete=True):
     requests = get_requests(db, limit=core.config.get("transactions/pool_size"),close=True)
 
     if len(requests) == 0:
-        LOG.info('<%s> mode - No requests ...'%core.configuration)
         return
 
     requests = [AlphaTransaction(x) for x in requests]

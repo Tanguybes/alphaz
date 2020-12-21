@@ -30,7 +30,6 @@ def get_compiled_query(query):
         full_query_str = str(query)
     full_query_str = full_query_str if not hasattr(full_query_str,'string') else full_query_str.string
 
-    session = query.session.bind
     return full_query_str
 
 class AlphaDatabaseCore(SQLAlchemy):
