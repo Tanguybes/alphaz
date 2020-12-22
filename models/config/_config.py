@@ -651,7 +651,10 @@ class AlphaConfigurations(object):
         if path in self._configurations:
             loaded_configuration = self._configurations[path]
 
-            if loaded_configuration and loaded_configuration['data_origin'] == config.data_origin:
+            if not "sub_configurations" in loaded_configuration or not "data_origin" in loaded_configuration:
+                return False
+
+            if loaded_configuration and loaded_configuration["data_origin"] == config.data_origin:
                 for key in loaded_configuration:
                     if hasattr(config, key):
                         setattr(config, key, loaded_configuration[key])
@@ -659,7 +662,7 @@ class AlphaConfigurations(object):
                 # check sub configurations
                 for path, sub_config in loaded_configuration["sub_configurations"].items():
                     if os.path.getsize(path) != sub_config["size"]:
-                        print('Need to reload %s'%path)
+                        print("Need to reload %s"%path)
                         return False
 
                 return True
