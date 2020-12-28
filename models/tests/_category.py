@@ -1,5 +1,7 @@
 from typing import Dict
 
+from ...libs import dict_lib
+
 from ._group import TestGroup
 
 class TestCategory():
@@ -48,5 +50,5 @@ class TestCategories():
         self.categories[test_group.category].add_test_group(test_group)
 
     def to_json(self):
-        return self.categories
+        return dict_lib.sort_dict(self.categories)
 

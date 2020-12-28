@@ -715,7 +715,8 @@ p {
 .feature-inner {
     height: 100%;
     background: #2C3039;
-    padding: 10px;
+	padding: 10px;
+	border-radius: 10px;
 }
 
 .feature-icon {
@@ -1100,3 +1101,8 @@ sup {
 	color: #3498db;
 	position: inherit;
   }
+
+
+  .hide {
+    display: none !important;
+}

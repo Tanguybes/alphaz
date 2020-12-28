@@ -158,7 +158,10 @@
                   <div class=feature-inner>
                     <div class=feature-icon></div>
                       <div class="test-category">
+                        <div>
                         <i class="icon-play run" onclick="executeTest('{{category}}','','')"></i>
+                        <img src='/assets/loading.gif' id="loading_{{category}}" class="hide"/>
+                        </div>
                         <h3 class="feature-title mt-24">{{category}}</h3>
                       </div>
 
@@ -297,6 +300,8 @@
     group = group ? group : "";
     test = test ? test : "";
     parameters = "run=Y&category=" + category
+
+    $("#loading_" + category).removeClass("hide");
     
     if (!category || category == 'null') localStorage.removeItem('category');
     else localStorage.setItem('category', category);
@@ -320,7 +325,9 @@
             data: parameters,
             success: function(data, status) {
               location.reload();
-            }
+              $("#loading_" + category).addClass("hide");
+            },
+            error: function () { console.log(err); $("#loading_" + category).addClass("hide"); }
          });
   }
 

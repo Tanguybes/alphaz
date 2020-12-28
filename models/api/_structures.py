@@ -16,7 +16,7 @@ from werkzeug.debug import DebuggedApplication
 
 import flask_monitoringdashboard
 
-from ...libs import mail_lib, flask_lib, io_lib, converter_lib, os_lib, json_lib, config_lib
+from ...libs import mail_lib, flask_lib, io_lib, converter_lib, os_lib, json_lib, config_lib, secure_lib
 
 from ...models.logger import AlphaLogger
 from ...models.main import AlphaException
@@ -320,7 +320,7 @@ class AlphaFlask(Flask):
             response.headers['Content-Type'] = 'text/xml; charset=utf-8'            
             return response
         else:
-            returned = self.returned # jsonify(self.returned)
+            returned = jsonify(self.returned)
             if return_status is not None:
                 returned.status_code = return_status
 
@@ -466,17 +466,26 @@ class AlphaFlask(Flask):
             token = dataPost['token']
         return token
 
-    def check_is_admin(self):
-        admin = False
+    def check_is_admin(self, log=None):
         user_data = self.get_logged_user()
         if user_data is not None:
             if user_data['role'] >= 9:
-                admin = True
-        if not admin:
-            ip = request.remote_addr
-            if self.conf.get('admins') and ip in self.conf.get('admins'):
-                admin = True
-        return admin
+                return True
+            else:
+                log.warning('Wrong permission: %s is not an admin'%user_data)
+
+        admin_password = self.conf.get("admin_password")
+        if "admin" in self.dataGet and admin_password is not None:
+            if secure_lib.check_magic_code(self.dataGet["admin"], admin_password):
+                return True
+
+        ip = request.remote_addr
+        admins_ips =  self.conf.get('admins')
+        if admins_ips and (ip in admins_ips or "::ffff:%s"%ip in admins_ips):
+            return True
+        else:
+            log.warning('Wrong permission: %s is not an admin'%ip)
+        return False
 
     def is_time(self,timeout):
         is_time = False

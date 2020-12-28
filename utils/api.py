@@ -36,7 +36,8 @@ def route(path,
     def api_in(func):
         @api.route(path, methods = methods, endpoint=func.__name__)
         def api_wrapper(*args,**kwargs):
-            log.debug('get api route {:10} with method <{}>'.format(path,func.__name__))
+            if path not in ["/", "/status"]:
+                log.debug('get api route {:10} with method <{}>'.format(path,func.__name__))
 
             api.reset()
             if request.args:
@@ -49,13 +50,6 @@ def route(path,
 
             dataPost                = request.get_json()
             api.dataPost            = {} if dataPost is None else {x:y for x,y in dataPost.items()}
-
-            """if api.debug:
-                log.debug('POST: %s'%dataPost)
-                log.debug('GET: %s'%request.args)
-                log.debug('JSON: %s'%request.get_json())
-                log.debug('VALUES: %s'%request.values)
-                log.debug('PARAMETERS: %s'%parameters)"""
 
             # Check parameters
             for parameter in parameters:
@@ -76,9 +70,8 @@ def route(path,
                 api.access_denied() 
                 return api.get_return(return_status=401)
 
-            if admin and not api.check_is_admin():
-                log.warning('Wrong permission: not an admin')
-                api.access_denied() 
+            if admin and not api.check_is_admin(log=log):
+                api.access_denied()
                 return api.get_return(return_status=401)
 
             api.configure_route(path,parameters=parameters,cache=cache)
@@ -123,7 +116,8 @@ def route(path,
                 else:
                     api.set_error('missing_file')
 
-            return api.get_return()
+            output = api.get_return()
+            return output
         api_wrapper.__name__ = func.__name__
 
         if cache:
