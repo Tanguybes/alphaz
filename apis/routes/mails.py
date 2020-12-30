@@ -31,7 +31,7 @@ def mails_stay_in_touch():
     ]
 )
 def mail_newsletter():
-    db.insert(defs.NewsLetter,values=api.dataGet)
+    db.insert(defs.NewsLetter,values=api.get_gets())
     api.set_data('saved') 
 
 @route('/mails/requestview',logged=False,cache=False, 

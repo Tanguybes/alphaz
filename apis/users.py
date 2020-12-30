@@ -186,7 +186,7 @@ def logout(api,token,db,log=None):
     if not valid:
         api.set_error('fail')
 
-def get_user_dataFromToken(api,db,token):
+def get_user_dataFromToken(db,token):
     user_id     = None
     results     = db.select(defs.UserSession,filters=[defs.UserSession.token==token],json=True)
     if len(results) != 0:
