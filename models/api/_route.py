@@ -132,10 +132,6 @@ class Route:
         self.mode = "html"
         self.html = {"page":page,"parameters":parameters}
 
-    def reset(self):
-        self.data       = {}
-        self.returned   = {}
-
     def get_return(self,forceData=False, return_status=None):
         if self.mode == 'html':
             return render_template(self.html['page'],**self.html['parameters'])

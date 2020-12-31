@@ -103,7 +103,12 @@ class AlphaFlask(Flask):
 
         return True
     
-    def get_current_route(self):
+    def get_current_route(self) -> Route:
+        """[summary]
+
+        Returns:
+            Route: [description]
+        """
         request_uuid                = get_uuid()
         return self.__routes[request_uuid]
 
@@ -121,7 +126,7 @@ class AlphaFlask(Flask):
     def set_file(self,directory, filename):
         self.get_current_route().set_file(directory, filename)
 
-    def get_file(self,directory, filename,attached=False):
+    def get_file(self,directory, filename, attached=False):
         self.get_current_route().get_file(directory, filename, attached)
 
     def set_html(self,page,parameters={}):

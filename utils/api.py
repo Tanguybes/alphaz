@@ -58,8 +58,6 @@ def route(path,
                         api.set_error(ex)
                     else:
                         raise ex
-                else:
-                    api.set_error('inputs')
                 route.set_cache()
             else:
                 api.get_cached()
