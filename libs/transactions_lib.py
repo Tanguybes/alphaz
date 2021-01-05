@@ -75,19 +75,6 @@ def send_request_and_wait_answer(db: AlphaDatabase, request: AlphaTransaction, t
     if wait_time is None:
         wait_time = core.config.get('transactions/wait_time',default=1,type_=int)
 
-    #res = get_transaction_answer.delay(request)
-    """while not res.ready():
-        print('wait')"""
-    
-    #answer = res.get(timeout=timeout)
-    #return answer
-
-    """result= res.wait()
-    result = res.result
-    self.assert_is_not_empty(result, conditions=[
-        res.status == "SUCCESS"
-    ])"""
-    
     waited_time = 0
     while waited_time < timeout and (answer is None or answer.message is None):
         answer = get_answer(db, request.uuid)
@@ -96,8 +83,8 @@ def send_request_and_wait_answer(db: AlphaDatabase, request: AlphaTransaction, t
         waited_time += wait_time
 
     if (answer is None or answer.message is None) and waited_time >= timeout:
-        answer.message = 'timeout'
-        answer.error = True
+        answer.message  = 'timeout'
+        answer.error    = True
         LOG.error('Timeout for request %s'%(request.uuid))
     return answer.message
 

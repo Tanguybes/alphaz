@@ -92,7 +92,7 @@ class AlphaDatabaseCore(SQLAlchemy):
             self.session.commit()
             output = True
         except Exception as ex:
-            if self.log: self.log.error('ex:',ex)
+            #if self.log: self.log.error('ex:',ex)
             self.session.rollback()
         finally:
             if close:

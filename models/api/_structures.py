@@ -110,7 +110,12 @@ class AlphaFlask(Flask):
             Route: [description]
         """
         request_uuid                = get_uuid()
-        return self.__routes[request_uuid]
+        if request_uuid not in self.__routes:
+            self.log.error("Cannot get route for %s"%request_uuid)
+        route = self.__routes[request_uuid]
+        if route is None:
+            self.log.error("Issue with route %s"%request_uuid)
+        return route
 
     def get_gets(self) -> Dict[str, object]:
         """ returns GET value
