@@ -29,6 +29,7 @@ def get_compiled_query(query):
     else:
         full_query_str = str(query)
     full_query_str = full_query_str if not hasattr(full_query_str,'string') else full_query_str.string
+
     return full_query_str
 
 class AlphaDatabaseCore(SQLAlchemy):
@@ -171,9 +172,9 @@ class AlphaDatabase(AlphaDatabaseCore):
         #self.query_str = get_compiled_query(query)
         return rows
 
-    def insert(self,model,values={},commit=True,test=False):
+    def insert(self,model,values={},commit=True,test=False, close=False):
         values_update = self.get_values(model,values,{})
-        return self.add(model,parameters=values_update,commit=commit,test=test)
+        return self.add(model,parameters=values_update,commit=commit,test=test,close=close)
 
     def insert_or_update(self,model,values={},commit=True,test=False):
         values_update = self.get_values(model,values,{})
@@ -182,7 +183,7 @@ class AlphaDatabase(AlphaDatabaseCore):
     def add_or_update(self,obj,parameters=None,commit=True,test=False,update=False):
         return self.add(obj=obj,parameters=parameters,commit=commit,test=test,update=True)
 
-    def add(self,model,parameters=None,commit=True,test=False,update=False):
+    def add(self,model,parameters=None,commit=True,test=False,update=False, close=False):
         if test:
             self.log.info('Insert %s with values %s'%(model,parameters))
             return None
@@ -209,6 +210,8 @@ class AlphaDatabase(AlphaDatabaseCore):
                 primaryKeyColName = inspect_sqlalchemy(obj)
 
                 raise AlphaException('database_insert',description=str(ex))
+        if close:
+            self.session.close()
         return obj
 
     def upsert(self, model, rows):
@@ -263,7 +266,6 @@ class AlphaDatabase(AlphaDatabaseCore):
         obj = self.select(model,filters=filters,first=True,json=False)
 
         if obj is not None:
-            self.commit()
             self.session.delete(obj)
             if commit: self.commit()
             return True
@@ -322,7 +324,9 @@ class AlphaDatabase(AlphaDatabaseCore):
             order_by=None,
             group_by=None,
             limit:int=None,
-            columns:list=None
+            columns:list=None,
+            close=False,
+            flush=False
         ):
         #model_name = inspect.getmro(model)[0].__name__
 
@@ -363,6 +367,10 @@ class AlphaDatabase(AlphaDatabaseCore):
             self.session.close()
             raise ex
             #raise AlphaException('non_valid_query',get_compiled_query(query),str(ex)))
+        if close:
+            query.session.close()
+        if flush:
+            query.session.flush()
 
         if not json:
             self.query_str = get_compiled_query(query)

@@ -4,7 +4,7 @@ from alphaz.libs import dict_lib
 
 from flask import request, send_from_directory
 
-from ...libs import test_lib, database_lib, api_lib
+from ...libs import test_lib, database_lib, api_lib, transactions_lib
 from ...utils.api import route, Parameter
 from ...utils.time import tic, tac
 

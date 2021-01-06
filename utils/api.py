@@ -39,85 +39,31 @@ def route(path,
             if path not in ["/", "/status"]:
                 log.debug('get api route {:10} with method <{}>'.format(path,func.__name__))
 
-            api.reset()
-            if request.args:
-                api.dataGet         = {x:y for x,y in request.args.items()}
+            if not api.configure_route(path, parameters=parameters, cache=cache, logged=logged, admin=admin, timeout=timeout):
+                return api.get_current_route().get_return()
 
-            if logged:
-                api.user            = api.get_logged_user()
-
-            missing = False
-
-            dataPost                = request.get_json()
-            api.dataPost            = {} if dataPost is None else {x:y for x,y in dataPost.items()}
-
-            # Check parameters
-            for parameter in parameters:
+            route = api.get_current_route()
+            if not route.keep(): 
+                route.init_return()
                 try:
-                    parameter.set_value()
+                    output = func(*args, **kwargs)
+                    if output == 'timeout':
+                        api.timeout()
+                    elif output is not None:
+                        api.set_data(output)
                 except Exception as ex:
-                    api.set_error(ex)
-                    return api.get_return()
-
-            # check permissions
-            token           = api.get_token()
-            if logged and token is None:
-                log.warning('Wrong permission: empty token')
-                api.access_denied()   
-                return api.get_return(return_status=401)
-            elif logged and (api.user is None or len(api.user) == 0):
-                log.warning('Wrong permission: wrong user',api.user)
-                api.access_denied() 
-                return api.get_return(return_status=401)
-
-            if admin and not api.check_is_admin(log=log):
-                api.access_denied()
-                return api.get_return(return_status=401)
-
-            api.configure_route(path,parameters=parameters,cache=cache)
-            reset_cache = request.args.get('reset_cache', None) is not None or api.is_time(timeout)
-            requester   = request.args.get('requester', None)
-
-            if api.keep(path,parameters) and not reset_cache: 
-                api.get_cached(path,parameters)
+                    if api.get("error_format") and api.get("error_format").lower() == "exception":
+                        raise ex
+                    if 'alpha' in str(type(ex)).lower():
+                        api.set_error(ex)
+                    else:
+                        raise ex
+                route.set_cache()
             else:
-                api.init_return()
-                if not missing:
-                    try:
-                        output = func(*args, **kwargs)
-                        if output == 'timeout':
-                            api.timeout()
-                        elif output is not None:
-                            api.set_data(output)
-                    except Exception as ex:
-                        if 'error_format' in api.dataGet and api.dataGet['error_format'].lower() == "exception":
-                            raise ex
-                        if 'alpha' in str(type(ex)).lower():
-                            api.set_error(ex)
-                        else:
-                            raise ex
-                else:
-                    api.set_error('inputs')
-                api.cache(path,parameters)
+                api.get_cached()
 
-            if api.mode == 'html':
-                return render_template(api.html['page'],**api.html['parameters'])
-            if api.mode == 'print':
-                return api.message
+            return route.get_return()
 
-            if 'get_file' in api.mode:
-                file_path, filename = api.file_to_get
-                if file_path is not None and filename is not None:
-                    api.info('Sending file %s from %s'%(filename,file_path))
-                    try:
-                        return send_from_directory(file_path, filename=filename, as_attachment='attached' in api.mode)
-                    except FileNotFoundError:
-                        abort(404)
-                else:
-                    api.set_error('missing_file')
-
-            output = api.get_return()
-            return output
         api_wrapper.__name__ = func.__name__
 
         if cache:

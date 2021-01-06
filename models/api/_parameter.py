@@ -52,7 +52,10 @@ class Parameter():
                 raise AlphaException('api_wrong_parameter_value',parameters={'parameter':self.name,'type':'bool'})
             self.value = value
 
-        if self.ptype == int and not self.value is None:
+        if self.ptype == list and self.value is not None:
+            self.value = str(self.value).split(";")
+
+        if self.ptype == int:
             try: 
                 self.value = int(self.value)
             except:
