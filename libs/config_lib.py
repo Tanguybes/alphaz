@@ -1,9 +1,10 @@
-import datetime, os, re, configparser
+import datetime, os, re, configparser, pickle, json
 
 CONFIG_FILE_EXTENSION                   = '.ini'
 
 from collections import OrderedDict
-from alphaz.libs import converter_lib
+
+from ..libs import converter_lib, json_lib
 from ..models.database.structure import AlphaDatabase
 
 import numpy as np
@@ -11,10 +12,16 @@ import numpy as np
 CONSTANTS = {}
 PARAMETERS = {}
 
+def un_pickle(value):
+    decoded = base64.b64decode(value)
+    value = pickle.loads(decoded)
+    return value
+
 def order(D: dict) -> OrderedDict:
     return OrderedDict(sorted(D.items(), key=lambda x: len(x[0]),reverse=True))
 
 def get_db_constants(db:AlphaDatabase) -> OrderedDict:
+    global CONSTANTS
     from core import core
     """Get constants from database
 
@@ -37,10 +44,14 @@ def get_db_constants(db:AlphaDatabase) -> OrderedDict:
     values['minute']     = now.year
     values['second']     = now.year
 
-    return order(values)
+    order(values)
+    CONSTANT = values
+    return CONSTANTS
 
 def get_db_parameters(db:AlphaDatabase) -> OrderedDict:
+    global PARAMETERS
     from core import core
+    LOG = core.get_logger("config")
     """[summary]
 
     Args:
@@ -50,13 +61,20 @@ def get_db_parameters(db:AlphaDatabase) -> OrderedDict:
     Returns:
         [type]: [description]
     """
-    model = core.get_table(db.name,'parameters')
+    model   = core.get_table(db.name,'parameters')
 
-    rows = db.select(model, json=True)
-    values = {x['name']:x['value'] for x in rows}
-    return order(values)
+    rows    = db.select(model)
+    values = {}
+    for row in rows:
+        try:
+            values[row.name] = pickle.loads(row.value)
+        except:
+            LOG.error("Cannot load parameter <%s>"%row.name)
+    order(values)
+    PARAMETERS = values
+    return PARAMETERS
 
-def get_db_constant(db:AlphaDatabase,name:str,update:bool=False):
+def get_db_constant(db:AlphaDatabase,name:str,update:bool=False,separator=None):
     """[summary]
 
     Args:
@@ -72,13 +90,17 @@ def get_db_constant(db:AlphaDatabase,name:str,update:bool=False):
     if update:
         get_db_constants(db)
 
+    values = None
     if not is_db_constant(db,name):
         get_db_constants(db)
         if is_db_constant(db,name):
-            return CONSTANTS[name]
-        else:
-            return None
-    return CONSTANTS[name]
+            values = CONSTANTS[name]
+
+    if separator is not None:
+        if values is not None:
+            return str(values).replace('b','').replace('"','').replace("'",'').split(separator)
+        return []
+    return values
 
 def get_db_parameter(db:AlphaDatabase,name:str,update:bool=False):
     """[summary]
@@ -93,17 +115,17 @@ def get_db_parameter(db:AlphaDatabase,name:str,update:bool=False):
     Returns:
         [type]: [description]
     """
+    values = None
     if update:
         get_db_parameters(db)
 
     if not is_db_parameter(db,name):
         get_db_parameters(db)
         if is_db_parameter(db,name):
-            return PARAMETERS[name]
-        else:
-            return None
+            values = PARAMETERS[name]
     else:
-        return PARAMETERS[name]
+        values = PARAMETERS[name]
+    return values
 
 def set_db_constant(db:AlphaDatabase,name:str,value):
     from core import core
@@ -129,9 +151,11 @@ def set_db_parameter(db:AlphaDatabase,name:str,value): # TODO: set core
         name ([type]): [description]
         value ([type]): [description]
     """
-    PARAMETERS[name] = value
-    model = core.get_table(db.name,'parameters')
-    db.insert_or_update(model,values={'name':name,'value':value})
+    PARAMETERS[name]    = value
+    model               = core.get_table(db.name,'parameters')
+    #data                = json.dumps(json_lib.jsonify_data(value))
+    data = pickle.dumps(value)
+    db.insert_or_update(model,values={'name':name,'value':data})
 
 def is_db_constant(db:AlphaDatabase,name:str):
     """[summary]

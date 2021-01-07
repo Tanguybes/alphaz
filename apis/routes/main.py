@@ -52,8 +52,6 @@ def status():
 def home():
     config = api.conf
 
-    debug =  core.config.configuration != 'prod'
-
     tests = None
     try:
         tests = test_lib.get_tests_auto(core.config.get('directories/tests'))
@@ -72,7 +70,7 @@ def home():
         'routes': dict_lib.sort_dict(api_lib.get_routes_infos(log=LOG)),
         'compagny': config.get('parameters/compagny'),
         'compagny_website': config.get('parameters/compagny_website'),
-        'dashboard':debug,
+        'dashboard':config.get("dashboard/dashboard/active"),
         'tests':tests,
         'databases':database_lib.get_databases_tables_dict()
     }

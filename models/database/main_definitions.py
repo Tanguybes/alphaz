@@ -217,4 +217,4 @@ class Parameters(db.Model,AlphaTableUpdateDate):
     )
 
     name = AlphaColumn(String(30), primary_key=True)
-    value = AlphaColumn(Text)
+    value = AlphaColumn(BLOB)

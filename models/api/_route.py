@@ -24,7 +24,7 @@ def check_format(data,depth=3):
 class Route:
     def __init__(self, api, uuid:str, route:str, parameters: List[Parameter], cache:bool=False, timeout=None):
         self.api = api
-        self.timeout = timeout
+        self.__timeout = timeout
         self.uuid:str = uuid
         self.route:str = route
         self.cache:bool = cache
@@ -67,7 +67,7 @@ class Route:
         return is_time
 
     def keep(self):
-        reset_cache = self.get('reset_cache') or self.is_time(self.timeout)
+        reset_cache = self.get('reset_cache') or self.is_time(self.__timeout)
         if not self.cache:
             return False and not reset_cache
         key             = self.get_key()
