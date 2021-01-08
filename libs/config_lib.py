@@ -4,7 +4,7 @@ CONFIG_FILE_EXTENSION                   = '.ini'
 
 from collections import OrderedDict
 
-from ..libs import converter_lib, json_lib
+from ..libs import converter_lib, json_lib, io_lib
 from ..models.database.structure import AlphaDatabase
 
 import numpy as np
@@ -382,7 +382,7 @@ def write_flask_dashboard_configuration():
 
     if dashboard is None:
         return None
-        
+    io_lib.ensure_dir(directory)
     try:
         write_config_file(filename, dashboard, directory, upper_keys=True)
         return directory + os.sep + filename

@@ -198,7 +198,7 @@ class AlphaDatabase(AlphaDatabaseCore):
     def add_or_update(self,obj,parameters=None,commit=True,test=False,update=False):
         return self.add(obj=obj,parameters=parameters,commit=commit,test=test,update=True)
 
-    def add(self,model,parameters=None,commit=True,test=False,update=False, close=False):
+    def add(self,model,parameters=None,commit=True,test=False,update=False, close=False) -> object:
         if test:
             self.log.info('Insert %s with values %s'%(model,parameters))
             return None
