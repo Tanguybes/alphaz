@@ -9,7 +9,8 @@ class Parameter():
             options=None,
             cacheable:bool=True,
             required:bool=False,
-            ptype:type=str
+            ptype:type=str,
+            private:bool=False
         ):
 
         self.name       = name
@@ -20,6 +21,7 @@ class Parameter():
         self.ptype:type = ptype
         self.type       = str(ptype).replace("<class '","").replace("'>","")
         self.value      = None
+        self.private    = private
 
     def set_value(self):
         dataPost                = request.get_json()
