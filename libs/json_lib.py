@@ -41,5 +41,5 @@ def jsonify_data(data):
             result = jsonify_database_models(data)
         elif hasattr(data,'_fields'):
             result = {x:data[i] for i,x in enumerate(data._fields)}
-            
+        
     return result

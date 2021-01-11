@@ -6,14 +6,14 @@ import numpy as np
 from pymysql.err import IntegrityError
 
 from sqlalchemy import inspect as inspect_sqlalchemy
-from sqlalchemy import update, create_engine
+from sqlalchemy import update, create_engine, event
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql.expression import or_, and_, all_
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy import event
+from sqlalchemy.exc import DisconnectionError
 
 from .row import Row
 from .utils import get_schema
@@ -56,7 +56,7 @@ class AlphaDatabaseCore(SQLAlchemy):
 
         event.listen(self._engine , "before_cursor_execute", add_own_encoders)
 
-        timeout = 5 if self.db_type != 'oracle' else None
+        #timeout = 5 if self.db_type != 'oracle' else None
         engine_options = {}
         #if timeout is not None:
         #engine_options={ 'connect_args': { 'connect_timeout': 5 }, 'pool_recycle':5} # TODO: modify
@@ -75,6 +75,8 @@ class AlphaDatabaseCore(SQLAlchemy):
         self.log: AlphaLogger = log 
 
         self.error = None
+
+        self.query_str = None
 
     def test(self, close=False):
         """[Test the connection]
@@ -172,6 +174,7 @@ class AlphaDatabase(AlphaDatabaseCore):
                 rows        = [Row(x) for x in results]
             else:
                 rows        = [value[0] if not hasattr(value,'keys') else list(value.values())[0] for value in results]
+            self.query_str = get_compiled_query(query)
         except Exception as err:
             stack           = inspect.stack()
             parentframe     = stack[1]
@@ -184,7 +187,7 @@ class AlphaDatabase(AlphaDatabaseCore):
             #function    = parentframe.function
             #index       = parentframe.index
 
-        #self.query_str = get_compiled_query(query)
+        
         return rows
 
     def insert(self,model,values={},commit=True,test=False, close=False):
@@ -262,7 +265,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         rows = list(filter(None, (handle_foreignkeys_constraints(row) for row in rows)))
         session.execute(stmt, rows)
 
-    def commit(self):
+    def commit(self, close=False):
         try:
             self.session.commit()
         except Exception as ex:
@@ -270,7 +273,8 @@ class AlphaDatabase(AlphaDatabaseCore):
             LOG.error(ex=ex)
             self.session.rollback()
         finally:
-            self.session.close()
+            if close:
+                self.session.close()
 
     def delete_obj(self):
         self.session.delete(obj)
@@ -344,8 +348,8 @@ class AlphaDatabase(AlphaDatabaseCore):
             flush=False
         ):
         #model_name = inspect.getmro(model)[0].__name__
-        if self.db_type == "mysql":
-            self.test(close=False)
+        """if self.db_type == "mysql":
+            self.test(close=False)"""
 
         query     = self._get_filtered_query(model, filters=filters)
 

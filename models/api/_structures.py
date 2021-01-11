@@ -125,6 +125,9 @@ class AlphaFlask(Flask):
         """
         return {x:y for x,y in request.args.items()}
 
+    def get_parameters(self):
+        return self.get_gets()
+
     def set_data(self, data):
         self.get_current_route().set_data(data)
 
