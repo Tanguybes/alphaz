@@ -62,8 +62,8 @@ class AlphaFlask(Flask):
         # Check parameters
         parameters_error = None
 
-        parameters.append(Parameter("reset_cache",ptype=bool,default=False))
-        parameters.append(Parameter("format",ptype=str,default="json"))
+        parameters.append(Parameter("reset_cache",ptype=bool,default=False,private=True))
+        parameters.append(Parameter("format",ptype=str,default="json",private=True))
 
         for parameter in parameters:
             if parameters_error is not None: 
@@ -126,7 +126,8 @@ class AlphaFlask(Flask):
         return {x:y for x,y in request.args.items()}
 
     def get_parameters(self):
-        return self.get_gets()
+        parameters_names = [x for x,y in self.get_current_route().parameters.items() if not y.private]
+        return {x:y for x,y in self.get_gets().items() if x in parameters_names}
 
     def set_data(self, data):
         self.get_current_route().set_data(data)

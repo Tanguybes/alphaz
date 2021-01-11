@@ -33,7 +33,7 @@ class Route:
         self.route: str = route
         self.cache: bool = cache
 
-        self.parameters: List[Parameter] = {y.name: y for y in parameters}
+        self.parameters: Dict[Parameter] = {y.name: y for y in parameters}
 
         self.lasttime = datetime.datetime.now()
 
