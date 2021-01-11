@@ -1,17 +1,19 @@
 #import mysql.connector
 import inspect, os
+import numpy as np
 #from ...libs.oracle_lib import Connection 
 
 from pymysql.err import IntegrityError
 
 from sqlalchemy import inspect as inspect_sqlalchemy
-from sqlalchemy import update, create_engine
+from sqlalchemy import update, create_engine, event
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql.expression import or_, and_, all_
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.exc import DisconnectionError
 
 from .row import Row
 from .utils import get_schema
@@ -29,7 +31,12 @@ def get_compiled_query(query):
     else:
         full_query_str = str(query)
     full_query_str = full_query_str if not hasattr(full_query_str,'string') else full_query_str.string
+
     return full_query_str
+
+def add_own_encoders(conn, cursor, query, *args):
+    cursor.connection.encoders[np.float64] = lambda value, encoders: float(value)
+    cursor.connection.encoders[np.int64] = lambda value, encoders: int(value)
 
 class AlphaDatabaseCore(SQLAlchemy):
     def __init__(self, *args, 
@@ -47,7 +54,9 @@ class AlphaDatabaseCore(SQLAlchemy):
         cnx = config['cnx']
         self._engine = create_engine(cnx)
 
-        timeout = 5 if self.db_type != 'oracle' else None
+        event.listen(self._engine , "before_cursor_execute", add_own_encoders)
+
+        #timeout = 5 if self.db_type != 'oracle' else None
         engine_options = {}
         #if timeout is not None:
         #engine_options={ 'connect_args': { 'connect_timeout': 5 }, 'pool_recycle':5} # TODO: modify
@@ -67,21 +76,30 @@ class AlphaDatabaseCore(SQLAlchemy):
 
         self.error = None
 
-    def test(self):
+        self.query_str = None
+
+    def test(self, close=False):
         """[Test the connection]
 
         Returns:
             [type]: [description]
         """
+        output = False
         query = "SELECT 1"
         if self.db_type == "oracle":
-            query = "SELECT 1 FROM DUAL"
+            #query = "SELECT 1 FROM DUAL"
+            query = "SELECT 1;"
         try:
             self._engine.execute(query)
-            return True
+            self.session.commit()
+            output = True
         except Exception as ex:
-            if self.log: self.log.error('ex:',ex)
-            return False
+            #if self.log: self.log.error('ex:',ex)
+            self.session.rollback()
+        finally:
+            if close:
+                self.session.close()
+        return output
 
     def _get_filtered_query(self,model,filters=None,likes=None,sup=None):
         query     = model.query
@@ -156,6 +174,7 @@ class AlphaDatabase(AlphaDatabaseCore):
                 rows        = [Row(x) for x in results]
             else:
                 rows        = [value[0] if not hasattr(value,'keys') else list(value.values())[0] for value in results]
+            self.query_str = get_compiled_query(query)
         except Exception as err:
             stack           = inspect.stack()
             parentframe     = stack[1]
@@ -168,12 +187,12 @@ class AlphaDatabase(AlphaDatabaseCore):
             #function    = parentframe.function
             #index       = parentframe.index
 
-        #self.query_str = get_compiled_query(query)
+        
         return rows
 
-    def insert(self,model,values={},commit=True,test=False):
+    def insert(self,model,values={},commit=True,test=False, close=False):
         values_update = self.get_values(model,values,{})
-        return self.add(model,parameters=values_update,commit=commit,test=test)
+        return self.add(model,parameters=values_update,commit=commit,test=test,close=close)
 
     def insert_or_update(self,model,values={},commit=True,test=False):
         values_update = self.get_values(model,values,{})
@@ -182,7 +201,7 @@ class AlphaDatabase(AlphaDatabaseCore):
     def add_or_update(self,obj,parameters=None,commit=True,test=False,update=False):
         return self.add(obj=obj,parameters=parameters,commit=commit,test=test,update=True)
 
-    def add(self,model,parameters=None,commit=True,test=False,update=False):
+    def add(self,model,parameters=None,commit=True,test=False,update=False, close=False) -> object:
         if test:
             self.log.info('Insert %s with values %s'%(model,parameters))
             return None
@@ -209,6 +228,8 @@ class AlphaDatabase(AlphaDatabaseCore):
                 primaryKeyColName = inspect_sqlalchemy(obj)
 
                 raise AlphaException('database_insert',description=str(ex))
+        if close:
+            self.session.close()
         return obj
 
     def upsert(self, model, rows):
@@ -244,7 +265,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         rows = list(filter(None, (handle_foreignkeys_constraints(row) for row in rows)))
         session.execute(stmt, rows)
 
-    def commit(self):
+    def commit(self, close=False):
         try:
             self.session.commit()
         except Exception as ex:
@@ -252,7 +273,8 @@ class AlphaDatabase(AlphaDatabaseCore):
             LOG.error(ex=ex)
             self.session.rollback()
         finally:
-            self.session.close()
+            if close:
+                self.session.close()
 
     def delete_obj(self):
         self.session.delete(obj)
@@ -263,7 +285,6 @@ class AlphaDatabase(AlphaDatabaseCore):
         obj = self.select(model,filters=filters,first=True,json=False)
 
         if obj is not None:
-            self.commit()
             self.session.delete(obj)
             if commit: self.commit()
             return True
@@ -322,9 +343,13 @@ class AlphaDatabase(AlphaDatabaseCore):
             order_by=None,
             group_by=None,
             limit:int=None,
-            columns:list=None
+            columns:list=None,
+            close=False,
+            flush=False
         ):
         #model_name = inspect.getmro(model)[0].__name__
+        """if self.db_type == "mysql":
+            self.test(close=False)"""
 
         query     = self._get_filtered_query(model, filters=filters)
 
@@ -363,6 +388,10 @@ class AlphaDatabase(AlphaDatabaseCore):
             self.session.close()
             raise ex
             #raise AlphaException('non_valid_query',get_compiled_query(query),str(ex)))
+        if close:
+            query.session.close()
+        if flush:
+            query.session.flush()
 
         if not json:
             self.query_str = get_compiled_query(query)

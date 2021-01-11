@@ -12,11 +12,11 @@ LOG = core.get_logger('requests')
 def delete_requests(db: AlphaDatabase, uuids: List[str]):
     db.delete(Requests,filters=[Requests.uuid.in_(uuids)])
 
-def get_requests(db: AlphaDatabase, message_types:List[str]=[], limit=20) -> List[Requests]:
+def get_requests(db: AlphaDatabase, message_types:List[str]=[], limit=20, close=True) -> List[Requests]:
     filters = []
     if len(message_types) != 0:
         filters.append(Requests.message_type.in_(message_types))
-    return db.select(Requests, filters=filters, limit=limit, order_by=Requests.creation_date.desc())
+    return db.select(Requests, filters=filters, limit=limit, order_by=Requests.creation_date.desc(),close=close)
 
 def send_raw_request(db: AlphaDatabase, message_type:str, request: Dict[str,object], request_lifetime: int = 3600, uuid_:str = None, pid=None):
     uuid_request = str(uuid.uuid4()) if uuid_ == False else uuid_
@@ -30,14 +30,14 @@ def send_raw_request(db: AlphaDatabase, message_type:str, request: Dict[str,obje
     })
     return uuid_request
 
-def send_request(db: AlphaDatabase, transaction):
+def send_request(db: AlphaDatabase, transaction, close=True):
     db.insert(Requests, values={
         Requests.uuid: transaction.uuid,
         Requests.message: str(transaction.message),
         Requests.process: transaction.process,
         Requests.message_type: transaction.message_type.upper(),
         Requests.lifetime: transaction.lifetime
-    })
+    }, close=True)
 
 def send_answer(db: AlphaDatabase, transaction):
     db.insert(Answers, values={
@@ -52,8 +52,10 @@ def send_answer(db: AlphaDatabase, transaction):
 
 def get_answer(db: AlphaDatabase, answer):
     answer_uuid = answer if type(answer) == str else answer.uuid
-    answer = AlphaTransaction()
-    return answer.map(db.select(Answers, filters = [Answers.uuid==answer_uuid], first=True))
+    
+    answer_db   = db.select(Answers, filters = [Answers.uuid==answer_uuid], first=True, close=True)
+    answer      = AlphaTransaction()
+    return answer.map(answer_db)
 
 def send_raw_request_and_wait_answer(db: AlphaDatabase, request: Dict[str,object], message_type: str, timeout:int = None) -> Answers:
     request = AlphaTransaction(
@@ -62,7 +64,7 @@ def send_raw_request_and_wait_answer(db: AlphaDatabase, request: Dict[str,object
     return send_request_and_wait_answer(db,request,timeout=timeout)
 
 def send_request_and_wait_answer(db: AlphaDatabase, request: AlphaTransaction, timeout:int = None, wait_time:int = None) -> Answers:
-    send_request(db,request)
+    send_request(db,request, close=True)
 
     answer = None
 
@@ -73,26 +75,40 @@ def send_request_and_wait_answer(db: AlphaDatabase, request: AlphaTransaction, t
     if wait_time is None:
         wait_time = core.config.get('transactions/wait_time',default=1,type_=int)
 
-    #res = get_transaction_answer.delay(request)
-    """while not res.ready():
-        print('wait')"""
-    
-    #answer = res.get(timeout=timeout)
-    #return answer
-
-    """result= res.wait()
-    result = res.result
-    self.assert_is_not_empty(result, conditions=[
-        res.status == "SUCCESS"
-    ])"""
-    
     waited_time = 0
-    while waited_time < timeout and answer is None:
-        time.sleep(wait_time)
+    while waited_time < timeout and (answer is None or answer.message is None):
         answer = get_answer(db, request.uuid)
+        if not answer or not answer.message:
+            time.sleep(wait_time)
         waited_time += wait_time
 
-    if answer.message is None and waited_time > timeout:
-        answer.message = 'timeout'
+    if (answer is None or answer.message is None) and waited_time >= timeout:
+        answer.message  = 'timeout'
+        answer.error    = True
         LOG.error('Timeout for request %s'%(request.uuid))
     return answer.message
+
+def process_requests(db: AlphaDatabase, fct, delete=True):
+    requests = get_requests(db, limit=core.config.get("transactions/pool_size"),close=True)
+
+    if len(requests) == 0:
+        return
+
+    requests = [AlphaTransaction(x) for x in requests]
+    LOG.info('Processing %s requests ...'%len(requests))
+
+    uuids   = []
+    for request in requests:
+        uuids.append(request.uuid)
+
+        try:
+            answer = fct(request)
+        except Exception as ex:
+            request.message = ""
+            answer = request
+            LOG.error("Cannot send answser",ex=ex)
+        
+        send_answer(db, answer)
+
+    if delete:
+        delete_requests(db, uuids)
