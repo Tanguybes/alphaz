@@ -38,9 +38,8 @@ def get_uuid():
     return request.full_path + "&" + '&'.join("%s=%s"%(x,y) for x,y in posts.items())
 
 class AlphaFlask(Flask):
-
-    def __init__(self,*args,**kwargs):
-        super().__init__(*args,**kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.pid            = None
         self.conf           = None
@@ -104,7 +103,7 @@ class AlphaFlask(Flask):
         return True
     
     def get_current_route(self) -> Route:
-        """[summary]
+        """ Return the current route
 
         Returns:
             Route: [description]
@@ -118,18 +117,28 @@ class AlphaFlask(Flask):
         return route
 
     def get_gets(self) -> Dict[str, object]:
-        """ returns GET value
+        """ returns GET value as a dict
 
         Returns:
             Dict[str, object]: [description]
         """
         return {x:y for x,y in request.args.items()}
 
-    def get_parameters(self):
+    def get_parameters(self) -> Dict[str, object]:
+        """Get non private route parameters values as a dict
+
+        Returns:
+            Dict[str, object]: [description]
+        """
         parameters_names = [x for x,y in self.get_current_route().parameters.items() if not y.private]
         return {x:y for x,y in self.get_gets().items() if x in parameters_names}
 
     def set_data(self, data):
+        """Set api data
+
+        Args:
+            data ([type]): [description]
+        """
         self.get_current_route().set_data(data)
 
     def set_file(self,directory, filename):
@@ -398,7 +407,15 @@ class AlphaFlask(Flask):
             token = dataPost["token"]
         return token
 
-    def check_is_admin(self, log=None):
+    def check_is_admin(self, log=None) -> bool:
+        """ Check if user is an admin or not
+
+        Args:
+            log ([type], optional): [description]. Defaults to None.
+
+        Returns:
+            bool: [description]
+        """
         user_data = self.get_logged_user()
         if user_data is not None:
             if user_data["role"] >= 9:
