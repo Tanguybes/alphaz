@@ -376,6 +376,10 @@ class AlphaFlask(Flask):
         if self.log is not None:
             self.log.info(message,level=4)
 
+    def warning(self,message): 
+        if self.log is not None:
+            self.log.warning(message,level=4)
+
     def get_logged_user(self):
         user_data   = None
         token       = self.get_token()
@@ -407,7 +411,8 @@ class AlphaFlask(Flask):
             token = dataPost["token"]
         return token
 
-    def check_is_admin(self, log=None) -> bool:
+
+    def check_is_admin(self) -> bool:
         """ Check if user is an admin or not
 
         Args:
@@ -421,7 +426,7 @@ class AlphaFlask(Flask):
             if user_data["role"] >= 9:
                 return True
             else:
-                log.warning("Wrong permission: %s is not an admin"%user_data)
+                self.warning("Wrong permission: %s is not an admin"%user_data)
 
         admin_password = self.conf.get("admin_password")
         if self.get("admin") and admin_password is not None:
@@ -433,7 +438,7 @@ class AlphaFlask(Flask):
         if admins_ips and (ip in admins_ips or "::ffff:%s"%ip in admins_ips):
             return True
         else:
-            log.warning("Wrong permission: %s is not an admin"%ip)
+            self.warning("Wrong permission: %s is not an admin"%ip)
         return False
 
     def send_mail(self,mail_config,parameters_list,db,sender=None):

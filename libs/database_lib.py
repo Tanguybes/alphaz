@@ -32,6 +32,8 @@ def process_entries(db,table,log,values:list,headers:list=None):
 
 def init_databases(database_name,table_name,drop=False,log=None):
     from core import core
+    if len(flask_lib) == 0:
+        core.load_models_sources()
     """if core.configuration != 'local':
         if log: log.error('Configuration must be <local>')
         return"""

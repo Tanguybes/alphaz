@@ -35,8 +35,9 @@ def get_compiled_query(query):
     return full_query_str
 
 def add_own_encoders(conn, cursor, query, *args):
-    cursor.connection.encoders[np.float64] = lambda value, encoders: float(value)
-    cursor.connection.encoders[np.int64] = lambda value, encoders: int(value)
+    if hasattr(cursor.connection,"encoders"):
+        cursor.connection.encoders[np.float64] = lambda value, encoders: float(value)
+        cursor.connection.encoders[np.int64] = lambda value, encoders: int(value)
 
 class AlphaDatabaseCore(SQLAlchemy):
     def __init__(self, *args, 
