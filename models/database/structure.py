@@ -200,7 +200,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         return self.add(model,parameters=values_update,commit=commit,test=test,update=True)
 
     def add_or_update(self,obj,parameters=None,commit=True,test=False,update=False):
-        return self.add(obj=obj,parameters=parameters,commit=commit,test=test,update=True)
+        return self.add(obj,parameters=parameters,commit=commit,test=test,update=True)
 
     def add(self,model,parameters=None,commit=True,test=False,update=False, close=False) -> object:
         if test:
@@ -349,8 +349,7 @@ class AlphaDatabase(AlphaDatabaseCore):
             flush=False
         ):
         #model_name = inspect.getmro(model)[0].__name__
-        """if self.db_type == "mysql":
-            self.test(close=False)"""
+        """if self.db_type == "mysql": self.test(close=False)"""
 
         query     = self._get_filtered_query(model, filters=filters)
 
