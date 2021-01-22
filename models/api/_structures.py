@@ -127,7 +127,7 @@ class AlphaFlask(Flask):
         return True
 
     def get_current_route(self) -> Route:
-        """ Return the current route
+        """Return the current route.
 
         Returns:
             Route: [description]
@@ -141,7 +141,7 @@ class AlphaFlask(Flask):
         return route
 
     def get_gets(self) -> Dict[str, object]:
-        """ returns GET value as a dict
+        """returns GET value as a dict.
 
         Returns:
             Dict[str, object]: [description]
@@ -149,7 +149,7 @@ class AlphaFlask(Flask):
         return {x: y for x, y in request.args.items()}
 
     def get_parameters(self) -> Dict[str, object]:
-        """Get non private route parameters values as a dict
+        """Get non private route parameters values as a dict.
 
         Returns:
             Dict[str, object]: [description]
@@ -159,7 +159,7 @@ class AlphaFlask(Flask):
         return parameters_values
 
     def set_data(self, data):
-        """Set api data
+        """Set api data.
 
         Args:
             data ([type]): [description]
@@ -354,7 +354,7 @@ class AlphaFlask(Flask):
         if self.config_path is None:
             return
 
-        self.set_config(config_path=config_path, configuration=self.configuration)
+        #self.set_config(config_path=config_path, configuration=self.configuration)
 
         pid = self.get_config(["tmp", "process"])
 
@@ -458,7 +458,7 @@ class AlphaFlask(Flask):
 
 
     def check_is_admin(self) -> bool:
-        """ Check if user is an admin or not
+        """Check if user is an admin or not.
 
         Args:
             log ([type], optional): [description]. Defaults to None.
