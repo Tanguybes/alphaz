@@ -79,20 +79,23 @@ class Parameter:
             self.value = value
 
         if self.ptype == list and self.value is not None:
-            try:
-                if ";" in str(self.value) or "," in str(self.value):
-                    self.value = (
-                        str(self.value).split(";")
-                        if ";" in str(self.value)
-                        else str(self.value).split(",")
+            if self.value.strip() == "":
+                self.value = []
+            else:
+                try:
+                    if ";" in str(self.value) or "," in str(self.value):
+                        self.value = (
+                            str(self.value).split(";")
+                            if ";" in str(self.value)
+                            else str(self.value).split(",")
+                        )
+                    else:
+                        self.value = [self.value]
+                except:
+                    raise AlphaException(
+                        "api_wrong_parameter_value",
+                        parameters={"parameter": self.name, "type": "list"},
                     )
-                else:
-                    self.value = [self.value]
-            except:
-                raise AlphaException(
-                    "api_wrong_parameter_value",
-                    parameters={"parameter": self.name, "type": "list"},
-                )
 
         if self.ptype == int and not self.value is None:
             try:
