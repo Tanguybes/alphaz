@@ -108,6 +108,8 @@ class Route:
 
     def get_cache_path(self):
         cache_dir = self.api.conf.get("directories/cache")
+        if cache_dir is None:
+            return None
         key = self.get_key()
         cache_path = cache_dir + os.sep + key + ".cache"
         return cache_path
@@ -115,6 +117,9 @@ class Route:
     def set_cache(self):
         self.lasttime = datetime.datetime.now()
         cache_path = self.get_cache_path()
+        if cache_path is None:
+            self.api.log.error("cache path does not exist")
+            return
         returned = io_lib.archive_object(self.data, cache_path)
 
     def get_cached(self):
@@ -122,6 +127,9 @@ class Route:
             self.api.log.info("   GET cache for %s" % self.route)
 
         cache_path = self.get_cache_path()
+        if cache_path is None:
+            self.api.log.error("cache path does not exist")
+            return False
         if os.path.exists(cache_path):
             data = io_lib.unarchive_object(cache_path)
             if data:
