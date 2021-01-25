@@ -323,7 +323,7 @@ class AlphaFlask(Flask):
                 % ("debug " if self.debug else "", host, port)
             )
 
-            server = WSGIServer((host, port), application, log=self.log_requests.logger)
+            server = WSGIServer((host, port), application, log=self.log_requests.logger, timeout=30)
             server.serve_forever()
         else:
             # Get werkzueg logger
