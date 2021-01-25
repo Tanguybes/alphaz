@@ -120,7 +120,10 @@ class Route:
         if cache_path is None:
             self.api.log.error("cache path does not exist")
             return
-        returned = io_lib.archive_object(self.data, cache_path)
+        try:
+            returned = io_lib.archive_object(self.data, cache_path)
+        except:
+            self.api.log.error('Cannot cache route %s'%self.get_key())
 
     def get_cached(self):
         if self.api.log:
