@@ -1,9 +1,17 @@
-import datetime
+import datetime, os
 from typing import List, Dict
 
-from flask import Flask, jsonify, request, Response, make_response, render_template, send_from_directory
+from flask import (
+    Flask,
+    jsonify,
+    request,
+    Response,
+    make_response,
+    render_template,
+    send_from_directory,
+)
 
-from ...libs import json_lib, converter_lib
+from ...libs import json_lib, converter_lib, io_lib
 
 from ._parameter import Parameter
 
@@ -19,14 +27,24 @@ def check_format(data, depth=3):
         return True
 
     if type(data) == list and len(data) != 0:
-        return check_format(data[0], depth-1)
+        return check_format(data[0], depth - 1)
     if type(data) == dict and len(data) != 0:
-        return check_format(list(data.keys())[0], depth-1) & check_format(list(data.values())[0], depth-1)
+        return check_format(list(data.keys())[0], depth - 1) & check_format(
+            list(data.values())[0], depth - 1
+        )
     return False
 
 
 class Route:
-    def __init__(self, api, uuid: str, route: str, parameters: List[Parameter], cache: bool = False, timeout=None):
+    def __init__(
+        self,
+        api,
+        uuid: str,
+        route: str,
+        parameters: List[Parameter],
+        cache: bool = False,
+        timeout=None,
+    ):
         self.api = api
         self.__timeout = timeout
         self.uuid: str = uuid
@@ -73,26 +91,46 @@ class Route:
         return is_time
 
     def keep(self):
-        reset_cache = self.get('reset_cache') or self.is_time(self.__timeout)
+        reset_cache = self.get("reset_cache") or self.is_time(self.__timeout)
         if not self.cache:
             return False and not reset_cache
         key = self.get_key()
-        #return_cache    = key in self.routes_values.keys()
+        # return_cache    = key in self.routes_values.keys()
         # return return_cache and not reset_cache
         return not reset_cache
 
     def get_key(self):
         key = "%s%s" % (self.route, SEPARATOR)
         for name, parameter in self.parameters.items():
-            if parameter.cacheable:
+            if parameter.cacheable and not parameter.private:
                 key += "%s=%s;" % (parameter.name, parameter.value)
         return key
 
+    def get_cache_path(self):
+        cache_dir = self.api.conf.get("directories/cache")
+        key = self.get_key()
+        cache_path = cache_dir + os.sep + key + ".cache"
+        return cache_path
+
     def set_cache(self):
         self.lasttime = datetime.datetime.now()
+        cache_path = self.get_cache_path()
+        returned = io_lib.archive_object(self.data, cache_path)
 
-    def is_cached(self):
-        return True  # TODO: modify
+    def get_cached(self):
+        if self.api.log:
+            self.api.log.info("   GET cache for %s" % self.route)
+
+        cache_path = self.get_cache_path()
+        if os.path.exists(cache_path):
+            data = io_lib.unarchive_object(cache_path)
+            if data:
+                self.init_return()
+                self.set_data(data)
+                return True
+
+        self.set_error("No cache")
+        return False
 
     def set_status(self, status):
         self.returned["status"] = status
@@ -106,10 +144,10 @@ class Route:
         self.returned["error"] = 1
         self.returned["status"] = 401
 
-    def set_error(self, message: str, description: str):
+    def set_error(self, message: str, description: str = None):
         self.mode == "data"
         self.returned["status"] = message
-        self.returned["status_description"] = description
+        self.returned["status_description"] = description if description else message
         self.returned["error"] = 1
 
     def print(self, message):
@@ -139,18 +177,21 @@ class Route:
         self.html = {"page": page, "parameters": parameters}
 
     def get_return(self, forceData=False, return_status=None):
-        if self.mode == 'html':
-            return render_template(self.html['page'], **self.html['parameters'])
-        if self.mode == 'print':
+        if self.mode == "html":
+            return render_template(self.html["page"], **self.html["parameters"])
+        if self.mode == "print":
             return self.message
 
-        if 'get_file' in self.route:
+        if "get_file" in self.route:
             file_path, filename = self.file_to_get
             if file_path is not None and filename is not None:
-                self.api.info('Sending file %s from %s' %
-                              (filename, file_path))
+                self.api.info("Sending file %s from %s" % (filename, file_path))
                 try:
-                    return send_from_directory(file_path, filename=filename, as_attachment='attached' in self.mode)
+                    return send_from_directory(
+                        file_path,
+                        filename=filename,
+                        as_attachment="attached" in self.mode,
+                    )
                 except FileNotFoundError:
                     self.api.set_error("missing_file")
             else:
@@ -175,7 +216,8 @@ class Route:
         format_ = self.get("format")
         if format_ and "xml" in format_.lower():
             xml_output = converter_lib.dict_to_xml(
-                self.returned, attr_type=not "no_type" in format_)
+                self.returned, attr_type=not "no_type" in format_
+            )
             response = make_response(xml_output)
             response.headers["Content-Type"] = "text/xml; charset=utf-8"
             return response
@@ -194,8 +236,12 @@ class Route:
             {
                 "username": user_data["username"],
                 "id": user_data["id"],
-                "time": str(datetime.datetime.now())
+                "time": str(datetime.datetime.now()),
             },
-            api.config["JWT_SECRET_KEY"], algorithm="HS256").decode("utf-8")
-        self.returned["valid_until"] = datetime.datetime.now() + \
-            datetime.timedelta(days=7)
+            api.config["JWT_SECRET_KEY"],
+            algorithm="HS256",
+        ).decode("utf-8")
+        self.returned["valid_until"] = datetime.datetime.now() + datetime.timedelta(
+            days=7
+        )
+

@@ -294,10 +294,6 @@ class AlphaFlask(Flask):
         if self.pid is not None:
             return
 
-        self.pid = os.getpid()
-        # self.conf.set_data(paths=["tmp","process"],value=pid)
-        # self.conf.save()
-
         ssl_context = None
         if self.conf.get("ssl"):
             ssl_context = (self.conf.get("ssl_cert"), self.conf.get("ssl_key"))
@@ -375,13 +371,6 @@ class AlphaFlask(Flask):
         ssl = self.get_config("ssl")
         pref = "https://" if ssl else "http://"
         return pref + self.get_config("host_public")
-
-    def get_cached(self):
-        route = self.get_current_route()
-        if self.log:
-            self.log.info("   GET cache for %s" % route.route)
-        if not route.is_cached():
-            self.set_error("No cache")
 
     def print(self, message):
         self.get_current_route().print(message)
