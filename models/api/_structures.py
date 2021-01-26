@@ -5,8 +5,8 @@ from flask import Flask, jsonify, request, Response, make_response
 from flask_mail import Mail
 
 with warnings.catch_warnings():
-     from flask_marshmallow import Marshmallow
-     
+    from flask_marshmallow import Marshmallow
+
 from flask_statistics import Statistics
 from flask_debugtoolbar import DebugToolbarExtension
 from flask_admin import Admin
@@ -17,7 +17,16 @@ from werkzeug.debug import DebuggedApplication
 
 import flask_monitoringdashboard
 
-from ...libs import mail_lib, flask_lib, io_lib, converter_lib, os_lib, json_lib, config_lib, secure_lib
+from ...libs import (
+    mail_lib,
+    flask_lib,
+    io_lib,
+    converter_lib,
+    os_lib,
+    json_lib,
+    config_lib,
+    secure_lib,
+)
 
 from ...models.logger import AlphaLogger
 from ...models.main import AlphaException

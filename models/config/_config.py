@@ -247,7 +247,8 @@ class AlphaConfig(AlphaClass):
             exit()
 
         # log
-        colors = self.get("colors/loggers")
+        
+        colors = self.get("colors/loggers/rules") if self.get("colors/loggers/active") else None
         if self.log is None:
             log_filename        = "alpha" #type(self).__name__.lower()
             self.log            = AlphaLogger(type(self).__name__,log_filename,root=self.logger_root,colors=colors)
@@ -351,13 +352,14 @@ class AlphaConfig(AlphaClass):
         return config
 
     def get_logger(self,name='main',default_level='INFO') -> AlphaLogger:
+        colors = self.get("colors/loggers/rules") if self.get("colors/loggers/active") else None
         if not 'main' in self.loggers:
             self.loggers['main'] = AlphaLogger(
                 name,
                 filename    = 'main',
                 root        = self.logger_root,
                 level       = default_level,
-                colors      = self.get("colors/loggers")
+                colors      = colors
             )
         if name not in self.loggers:
             self.warning('%s is not configured as a logger in %s'%(name,self.filepath))

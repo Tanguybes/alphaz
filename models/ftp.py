@@ -118,7 +118,8 @@ class AlphaFtp():
             if self.sftp:
                 self.cnx.get(remotepath, localpath, callback=None)
             else:
-                self.cnx.retrbinary("RETR " + remotepath ,open(localpath, 'wb').write)
+                with open(localpath, 'wb') as f:
+                    self.cnx.retrbinary("RETR " + remotepath ,f.write)
             self.log.info('File %s downloaded to %s'%(remotepath,localpath))
             return True
         except Exception as ex:
