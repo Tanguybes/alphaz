@@ -101,7 +101,7 @@ class AlphaFlask(Flask):
 
         self.__routes[request_uuid] = route
         self.__routes = {x:y for x,y in self.__routes.items() if not y.is_outdated()}
-        self.log.debug("%s routes in cache"%len(self.__routes))
+        #self.log.debug("%s routes in cache"%len(self.__routes))
 
         if parameters_error:
             self.set_error(parameters_error)

@@ -59,6 +59,8 @@ class AlphaCore(AlphaClass):
             core=self
         )
 
+        self.log = self.config.get_logger('main')
+
     def set_configuration(self,configuration_name):
         if configuration_name is None and self.config.configuration is not None:
             configuration_name = self.config.configuration
