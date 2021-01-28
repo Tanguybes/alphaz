@@ -1,5 +1,7 @@
-import subprocess, os, psutil, logging, json, argparse
+import subprocess, os, psutil, logging, json, argparse, time
 from logging.handlers import TimedRotatingFileHandler
+from screenutils import list_screens, Screen
+import requests
 
 LOG = None
 
@@ -10,9 +12,9 @@ def error(message):
     LOG.error(message)
 
 
-def info(message):
+def info(message, end="\n"):
     global LOG
-    print(message)
+    print(message,end=end)
     LOG.info(message)
 
 
@@ -33,6 +35,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--log", "-l")
     parser.add_argument("--file", "-f")
+    parser.add_argument("--restart", "-r",action="store_true")
 
     args = parser.parse_args()
 
@@ -61,11 +64,7 @@ if __name__ == "__main__":
     with open(file_path, "r") as f:
         screens = json.load(f)
 
-    cmd = "screen -ls"
-    try:
-        lines = get_cmd_output(cmd)
-    except:
-        lines = []
+    screens_list = list_screens()
         
     for name, screen in screens.items():
         active = screen["active"]
@@ -73,46 +72,42 @@ if __name__ == "__main__":
             continue
 
         screen_name = screen["name"]
-        pid = None
-        for line in lines:
-            if ".%s " % screen_name in line:
-                pid = line.split(".")[0].replace(" ", "")
-                pid = int(pid)
-
-        if pid is None:
-            os.chdir(screen["dir"])
-            cmd = "screen -dm -S %s bash -c '%s; exec bash'" % (
-                screen["name"],
-                screen["shell_cmd"],
-            )
-            error("   ==> Restart screen for %s" % name)
-            info("Ex: %s" % cmd)
-            if active:
-                get_cmd_output(cmd)
-        else:
-            info("Screen %s %s is running ..." % (pid, name))
-
-        p = psutil.Process(pid)
-        if len(p.children()) != 0:
-            child = p.children()[0]
-            child_p = psutil.Process(child.pid)
-
-            running = len(child_p.children()) != 0
-
-            if not running:
-                cmd = "screen -S %s -X stuff '%s'$(echo '\015')" % (
-                    pid,
-                    screen["shell_cmd"],
-                )
-                if active:
-                    get_cmd_output(cmd)
-                error(
-                    "   ==> Restart process %s %s in screen %s"
-                    % (screen["shell_cmd"], pid, name)
-                )
-            else:
-                info(
-                    "Process %s %s in screen %s is running ..."
-                    % (screen["shell_cmd"], pid, name)
-                )
+        
+        screen_exist_list = [x for x in screens_list if x.name == screen_name]
+        if len(screen_exist_list) != 0:
+            for screen_entity in screen_exist_list:
+                info("Screen %s %s is running ..." % (screen_entity.id, screen_entity.name))
+                if args.restart:
+                    screen_entity.kill()
+                    info("   screen %s %s killed ..." % (screen_entity.id, screen_entity.name))
+        
+        if len(screen_exist_list) == 0 or args.restart:
+            s = Screen(screen_name,True)
+            s.send_commands("cd %s"%screen["dir"])
+            s.send_commands(screen["shell_cmd"])
+            s.detach()
+            
+            info("   ==> Screen %s restarted" % screen_name)
+            
+            restarted = False
+            if "request" in screen:
+                info("   ==> Api restarting ...")
+                time.sleep(5)
+                
+                times = 10
+                for i in range(times):
+                    if restarted:
+                        continue
+                    try:
+                        print('         ' + '.'*(times - i))
+                        r = requests.get(screen["request"], timeout=10)
+                        if "success" in str(r.content):
+                            info("   ==> Api restarted")
+                            restarted = True
+                            continue
+                    except Exception as ex:
+                        time.sleep(5)
+                if not restarted:
+                    error("   ==> Api not restarted !")
+                    error("   ==> Appeler l'astreinte MES ...")
 
