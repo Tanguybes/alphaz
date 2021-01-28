@@ -68,17 +68,7 @@ class AlphaDatabaseCore(SQLAlchemy):
 
         event.listen(self._engine, "before_cursor_execute", add_own_encoders)
 
-        # timeout = 5 if self.db_type != 'oracle' else None
-        engine_options = {}
-        # if timeout is not None:
-        # engine_options={ 'connect_args': { 'connect_timeout': 5 }, 'pool_recycle':5} # TODO: modify
-        """
-                'pool_size' : 10,
-                'pool_recycle':120,
-                'pool_pre_ping': True
-        """
-
-        super().__init__(*args, engine_options=engine_options, **kwargs)
+        super().__init__(*args, engine_options={}, **kwargs)
 
         self.name: str = name
         self.main = main
@@ -209,7 +199,7 @@ class AlphaDatabase(AlphaDatabaseCore):
             )
             if self.log is not None:
                 self.log.error(error_message)
-            # print(parentframe.frame)
+
             # function    = parentframe.function
             # index       = parentframe.index
 
