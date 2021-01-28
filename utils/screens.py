@@ -62,8 +62,11 @@ if __name__ == "__main__":
         screens = json.load(f)
 
     cmd = "screen -ls"
-    lines = get_cmd_output(cmd)
-
+    try:
+        lines = get_cmd_output(cmd)
+    except:
+        lines = []
+        
     for name, screen in screens.items():
         active = screen["active"]
         if not active:
