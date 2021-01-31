@@ -370,7 +370,9 @@ def write_config_file(filename, values, directory,upper_keys:bool = False):
     if not '.' in filename:
         filename = filename + ".ini"
 
-    with open(directory + os.sep + filename , 'w') as configfile:
+    io_lib.ensure_dir(config_path)
+    config_path = directory + os.sep + filename
+    with open(config_path , 'w') as configfile:
         config.write(configfile)
 
 def write_flask_dashboard_configuration(core):
