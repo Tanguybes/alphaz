@@ -286,15 +286,12 @@ class AlphaFlask(Flask):
 
     def access_denied(self):
         self.get_current_route().access_denied()
-   
+
     def get(self, name):
         route = self.get_current_route()
         if route is None:
             return None
-        value       = route.get(name)
-        if (value is not None) and (value.startswith('*') or value.endswith('*')):
-            value   = value.replace('*','%')
-        return value
+        return route.get(name)
 
     def __getitem__(self, key):
         return self.get(key)
