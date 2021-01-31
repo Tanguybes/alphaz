@@ -25,7 +25,7 @@ class Dataframe(AlphaTest):
         self.connected  = self.db.test()
 
         if not self.connected:
-            log.eror('not connected')
+            log.error('not connected')
             exit()
             return
 

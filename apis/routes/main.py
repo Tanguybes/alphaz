@@ -67,7 +67,7 @@ def home():
         'users':0,
         'ip': request.environ['REMOTE_ADDR'],
         'admin': config.get('admin_databases'),
-        'routes': dict_lib.sort_dict(api_lib.get_routes_infos(log=LOG)),
+        'routes': api_lib.get_routes_infos(log=LOG),
         'compagny': config.get('parameters/compagny'),
         'compagny_website': config.get('parameters/compagny_website'),
         'dashboard':config.get("dashboard/dashboard/active"),

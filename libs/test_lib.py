@@ -10,55 +10,47 @@ from typing import List
 from core import core
 LOG = core.get_logger('tests')
 
+CATEGORIES = {}
+
 def get_tests_auto(
         tests_modules:List[str],
         name:str=None,
         group:str=None,
         category:str=None,
-        run:bool=False,
-        log:AlphaLogger=None
+        run:bool=False
     ) -> TestCategories:
-    """Get the TestCategories class, containings all required tests
+    """Get the TestCategories class, containings all required tests.
 
     Args:
+        tests_modules (List[str]): list of test modules path
         tests_modules (List[str]): list of test modules path
         name (str, optional): the name of the test to select. Defaults to None.
         group (str, optional): the name of the group to select. Defaults to None.
         category (str, optional): the name of the category to select. Defaults to None.
-        log (AlphaLogger, optional): the logger. Defaults to None.
 
     Returns:
         TestCategories: [description]
     """
-    if not log: log = LOG
+    global CATEGORIES
 
     test_categories = TestCategories()
 
     for tests_module in tests_modules:
         try:
-            log.debug('Loading test module <%s>'%tests_module)
+            LOG.debug('Loading test module <%s>'%tests_module)
             module              = importlib.import_module(tests_module)
         except Exception as ex:
-            log.error('Cannot load test module <%s>'%tests_module,ex=ex)
+            LOG.error('Cannot load test module <%s>'%tests_module,ex=ex)
             continue
 
-        importlib.reload(module)
+        #importlib.reload(module)
 
         class_list = []
         for o in getmembers(module):
             is_class    = isclass(o[1])
             if not is_class: continue
-
-            """classes = o[1].__mro__
-            tests = [type(x) == AlphaTest for x in classes]
-            tests_z = [x == AlphaTest for x in classes]
-            is_test_simple = issubclass(o[1], AlphaTest)
-            is_test = any(tests)"""
-
-            #is_test = 'AlphaTest' in str(o[1].__bases__[0])
             is_test = issubclass(o[1], AlphaTest) and (not hasattr(o[1],"_test") or o[1]._test) and not o[1] == AlphaTest
             if not is_test: continue
-            
             class_list.append(o)
 
         for el in class_list:
@@ -68,7 +60,8 @@ def get_tests_auto(
 
             if group is not None and group != test_group.name: continue
 
-            if log is not None: log.debug('Found function group <%s>'%test_group.name)
+            if LOG is not None: 
+                LOG.debug('Found function group <%s>'%test_group.name)
 
             if run and name is None:
                 test_group.test_all()
@@ -78,23 +71,22 @@ def get_tests_auto(
                 test_group.get_from_database()
 
             test_categories.add_test_group(test_group)
-
     return test_categories
 
 
-def execute_all_tests_auto(directory,output=True,refresh=True,name=None,log=None):
-    return operate_all_tests_auto(directory,output=output,refresh=refresh,name=name,log=log,
+def execute_all_tests_auto(directory,output=True,refresh=True,name=None):
+    return operate_all_tests_auto(directory,output=output,refresh=refresh,name=name,
         action='execute')
 
 def save_all_tests_auto(directory,output=True,refresh=True,name=None):
-    return operate_all_tests_auto(directory,output=output,refresh=refresh,name=name,log=log,
+    return operate_all_tests_auto(directory,output=output,refresh=refresh,name=name,
         action='save')
 
-def operate_all_tests_auto(directory,output=True,refresh=True,name=None,action='execute',group=None,import_path=None,log=None):
+def operate_all_tests_auto(directory,output=True,refresh=True,name=None,action='execute',group=None,import_path=None):
     if refresh:
         reload_modules(os.getcwd())
 
-    test_categories = get_tests_auto(directory,group=group,import_path=import_path,log=log)
+    test_categories = get_tests_auto(directory,group=group,import_path=import_path)
 
     if action == 'execute':
         tests_groups.test_all()

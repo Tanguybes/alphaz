@@ -1,4 +1,4 @@
-from .requests import get_token_from_request
+from ._requests import get_token_from_request
 
 MAIL_PARAMETERS_PATTERN = '[[%s]]'
 

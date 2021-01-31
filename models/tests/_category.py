@@ -49,6 +49,8 @@ class TestCategories():
         
         self.categories[test_group.category].add_test_group(test_group)
 
+        self.categories = dict_lib.sort_dict(self.categories)
+
     def to_json(self):
-        return dict_lib.sort_dict(self.categories)
+        return self.categories
 

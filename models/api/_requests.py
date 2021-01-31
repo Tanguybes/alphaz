@@ -1,4 +1,4 @@
-import requests
+from flask import request
 from typing import *
 
 def get_token_from_request():

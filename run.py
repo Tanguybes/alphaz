@@ -31,7 +31,6 @@ GOLLIATH_MENU_PARAMETERS = {
                         'output':True,
                         'verbose':True,
                         'action':"{{selected}}",
-                        "log": core.log
                     }
                 }
             }
@@ -58,8 +57,7 @@ if __name__ == "__main__":
         directory   = core.config.get(['tests','auto_directory']), 
         import_path = core.config.get(['tests','auto_import']),
         output      = True,
-        action      = 'execute',
-        log         = core.log
+        action      = 'execute'
         )
     exit()
 

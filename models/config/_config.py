@@ -281,11 +281,12 @@ class AlphaConfig(AlphaClass):
             self.loggers[main_logger_name] = self.log
 
     def _replace_parameters(self,config):
-        """Replace parameters formatted has {{<parameter>}} by their values in a json dict
-        
+        """Replace parameters formatted has {{<parameter>}} by their values in
+        a json dict.
+
         Arguments:
             config {dict} -- json dict to analyse and replace parameters formatted has {{<parameter>}}
-        
+
         Returns:
             dict -- the input dict with parameters replace by their values
         """
@@ -622,7 +623,7 @@ def load_raw_sub_configurations(data):
     return sub_configurations
 
 class AlphaConfigurations(object):
-    _name = 'configs'
+    _name = 'tmp/configs'
     _instance = None
 
     def __new__(cls):
@@ -632,11 +633,12 @@ class AlphaConfigurations(object):
 
     def __init__(self):
         self._configurations: Dict[str, AlphaConfig] = {}
-        loaded_configurations = io_lib.unarchive_object(self._name)
-        if type(loaded_configurations) == dict:
-            for key, values in loaded_configurations.items():
-                if self._is_valid_configuration(values):
-                    self._configurations[key] = values
+        if os.path.exists(self._name):
+            loaded_configurations = io_lib.unarchive_object(self._name)
+            if type(loaded_configurations) == dict:
+                for key, values in loaded_configurations.items():
+                    if self._is_valid_configuration(values):
+                        self._configurations[key] = values
 
     def _is_valid_configuration(self,configuration):
         valid = False
@@ -666,9 +668,7 @@ class AlphaConfigurations(object):
                     if os.path.getsize(path) != sub_config["size"]:
                         print("Need to reload %s"%path)
                         return False
-
                 return True
-
         return False
 
     def save_configuration(self, config: AlphaConfig):

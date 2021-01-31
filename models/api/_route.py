@@ -107,8 +107,7 @@ class Route(Requests):
         reset_cache = self.get("reset_cache") or self.is_time(self.__timeout)
         if not reset_cache:
             return False
-        key = self.get_key()
-        return key in self.routes_values.keys()
+        return self.is_cache()
 
     def get_key(self):
         key = "%s%s" % (self.route, SEPARATOR)
@@ -123,6 +122,13 @@ class Route(Requests):
         key = self.get_key()
         cache_path = self.cache_dir + os.sep + key + ".cache"
         return cache_path
+
+    def is_cache(self):
+        cache_path = self.get_cache_path()
+        if cache_path is None:
+            self.log.error("Cache path does not exist")
+            return False
+        return os.path.exists(cache_path)
 
     def set_cache(self):
         self.lasttime = datetime.datetime.now()
@@ -139,16 +145,14 @@ class Route(Requests):
         if self.log:
             self.log.info("GET cache for %s" % self.route)
 
-        cache_path = self.get_cache_path()
-        if cache_path is None:
-            self.log.error("Cache path does not exist")
-            return False
-        if os.path.exists(cache_path):
+        if self.is_cache():
+            cache_path = self.get_cache_path()
             data = io_lib.unarchive_object(cache_path)
             if data:
                 self.init_return()
                 self.set_data(data)
                 return True
+        return False
 
         self.set_error("No cache")
         return False

@@ -33,7 +33,8 @@ def route(
     logged=False,
     admin=False,
     timeout=None,
-    category=None,
+    cat=None,
+    description=None
 ):
     if path[0] != "/":
         path = "/" + path
@@ -114,10 +115,10 @@ def route(
                         and api.get("error_format").lower() == "exception"
                     ):
                         raise ex
-                    if "alpha" in str(type(ex)).lower():
+                    if not "alpha" in str(type(ex)).lower():
                         raise AlphaException(ex)
                     else:
-                        raise ex
+                        __route.set_error(ex)
                 if __route.cache:
                     __route.set_cache()
 
@@ -130,10 +131,10 @@ def route(
         if cache:
             parameters.append(Parameter("reset_cache", ptype=bool, cacheable=False))
 
-        if not "category" in locals() or category is None:
+        if not "cat" in locals() or cat is None:
             category = func.__module__.split(".")[-1]
         else:
-            category = category.lower()
+            category = cat.lower()
 
         kwargs_ = {
             "path": path,
@@ -145,6 +146,7 @@ def route(
             "admin": admin,
             "timeout": timeout,
             "category": category,
+            "description": description
         }
         api_wrapper._kwargs = kwargs_
 

@@ -39,8 +39,9 @@ from . import _utils, _colorations
 
 from ._route import Route
 from ._parameter import Parameter
+from ._requests import Requests
 
-class AlphaFlask(Flask):
+class AlphaFlask(Flask, Requests):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -279,7 +280,9 @@ class AlphaFlask(Flask):
         conf = self.conf.get(name)
         return conf
 
-    def get_url(self):
+    def get_url(self, local=False):
+        if local:
+            return "http://localhost:%s"%self.conf.get("port")
         ssl = self.get_config("ssl")
         pref = "https://" if ssl else "http://"
         return pref + self.get_config("host_public")

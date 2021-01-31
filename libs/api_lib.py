@@ -11,8 +11,10 @@ from ..libs.json_lib import jsonify_database_models, jsonify_data
 MODULES = {}
 
 def get_columns_values_output(objects:list,columns:list=None) -> dict:
-    """ Get output with columns / values format
+    """Get output with columns / values format.
 
+    Args:
+        objects (list): [description]
     Args:
         objects (list): [description]
         columns (list): [description]
@@ -32,20 +34,20 @@ def get_columns_values_output(objects:list,columns:list=None) -> dict:
 
     data                = {}
     data['columns']     = [x for x in columns if x in results[0]]
-    data['values']      = [[x[y] for y in columns if y in x] for x in results]
-    data['values_nb']   = len(data['values'])
     return data
 
 def get_routes_infos(log:AlphaLogger=None,categories=None,routes=None,reload_=False) -> dict:
-    """Get all apis routes with informations
+    """Get all apis routes with informations.
 
+    Args:
+        log ([AlphaLogger], optional): [description]. Defaults to None.
     Args:
         log ([AlphaLogger], optional): [description]. Defaults to None.
 
     Returns:
         dict: [description]
     """
-
+    global ROUTES
     if len(MODULES) != 0 and not reload_: 
         return MODULES
 
@@ -114,6 +116,9 @@ def get_routes_infos(log:AlphaLogger=None,categories=None,routes=None,reload_=Fa
         out         = dict_lib.get_nested_dict_from_list(cg['paths'])
         routes_dict = dict_lib.merge_dict(routes_dict,out)
     categories = list(set([x['category'] for x in ROUTES.values()]))
+    categories.sort()
+
+    routes_dict = dict_lib.sort_dict(routes_dict)
 
     MODULES['routes_list']          = ROUTES.keys()
     MODULES['routes']               = ROUTES

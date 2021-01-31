@@ -34,7 +34,7 @@ def get_definitions_modules(modules_list:List[ModuleType],log:AlphaLogger) -> Li
     Returns:
         List[ModuleType]: [description]
     """
-    log("Start getting definition modules")
+    log.info("Start getting definition modules")
     main = None
 
     modules = []
@@ -110,7 +110,7 @@ def get_definitions_modules(modules_list:List[ModuleType],log:AlphaLogger) -> Li
                 if not table in TABLES["main"]["tables"]:
                     TABLES["main"]["tables"][table] = obj 
 
-    log("END getting definition modules")
+    log.info("END getting definition modules")
     return modules
 
 class AlphaModelView(ModelView):
