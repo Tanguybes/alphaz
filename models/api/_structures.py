@@ -1,5 +1,5 @@
 import os, configparser, datetime, copy, jwt, logging, re, itertools, sys, importlib, warnings
-
+import traceback
 from typing import Dict, List
 from flask import Flask, jsonify, request, Response, make_response
 from flask_mail import Mail
@@ -40,15 +40,6 @@ from . import _utils, _colorations
 from ._route import Route
 from ._parameter import Parameter
 
-
-def get_uuid():
-    posts = request.get_json()
-    if posts is None:
-        posts = {}
-    return (
-        request.full_path + "&" + "&".join("%s=%s" % (x, y) for x, y in posts.items())
-    )
-
 class AlphaFlask(Flask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -57,107 +48,19 @@ class AlphaFlask(Flask):
         self.conf = None
         self.config_path = ""
 
-        self.__routes = {}
-
         self.log = None
         self.log_requests = None
         self.db = None
         self.admin_db = None
 
+        self.cache_dir = ""
+
         # need to put it here to avoid warnings
-        self.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True  # TODO modify
+        #self.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True  # TODO modify
 
         self.ma = Marshmallow(self)
 
-    def configure_route(
-        self,
-        api_route,
-        parameters,
-        cache: bool = False,
-        logged: bool = False,
-        admin: bool = False,
-        timeout=None,
-    ):
-        # Check parameters
-        parameters_error = None
-
-        parameters.append(
-            Parameter("reset_cache", ptype=bool, default=False, private=True)
-        )
-        parameters.append(Parameter("format", ptype=str, default="json", private=True))
-
-        for parameter in parameters:
-            if parameters_error is not None:
-                continue
-            try:
-                parameter.set_value()
-            except Exception as ex:
-                parameters_error = ex
-
-        request_uuid = get_uuid()
-        route = Route(
-            self, request_uuid, api_route, parameters, cache=cache, timeout=timeout
-        )
-
-        self.__routes[request_uuid] = route
-        self.__routes = {x:y for x,y in self.__routes.items() if not y.is_outdated()}
-        #self.log.debug("%s routes in cache"%len(self.__routes))
-
-        if parameters_error:
-            self.set_error(parameters_error)
-            return False
-
-        # check permissions
-        if logged:
-            user = self.get_logged_user()
-            token = self.get_token()
-            if logged and token is None:
-                self.log.warning("Wrong permission: empty token")
-                self.access_denied()
-                return False
-            elif logged and (user is None or len(user) == 0):
-                self.log.warning("Wrong permission: wrong user", user)
-                self.access_denied()
-                return False
-
-        if admin and not self.check_is_admin():
-            self.access_denied()
-            return False
-
-        requester = request.args.get("requester", None)
-
-        return True
-
-    def get_current_route(self) -> Route:
-        """Return the current route.
-
-        Returns:
-            Route: [description]
-        """
-        request_uuid = get_uuid()
-
-        default_route = Route(self, request_uuid, request.full_path, [])
-
-        if request_uuid not in self.__routes:
-            self.log.critical("Cannot get route for %s" % request_uuid, monitor="DB")
-            return default_route
-        if self.__routes[request_uuid] is None:
-            self.log.critical("Issue with route %s" % request_uuid, monitor="DB")
-            return default_route
-        return self.__routes[request_uuid]
-
-    def delete_current_route(self):
-        route = self.get_current_route()
-        if route is not None and route.uuid in self.__routes:
-            del self.__routes[route.uuid]
-
-    def get_gets(self) -> Dict[str, object]:
-        """returns GET value as a dict.
-
-        Returns:
-            Dict[str, object]: [description]
-        """
-        return {x: y for x, y in request.args.items()}
+        self.routes_objects = {} 
 
     def get_parameters(self) -> Dict[str, object]:
         """Get non private route parameters values as a dict.
@@ -171,11 +74,6 @@ class AlphaFlask(Flask):
         return parameters_values
 
     def set_data(self, data):
-        """Set api data.
-
-        Args:
-            data ([type]): [description]
-        """
         self.get_current_route().set_data(data)
 
     def set_file(self, directory, filename):
@@ -208,11 +106,10 @@ class AlphaFlask(Flask):
 
     def init(self, encode_rules={}):
         routes = self.conf.get("routes")
-        if routes is None:
-            self.log.error("Missing <routes> parameters in api configuration")
-        else:
+        if routes is not None:
             for route in routes:
                 module = importlib.import_module(route)
+        self.cache_dir = self.conf.get("directories/cache")
 
         # check request
         # ! freeze - dont know why
@@ -256,15 +153,17 @@ class AlphaFlask(Flask):
                 'Mail configuration is not defined ("mails/mail_server" parameter)'
             )
 
-        toolbar = self.conf.get("toolbar")
-        if toolbar:
+        if self.conf.get("toolbar"):
+            self.log("Loading debug toolbar")
             toolbar = DebugToolbarExtension(self)
 
-        filepath = config_lib.write_flask_dashboard_configuration()
-        if filepath is not None:
-            self.log.info("Dashboard configured from %s" % filepath)
-            flask_monitoringdashboard.config.init_from(file=filepath)
-            flask_monitoringdashboard.bind(self)
+        if self.conf.get("dashboard/dashboard/active"):
+            self.log("Loading dashboard")
+            filepath = config_lib.write_flask_dashboard_configuration(core)
+            if filepath is not None:
+                self.log.info("Dashboard configured from %s" % filepath)
+                flask_monitoringdashboard.config.init_from(file=filepath)
+                flask_monitoringdashboard.bind(self)
 
         if self.conf.get("admin_databases"):
             self.log.info("Loading admin databases interface")
@@ -314,9 +213,8 @@ class AlphaFlask(Flask):
         host = self.conf.get("host")
         port = self.conf.get("port")
         threaded = self.conf.get("threaded")
-        self.debug = self.conf.get("debug")
-        mode = self.conf.get("mode")
-
+        
+        self.debug = self.conf.get("debug") if not "ALPHA_DEBUG" in os.environ else ("y" in os.environ["ALPHA_DEBUG"].lower() or "t" in os.environ["ALPHA_DEBUG"].lower())
         if self.debug:
             sys.dont_write_bytecode = True
 
@@ -324,6 +222,10 @@ class AlphaFlask(Flask):
             "Run api on host %s port %s %s"
             % (host, port, "DEBUG MODE" if self.debug else "")
         )
+
+        mode = self.conf.get("mode")
+        if 'ALPHA_API' in os.environ:
+            mode = os.environ['ALPHA_API']
 
         # try:
         if mode == "wsgi":
@@ -371,9 +273,6 @@ class AlphaFlask(Flask):
 
         self.log.info("Process n°%s killed" % pid)
 
-    def get_database(self, name):
-        return self.conf.get_database(name)
-
     def get_config(self, name=""):
         if "/" in name:
             name = name.split("/")
@@ -384,23 +283,6 @@ class AlphaFlask(Flask):
         ssl = self.get_config("ssl")
         pref = "https://" if ssl else "http://"
         return pref + self.get_config("host_public")
-
-    def print(self, message):
-        self.get_current_route().print(message)
-
-    def set_error(self, message):
-        description = message
-        if type(message) == AlphaException:
-            description = message.description
-            message = message.name
-            self.log.error(message + " - " + description, level=2)
-        self.get_current_route().set_error(message, description)
-
-    def set_status(self, status):
-        self.get_current_route().set_status(status)
-
-    def timeout(self):
-        self.get_current_route().timeout()
 
     def access_denied(self):
         self.get_current_route().access_denied()
@@ -425,68 +307,6 @@ class AlphaFlask(Flask):
     def warning(self,message): 
         if self.log is not None:
             self.log.warning(message,level=4)
-
-    def get_logged_user(self):
-        user_data = None
-        token = self.get_token()
-        if token is not None:
-            from ...apis import users  # todo: modify
-            from core import core
-
-            db = core.get_database("users")
-            user_data = users.get_user_dataFromToken(db, token)
-        return user_data
-
-    def get_token(self):
-        token = None
-        # Get token from authorization bearer
-        auth = request.headers.get("Authorization", None)
-        if auth is not None:
-            if "bearer" in auth.lower():
-                parts = auth.split()
-                if len(parts) > 1:
-                    token = parts[1]
-
-        # Token from get have priority if present
-        token_from_get = request.args.get("token", None)
-        if token_from_get is not None:
-            token = token_from_get
-
-        # Token from post
-        dataPost = request.get_json()
-        if dataPost is not None and "token" in dataPost:
-            token = dataPost["token"]
-        return token
-
-
-    def check_is_admin(self) -> bool:
-        """Check if user is an admin or not.
-
-        Args:
-            log ([type], optional): [description]. Defaults to None.
-
-        Returns:
-            bool: [description]
-        """
-        user_data = self.get_logged_user()
-        if user_data is not None:
-            if user_data["role"] >= 9:
-                return True
-            else:
-                self.warning("Wrong permission: %s is not an admin"%user_data)
-
-        admin_password = self.conf.get("admin_password")
-        if self.get("admin") and admin_password is not None:
-            if secure_lib.check_magic_code(self.get("admin"), admin_password):
-                return True
-
-        ip = request.remote_addr
-        admins_ips = self.conf.get("admins")
-        if admins_ips and (ip in admins_ips or "::ffff:%s" % ip in admins_ips):
-            return True
-        else:
-            self.warning("Wrong permission: %s is not an admin"%ip)
-        return False
 
     def send_mail(self, mail_config, parameters_list, db, sender=None):
         # Configuration
@@ -556,3 +376,56 @@ class AlphaFlask(Flask):
         if not valid:
             self.set_error("mail_error")
         return valid
+
+    def get_current_route(self) -> Route:
+        """Return the current route.
+
+        Returns:
+            Route: [description]
+        """
+        request_uuid = self.get_uuid()
+
+        if request_uuid in self.routes_objects:
+            return self.routes_objects[request_uuid]
+
+        default_route = Route(request_uuid, request.full_path, [])
+        if request_uuid not in self.routes_objects:
+            self.log.critical("Cannot get route for %s" % request_uuid, monitor="DB")
+            return default_route
+        
+        self.log.critical("Issue with route %s" % request_uuid, monitor="DB")
+        return default_route
+
+    def check_is_admin(self) -> bool:
+        """Check if user is an admin or not.
+
+        Args:
+            log ([type], optional): [description]. Defaults to None.
+
+        Returns:
+            bool: [description]
+        """
+        route = self.get_current_route()
+
+        user_data = _utils.get_logged_user()
+        if user_data is not None:
+            if user_data["role"] >= 9:
+                return True
+            else:
+                self.warning("Wrong permission: %s is not an admin"%user_data)
+
+        admin_password = self.conf.get("admin_password")
+        if route["admin"] and admin_password is not None:
+            if secure_lib.check_magic_code(self["admin"], admin_password):
+                return True
+
+        ip = request.remote_addr
+        admins_ips = self.conf.get("admins")
+        if admins_ips and (ip in admins_ips or "::ffff:%s" % ip in admins_ips):
+            return True
+        else:
+            self.warning("Wrong permission: %s is not an admin"%ip)
+        return False
+
+    def get_logged_user(self):
+        return _utils.get_logged_user()

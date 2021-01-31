@@ -1,15 +1,16 @@
 import json
 from ...libs import user_lib, sql_lib, secure_lib, mail_lib
+from ..models.main import AlphaException
 
 def stay_in_touch(api,user_mail,name,token,db):
     status        = None
     valid_token   = mail_lib.is_mail_token_valid(user_mail, token)
     if not valid_token:
-        api.set_error('invalid_token')
+        AlphaException('invalid_token')
 
     status                  = user_lib.is_valid_mail(db,user_mail)
     if not status:
-        return api.set_error('invalid_mail')
+        raise AlphaException('invalid_mail')
 
     parameters          = {'mail':user_mail,'name':name}
 
@@ -48,14 +49,14 @@ def request_view(api,user_mail,token,mail_type,mail_id,db):
     valid       = mail_token == token
 
     if not valid:
-        return api.set_error('invalid_token')
+        raise AlphaException('invalid_token')
     
     query       = "SELECT * from mails_history where mail_type = %s and uuid = %s"
     values      = (mail_type,mail_id)
     results     = db.get_query_results(query,values,unique=False)
     valid       = len(results) != 0
     if not valid:
-        return api.set_error('no_mail')
+        raise AlphaException('no_mail')
         
     parameters = str_parameters_to_dict(results[0]['parameters_full'])
     parameters['mail'] = user_mail
@@ -65,9 +66,9 @@ def request_view(api,user_mail,token,mail_type,mail_id,db):
     mail_contents_list = mail_lib.get_mail_content_for_parameters(mail_path,mail_type,[parameters],api.log)
 
     if len(mail_contents_list) == 0:
-        api.set_error('mail_error')
+        AlphaException('mail_error')
     else:
-        api.set_data(mail_contents_list[0]['content'])
+        return mail_contents_list[0]['content']
 
 def request_unsubscribe(api,user_mail, token, mail_type,db):
     mail_type   = mail_lib.get_mail_type(mail_type)
@@ -75,11 +76,11 @@ def request_unsubscribe(api,user_mail, token, mail_type,db):
     valid       = mail_token == token
 
     if not valid:
-        return api.set_error('invalid_token')
+        raise AlphaException('invalid_token')
 
     query   = "INSERT INTO mail_blacklist (mail,mail_type) VALUES (%s,%s)"
     values  = (user_mail,mail_type)
     valid   = db.execute_query(query,values)
 
     if not valid:
-        return api.set_error('fail')
+        raise AlphaException('fail')

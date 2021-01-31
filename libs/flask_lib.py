@@ -1,4 +1,4 @@
-import inspect, glob, os, importlib
+import inspect, glob, os, importlib, datetime
 
 from flask_admin.contrib.sqla import ModelView
 from flask import Markup
@@ -34,7 +34,7 @@ def get_definitions_modules(modules_list:List[ModuleType],log:AlphaLogger) -> Li
     Returns:
         List[ModuleType]: [description]
     """
-
+    log("Start getting definition modules")
     main = None
 
     modules = []
@@ -110,6 +110,7 @@ def get_definitions_modules(modules_list:List[ModuleType],log:AlphaLogger) -> Li
                 if not table in TABLES["main"]["tables"]:
                     TABLES["main"]["tables"][table] = obj 
 
+    log("END getting definition modules")
     return modules
 
 class AlphaModelView(ModelView):
@@ -124,6 +125,7 @@ def load_views(log) -> List[ModelView]:
     Returns:
         List[ModelView]: [description]
     """
+    log.info("START Loading views models")
     views = []
     
     for schema, cf in TABLES.items():           
@@ -146,4 +148,5 @@ def load_views(log) -> List[ModelView]:
 
             view.column_list    = attributes
             views.append(view)
+    log.info("END Loading views models")
     return views

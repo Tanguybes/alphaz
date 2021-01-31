@@ -14,7 +14,7 @@ log         = core.get_logger('api')
 ])
 def api_map():
     reload_ = api.get('reload')
-    api.set_data(api_lib.get_routes_infos(log=log,reload_=reload_))
+    return api_lib.get_routes_infos(log=log,reload_=reload_)
 
 
 def has_no_empty_params(rule):
@@ -37,4 +37,4 @@ def site_map():
                 continue
 
             links.append((url, rule.endpoint))
-    api.set_data(links)
+    return links

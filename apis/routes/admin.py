@@ -19,7 +19,7 @@ log         = core.get_logger('api')
 def clear_logs():
     done = logs_lib.clear_logs(api)
     if not done:
-        api.set_error('database')
+        raise AlphaException('database')
 
 @route('/admin/logs', methods = ['POST', 'GET'],admin=True,
     parameters = [
@@ -33,4 +33,4 @@ def admin_logs():
     if page == 0: limit = False
 
     data = logs_lib.get_logs(start_date=api.get('startDate'), end_date=api.get('endDate'), useLimit=limit, pageForLimit=page)
-    api.set_data(data)
+    return data

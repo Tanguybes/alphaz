@@ -39,7 +39,7 @@ class Parameter:
             and not (not self.required and self.value is None)
         ):
             raise AlphaException(
-                "api_wrong_value_parameter",
+                "api_wrong_parameter_option",
                 parameters={
                     "parameter": self.name,
                     "options": str(self.options),
@@ -55,26 +55,14 @@ class Parameter:
 
         if self.ptype == bool and not self.value is None:
             str_value = str(self.value).lower()
-            if str_value == "y":
+            if str_value in ["y","true","t","1"]:
                 value = True
-            elif str_value == "true":
-                value = True
-            elif str_value == "t":
-                value = True
-            elif str_value == "1":
-                value = True
-            elif str_value == "n":
-                value = False
-            elif str_value == "false":
-                value = False
-            elif str_value == "f":
-                value = False
-            elif str_value == "0":
+            elif str_value in ["n", "false", "f", "0"]:
                 value = False
             else:
                 raise AlphaException(
                     "api_wrong_parameter_value",
-                    parameters={"parameter": self.name, "type": "bool"},
+                    parameters={"parameter": self.name, "type": "bool", "value":self.value},
                 )
             self.value = value
 
@@ -94,7 +82,7 @@ class Parameter:
                 except:
                     raise AlphaException(
                         "api_wrong_parameter_value",
-                        parameters={"parameter": self.name, "type": "list"},
+                        parameters={"parameter": self.name, "type": "list", "value":self.value},
                     )
 
         if self.ptype == int and not self.value is None:
@@ -103,7 +91,7 @@ class Parameter:
             except:
                 raise AlphaException(
                     "api_wrong_parameter_value",
-                    parameters={"parameter": self.name, "type": "int"},
+                    parameters={"parameter": self.name, "type": "int", "value":self.value},
                 )
 
         if self.ptype == float and not self.value is None:
@@ -112,6 +100,6 @@ class Parameter:
             except:
                 raise AlphaException(
                     "api_wrong_parameter_value",
-                    parameters={"parameter": self.name, "type": "float"},
+                    parameters={"parameter": self.name, "type": "float", "value":self.value},
                 )
 

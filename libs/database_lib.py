@@ -30,8 +30,7 @@ def process_entries(db,table,log,values:list,headers:list=None):
     db.session.commit()
 
 
-def init_databases(database_name,table_name,drop=False,log=None):
-    from core import core
+def init_databases(core, database_name,table_name,drop=False,log=None):
     if len(flask_lib) == 0:
         core.load_models_sources()
     """if core.configuration != 'local':
@@ -76,7 +75,7 @@ def init_databases(database_name,table_name,drop=False,log=None):
 
         #if log: log.info('Initiating table %s from json files (%s): \n%s'%(database_name,json_ini,'\n'.join(['   - %s'%x for x in files])))
         for file_path in files:
-            process_databases_init(database_name,table_name,file_path,file_type='json',log=log)
+            __process_databases_init(core,database_name,table_name,file_path,file_type='json',log=log)
 
     # python ini
     if 'init_database_dir_py' in cf:
@@ -85,10 +84,10 @@ def init_databases(database_name,table_name,drop=False,log=None):
 
         #if log: log.info('Initiating table %s from python files (%s): \n%s'%(database_name,py_ini,'\n'.join(['   - %s'%x for x in files])))
         for file_path in files:
-            process_databases_init(database_name,table_name,file_path,log=log)
+            __process_databases_init(core, database_name,table_name,file_path,log=log)
 
 
-def process_databases_init(database_name,table_name,file_path,file_type='py',log=None):
+def __process_databases_init(core, database_name,table_name,file_path,file_type='py',log=None):
     if file_type == "py":
         current_path    = os.getcwd()
         module_path     = file_path.replace(current_path,'').replace('/','.').replace('\\','.').replace('.py','')
@@ -104,20 +103,17 @@ def process_databases_init(database_name,table_name,file_path,file_type='py',log
                 if log: log.error('In file %s <ini> configuration must be of type <dict>'%(file_path))
                 return
 
-            get_entries(database_name,table_name,file_path,ini,log=log)
+            __get_entries(core, database_name,table_name,file_path,ini,log=log)
     elif file_type =='json':
         try:
             ini = io_lib.read_json(file_path)
         except Exception as ex:
             if log: log.error('Cannot read file %s: %s'%(file_path,ex))
             return
-        get_entries(database_name,table_name,file_path,ini,log=log)
+        __get_entries(core, database_name,table_name,file_path,ini,log=log)
 
-def get_entries(database_name,table_name,file_path,configuration,log=None):
-    from alphaz.models.database.models import AlphaTable
-
+def __get_entries(core, database_name,table_name,file_path,configuration,log=None):
     #models_sources = [importlib.import_module(x) if type(x) == str else x for x in models_sources]
-    from core import core
     for database, tables_config in configuration.items():
         db = database
         if type(database) == str:
@@ -171,6 +167,5 @@ def get_entries(database_name,table_name,file_path,configuration,log=None):
                 if log: log.info('Adding %s entries from <objects> for table <%s> in database <%s> from file %s'%(len(entries),table_name,database,file_path))
                 process_entries(db,table,log=log,values=entries)
 
-def get_databases_tables_dict() -> Dict[str,str]:
-    from core import core
+def get_databases_tables_dict(core) -> Dict[str,str]:
     return {x:list(y.metadata.tables.keys()) for x,y in core.databases.items()}

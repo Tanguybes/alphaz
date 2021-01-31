@@ -1,6 +1,7 @@
 from flask import request
 
 from ...utils.api import route, Parameter
+from ..models.main import AlphaException
 from .. import users
 
 from core import core
@@ -19,7 +20,7 @@ log         = core.get_logger('api')
     ])
 def register():
     if api.get_logged_user() is not None:
-        return api.set_error('logged')
+        raise AlphaException('logged')
 
     users.try_register_user(
         api,
@@ -35,7 +36,7 @@ def register():
     ])
 def register_validation():
     if api.get_logged_user() is not None:
-        return api.set_error('logged')
+        raise AlphaException('logged')
 
     users.confirm_user_registration(api,token   = api.get('tmp_token'),db=db)
 
@@ -55,7 +56,7 @@ def login():
     ])
 def password_lost():
     if api.get_logged_user() is not None:
-        return api.set_error('logged')
+        raise AlphaException('logged')
 
     username    = api.get('username')
     mail        = api.get('mail')
@@ -64,7 +65,7 @@ def password_lost():
         username_or_mail    = username if mail is None else mail
         users.ask_password_reset(api,username_or_mail,db=db) 
     else:
-        api.set_error('inputs')
+        AlphaException('inputs')
 
 @route('/password/reset', methods = ['GET', 'POST'],
     parameters  = [
@@ -74,7 +75,7 @@ def password_lost():
     ])
 def password_reset_validation():
     if api.get_logged_user() is not None:
-        return api.set_error('logged')
+        raise AlphaException('logged')
 
     users.confirm_user_password_reset(api,token=api.get('tmp_token'), password=api.get('password'), password_confirmation=api.get('password_confirmation'),db=db)
 
@@ -89,8 +90,6 @@ def logout():
         Parameter('password',required=True),
         Parameter('password_confirmation',required=True)
     ])
-def reset_password():
     user_data               = api.get_logged_user()
 
-    users.try_reset_password(api,user_data, api.get('password'), api.get('password_confirmation'),db=db,log=api.log)
-    
+    users.try_reset_password(api,user_data, api.get('password'), api.get('password_confirmation'),db=db,log=api.log)users.try_reset_password(api,user_data, api.get('password'), api.get('password_confirmation'),db=db,log=api.log)

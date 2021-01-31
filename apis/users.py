@@ -3,18 +3,24 @@ from ..libs import user_lib, sql_lib, secure_lib
 
 from ..models.database import main_definitions as defs
 
+from ..models.main import AlphaException
+
+from core import core
+
+DB = core.get_database("users")
+
 # Serve for registration
-def try_register_user(api,db,mail, username, password, password_confirmation):
-    userByMail          = user_lib.get_user_data_by_mail(db,mail)
-    userByUsername      = user_lib.get_user_data_by_username(db,username)
+def try_register_user(api,mail, username, password, password_confirmation):
+    userByMail          = user_lib.get_user_data_by_mail(DB,mail)
+    userByUsername      = user_lib.get_user_data_by_username(DB,username)
 
     if 'id' in userByMail or 'id' in userByUsername:
         if ('id' in userByMail and userByMail['role'] < 0) or ('id' in userByUsername and userByUsername['role'] < 0):
-            return api.set_error('account_not_validated')
-        return api.set_error('account_duplicated')
+            raise AlphaException('account_not_validated')
+        raise AlphaException('account_duplicated')
     
     if password != password_confirmation:
-        return api.set_error('password_missmatch')
+        raise AlphaException('password_missmatch')
     
     '''mail_valid = validate_email(mail)
     if not mail_valid:
@@ -39,25 +45,25 @@ def try_register_user(api,db,mail, username, password, password_confirmation):
     sent = api.send_mail(
         mail_config     = 'registration',
         parameters_list = [parameters],
-        db              = db
+        db              = DB
     )
 
     if sent:
-        db.add(defs.User(username=username,mail=mail,password=password_hashed,role=-1,
+        DB.add(defs.User(username=username,mail=mail,password=password_hashed,role=-1,
             date_registred=datetime.datetime.now(),last_activity=datetime.datetime.now(),
             registration_token=token))
     else:
-        api.set_error('sending')
+        AlphaException('sending')
 
-def ask_password_reset(api,username_or_mail,db):
-    user_by_mail        = user_lib.get_user_data_by_mail(db,username_or_mail)
-    user_by_username    = user_lib.get_user_data_by_username(db,username_or_mail)
+def ask_password_reset(api,username_or_mail):
+    user_by_mail        = user_lib.get_user_data_by_mail(DB,username_or_mail)
+    user_by_username    = user_lib.get_user_data_by_username(DB,username_or_mail)
 
     if len(user_by_mail.keys()) == 0 and len(user_by_username.keys()) == 0:
-        return api.set_error('unknown_inputs')
+        raise AlphaException('unknown_inputs')
      
     if 'id' not in user_by_mail and 'id' not in user_by_username:
-        return api.set_error('unknown_inputs')   
+        raise AlphaException('unknown_inputs')   
 
     user_data   = user_by_mail if 'id' in user_by_mail else user_by_username
 
@@ -67,8 +73,8 @@ def ask_password_reset(api,username_or_mail,db):
     query       = "UPDATE user SET password_reset_token = %s, password_reset_token_expire = UTC_TIMESTAMP() + INTERVAL 20 MINUTE WHERE id = %s;"
     values      = (token, user_data['id'],)
 
-    if not db.execute_query(query,values,log=None):
-        return api.set_error('sql_error')    
+    if not DB.execute_query(query,values,log=None):
+        raise AlphaException('sql_error')    
 
     # MAIL
     parameters              = {}
@@ -80,35 +86,35 @@ def ask_password_reset(api,username_or_mail,db):
     mail_sent = api.send_mail(
         mail_config     = 'password_reset',
         parameters_list = [parameters],
-        db=db
+        db=DB
     )  
 
-def confirm_user_registration(api,token,db):
+def confirm_user_registration(api,token):
     if 'consumed' in token:
-        return api.set_error('invalid_token') 
-    user_data = user_lib.get_user_data_by_registration_token(db,token)
+        raise AlphaException('invalid_token') 
+    user_data = user_lib.get_user_data_by_registration_token(DB,token)
 
     if len(user_data) == 0:
-        api.set_error('not_found')
+        AlphaException('not_found')
 
     if 'id' in user_data:
         # Set Role to 0 and revoke token
-        user = db.select(defs.User,filters={
+        user = DB.select(defs.User,filters={
             'id': user_data['id']
         },first=True,json=False)
         if user is None:
-            return api.set_error('error')
+            raise AlphaException('error')
         user.role = 0
         user.registration_token = 'consumed'
-        db.commit()
+        DB.commit()
         
         valid = True
         if not valid:
-            return api.set_error('error')   
+            raise AlphaException('error')   
 
 # Serve for web logins
-def try_login(api,db,login, password, ip):
-    user_data = user_lib.get_user_data_FromLogin(db,login, password)
+def try_login(api,login, password, ip):
+    user_data = user_lib.get_user_data_FromLogin(DB,login, password)
     if user_data is not None:
         if user_data['role'] >= 0:
             # Generate token
@@ -119,7 +125,7 @@ def try_login(api,db,login, password, ip):
             #todo: make sure JWT_SECRET_kEY exist
 
             # Add new token session related to user
-            db.add(defs.UserSession(
+            DB.add(defs.UserSession(
                 user_id=user_data['id'],
                 token=encoded_jwt,
                 ip=ip,
@@ -132,25 +138,25 @@ def try_login(api,db,login, password, ip):
                     'token': encoded_jwt,
                     'valid_until': datetime.datetime.now() + datetime.timedelta(days=7)
                 }
-                return api.set_data(data)
-            return api.set_error('error')
+                return data
+            raise AlphaException('error')
         else:
-            return api.set_error('account_not_validated')
-    return api.set_error('unknown_user') 
+            raise AlphaException('account_not_validated')
+    raise AlphaException('unknown_user') 
 
-def confirm_user_password_reset(api,token, password, password_confirmation,db):
+def confirm_user_password_reset(api,token, password, password_confirmation):
     if 'consumed' in token:
-        return api.set_error('consumed_token') 
+        raise AlphaException('consumed_token') 
 
-    user_data = user_lib.get_user_data_by_password_reset_token(db,token)
+    user_data = user_lib.get_user_data_by_password_reset_token(DB,token)
     if not 'id' in user_data:
-        return api.set_error('invalid_token') 
+        raise AlphaException('invalid_token') 
     
-    try_reset_password(api,user_data, password, password_confirmation,db=db)
+    try_reset_password(api,user_data, password, password_confirmation)
 
-def try_reset_password(api,user_data, password, password_confirmation,db,log=None):
+def try_reset_password(api,user_data, password, password_confirmation,log=None):
     if password != password_confirmation:
-        return api.set_error('password_missmatch') 
+        raise AlphaException('password_missmatch') 
 
     '''if not password_check_format(password):
         return "password_format"'''
@@ -160,44 +166,44 @@ def try_reset_password(api,user_data, password, password_confirmation,db,log=Non
     # Reset password
     query   = "UPDATE user SET password = %s, password_reset_token = 'consumed' WHERE id = %s;"
     values  = (password_hashed, user_data['id'],)
-    valid   = db.execute_query(query,values)
+    valid   = DB.execute_query(query,values)
     if not valid:
-        api.set_error('reset_error') 
+        AlphaException('reset_error') 
     
     # Reset all sessions as password changed
     query   = "DELETE FROM user_session WHERE user_id = %s;"
     values  = (user_data['id'],)
-    valid   = db.execute_query(query,values)
+    valid   = DB.execute_query(query,values)
     if not valid:
-        api.set_error('clean_error')
+        AlphaException('clean_error')
 
-def logout(api,token,db,log=None):
-    valid = db.delete(defs.UserSession,filters={'token': token})
+def logout(api,token,log=None):
+    valid = DB.delete(defs.UserSession,filters={'token': token})
 
     """
-    user_session = db.select(defs.UserSession,filters={
+    user_session = DB.select(defs.UserSession,filters={
         'token': token
     },first=True,json=False)
 
     if user_session is not None:
-        db.delete(user_session)
+        DB.delete(user_session)
     valid = True #todo: upgrade
     """
     if not valid:
-        api.set_error('fail')
+        AlphaException('fail')
 
-def get_user_dataFromToken(db,token):
+def get_user_dataFromToken(token):
     user_id     = None
-    results     = db.select(defs.UserSession,filters=[defs.UserSession.token==token],json=True)
+    results     = DB.select(defs.UserSession,filters=[defs.UserSession.token==token],json=True)
     if len(results) != 0:
         user_id = results[0]['user_id']
 
     if user_id is not None:
-        return user_lib.get_user_data_by_id(db, user_id)
+        return user_lib.get_user_data_by_id(DB, user_id)
     return None
 
-def try_subscribe_user(api,mail, nb_days, target_role,db):
-    userByMail          = user_lib.get_user_data_by_mail(db,mail)
+def try_subscribe_user(api,mail, nb_days, target_role):
+    userByMail          = user_lib.get_user_data_by_mail(DB,mail)
     user_data = None
     if 'id' in userByMail:
         if 'id' in userByMail:
@@ -207,7 +213,7 @@ def try_subscribe_user(api,mail, nb_days, target_role,db):
         # Reset password
         query  = "UPDATE user SET role = %s, expire = %s WHERE id = %s;"
         values = (target_role, expired_date, user_data['id'],)
-        valid  = db.execute_query(query,values)
+        valid  = DB.execute_query(query,values)
         if not valid:
-            api.set_error('update_error')
-    api.set_error('unknow_user')
+            AlphaException('update_error')
+    AlphaException('unknow_user')

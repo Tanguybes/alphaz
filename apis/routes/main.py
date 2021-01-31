@@ -46,7 +46,7 @@ def upload_file():
 
 @route('status')
 def status():
-    api.set_data(True)
+    return True
     
 @route('/')
 def home():
@@ -72,6 +72,6 @@ def home():
         'compagny_website': config.get('parameters/compagny_website'),
         'dashboard':config.get("dashboard/dashboard/active"),
         'tests':tests,
-        'databases':database_lib.get_databases_tables_dict()
+        'databases':database_lib.get_databases_tables_dict(core)
     }
     api.set_html('home.html', parameters=parameters)

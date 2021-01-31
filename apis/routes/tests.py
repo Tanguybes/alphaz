@@ -25,20 +25,20 @@ def get_tests():
         name=api.get('name'),
         run=api.get('run')
     )
-    api.set_data(tests)
+    return tests
 
 @route('/test',cache=True,timeout=100,
     parameters=[Parameter('value'),Parameter('options',options=['Y','N'])]
 )
 def api_test():
-    api.set_data({
+    return {
         'value':api.get('value'),
         'options':api.get('options')
-    })
+    }
     
 @route('/test/insert',)
 def test_insert():
-    api.set_data(tests.insert())
+    return tests.insert()
 
 @route('/test/html',
     parameters=[Parameter('message')]

@@ -12,8 +12,10 @@ from flask import (
 )
 
 from ...libs import json_lib, converter_lib, io_lib
+from ...models.main import AlphaException
 
 from ._parameter import Parameter
+from ._requests import Requests
 
 SEPARATOR = "::"
 
@@ -35,17 +37,18 @@ def check_format(data, depth=3):
     return False
 
 
-class Route:
+class Route(Requests):
     def __init__(
         self,
-        api,
         uuid: str,
         route: str,
         parameters: List[Parameter],
         cache: bool = False,
         timeout=None,
+        cache_dir=None,
+        log=None,
+        jwt_secret_key=None
     ):
-        self.api = api
         self.__timeout = timeout
         self.uuid: str = uuid
         self.route: str = route
@@ -65,6 +68,11 @@ class Route:
 
         self.file_to_get = (None, None)
         self.file_to_set = (None, None)
+
+        self.cache_dir = cache_dir
+        self.log=log
+
+        self.init_return()
 
     def is_outdated(self):
         return  (datetime.datetime.now() - self.lasttime).total_seconds() > 60 * 5
@@ -101,8 +109,6 @@ class Route:
             return False
         key = self.get_key()
         return key in self.routes_values.keys()
-        # return return_cache and not reset_cache
-        #return not reset_cache
 
     def get_key(self):
         key = "%s%s" % (self.route, SEPARATOR)
@@ -112,31 +118,30 @@ class Route:
         return key
 
     def get_cache_path(self):
-        cache_dir = self.api.conf.get("directories/cache")
-        if cache_dir is None:
+        if self.cache_dir is None:
             return None
         key = self.get_key()
-        cache_path = cache_dir + os.sep + key + ".cache"
+        cache_path = self.cache_dir + os.sep + key + ".cache"
         return cache_path
 
     def set_cache(self):
         self.lasttime = datetime.datetime.now()
         cache_path = self.get_cache_path()
         if cache_path is None:
-            self.api.log.error("cache path does not exist")
+            self.log.error("cache path does not exist")
             return
         try:
             returned = io_lib.archive_object(self.data, cache_path)
         except:
-            self.api.log.error('Cannot cache route %s'%self.get_key())
+            self.log.error('Cannot cache route %s'%self.get_key())
 
     def get_cached(self):
-        if self.api.log:
-            self.api.log.info("GET cache for %s" % self.route)
+        if self.log:
+            self.log.info("GET cache for %s" % self.route)
 
         cache_path = self.get_cache_path()
         if cache_path is None:
-            self.api.log.error("Cache path does not exist")
+            self.log.error("Cache path does not exist")
             return False
         if os.path.exists(cache_path):
             data = io_lib.unarchive_object(cache_path)
@@ -161,6 +166,11 @@ class Route:
         self.returned["status"] = 401
 
     def set_error(self, message: str, description: str = None):
+        if type(message) == AlphaException:
+            description = message.description
+            message = message.name
+            self.log.error(message + " - " + description, level=2)
+
         self.mode == "data"
         self.returned["status"] = message
         self.returned["status_description"] = description if description else message
@@ -201,7 +211,7 @@ class Route:
         if "get_file" in self.route:
             file_path, filename = self.file_to_get
             if file_path is not None and filename is not None:
-                self.api.info("Sending file %s from %s" % (filename, file_path))
+                self.info("Sending file %s from %s" % (filename, file_path))
                 try:
                     return send_from_directory(
                         file_path,
@@ -209,9 +219,9 @@ class Route:
                         as_attachment="attached" in self.mode,
                     )
                 except FileNotFoundError:
-                    self.api.set_error("missing_file")
+                    self.set_error("missing_file")
             else:
-                self.api.set_error("missing_file")
+                self.set_error("missing_file")
 
         if isinstance(self.data, Exception):
             if hasattr(self.data, "msg"):
@@ -254,7 +264,7 @@ class Route:
                 "id": user_data["id"],
                 "time": str(datetime.datetime.now()),
             },
-            api.config["JWT_SECRET_KEY"],
+            self.jwt_secret_key,
             algorithm="HS256",
         ).decode("utf-8")
         self.returned["valid_until"] = datetime.datetime.now() + datetime.timedelta(

@@ -373,8 +373,7 @@ def write_config_file(filename, values, directory,upper_keys:bool = False):
     with open(directory + os.sep + filename , 'w') as configfile:
         config.write(configfile)
 
-def write_flask_dashboard_configuration():
-    from core import core
+def write_flask_dashboard_configuration(core):
     LOG = core.get_logger("config")
     filename = "dashboard.cfg"
     directory = core.config.get("directories/tmp")
