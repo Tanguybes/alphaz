@@ -46,9 +46,9 @@ def route(
         if type(parameter) == str:
             parameters[i] = Parameter(parameter)
 
-    parameters.append(Parameter("reset_cache", ptype=bool, default=False, private=True))
-    parameters.append(Parameter("requester", ptype=str, private=True))
-    parameters.append(Parameter("format", ptype=str, default="json", private=True))
+    parameters.append(Parameter("reset_cache", ptype=bool, default=False, private=True, cacheable=False))
+    parameters.append(Parameter("requester", ptype=str, private=True, cacheable=False))
+    parameters.append(Parameter("format", ptype=str, default="json", private=True, cacheable=False))
 
     def api_in(func):
         @api.route(path, methods=methods, endpoint=func.__name__)
@@ -128,8 +128,12 @@ def route(
 
         api_wrapper.__name__ = func.__name__
 
-        if cache:
-            parameters.append(Parameter("reset_cache", ptype=bool, cacheable=False))
+        key_parameters = []
+        for parameter in parameters:
+            if parameter.name == "reset_cache" and cache:
+                key_parameters.append(parameter)
+            elif not parameter.private:
+                key_parameters.append(parameter)
 
         if not "cat" in locals() or cat is None:
             category = func.__module__.split(".")[-1]
@@ -138,8 +142,8 @@ def route(
 
         kwargs_ = {
             "path": path,
-            "parameters": parameters,
-            "parameters_names": [x.name for x in parameters],
+            "parameters": key_parameters,
+            "parameters_names": [x.name for x in key_parameters],
             "methods": methods,
             "cache": cache,
             "logged": logged,

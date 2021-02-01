@@ -159,8 +159,8 @@ class AlphaFlask(Flask, Requests):
             toolbar = DebugToolbarExtension(self)
 
         if self.conf.get("dashboard/dashboard/active"):
-            self.log("Loading dashboard")
-            filepath = config_lib.write_flask_dashboard_configuration(core)
+            self.log.info("Loading dashboard")
+            filepath = config_lib.write_flask_dashboard_configuration()
             if filepath is not None:
                 self.log.info("Dashboard configured from %s" % filepath)
                 flask_monitoringdashboard.config.init_from(file=filepath)
