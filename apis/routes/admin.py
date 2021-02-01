@@ -12,6 +12,7 @@ api         = core.api
 db          = core.db
 log         = core.get_logger('api')
 
+
 @route('/admin/logs/clear', methods = ['GET'], admin=True,
     parameters = [
 
@@ -21,16 +22,13 @@ def clear_logs():
     if not done:
         raise AlphaException('database')
 
-@route('/admin/logs', methods = ['POST', 'GET'],admin=True,
+@route("/admin/logs", methods = ['POST', 'GET'],admin=True,
     parameters = [
         Parameter('page',required=True,ptype=int),
         Parameter('startDate',required=True),
         Parameter('endDate',required=True)
     ])
 def admin_logs():
-    page        = int(api.get('page'))
-    limit = True
-    if page == 0: limit = False
-
-    data = logs_lib.get_logs(start_date=api.get('startDate'), end_date=api.get('endDate'), useLimit=limit, pageForLimit=page)
-    return data
+    page        = int(api['page'])
+    limit = page != 0
+    return logs_lib.get_logs(start_date=api['startDate'], end_date=api['endDate'], useLimit=limit, pageForLimit=page)

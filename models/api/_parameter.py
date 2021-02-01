@@ -15,7 +15,18 @@ class Parameter:
         private: bool = False,
         mode: str =  "like"
     ):
+        """[summary]
 
+        Args:
+            name (str): [description]
+            default ([type], optional): [description]. Defaults to None.
+            options ([type], optional): [description]. Defaults to None.
+            cacheable (bool, optional): [description]. Defaults to True.
+            required (bool, optional): [description]. Defaults to False.
+            ptype (type, optional): [description]. Defaults to str.
+            private (bool, optional): [description]. Defaults to False.
+            mode (str, optional): [description]. Defaults to "like".
+        """
         self.name = name
         self.default = default
         self.cacheable = cacheable
