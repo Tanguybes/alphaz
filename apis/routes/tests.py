@@ -32,8 +32,8 @@ def get_tests():
 )
 def api_test():
     return {
-        'value':api.get('value'),
-        'options':api.get('options')
+        'value':api['value'],
+        'options':api['options']
     }
     
 @route('/test/insert',)

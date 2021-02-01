@@ -180,7 +180,8 @@ class AlphaFlask(Flask, Requests):
         self.configuration = configuration
 
         self.conf = AlphaConfig(
-            name=name, configuration=configuration, root=root, log=self.log
+            name=name, configuration=configuration, root=root, log=self.log,
+            required=['directories/cache']
         )  # root=os.path.dirname(os.path.realpath(__file__))
 
         if self.conf.get("routes_no_log"):

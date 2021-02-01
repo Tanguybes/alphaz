@@ -15,7 +15,7 @@ from ..logger import AlphaLogger
 from ...libs import converter_lib, sql_lib, io_lib
 
 class AlphaConfig(AlphaClass):
-    reserved    =  ['user','configuration','project','ip','platform']
+    __reserved    =  ['user','configuration','project','ip','platform']
 
     def __init__(self,
             name: str = 'config',
@@ -28,9 +28,14 @@ class AlphaConfig(AlphaClass):
             data: dict = None,
             origin = None,
             core = None,
-            core_configuration = None
+            core_configuration = None,
+            reserved: List[str] = [],
+            required: List[str] = []
             ):
         if hasattr(self, 'tmp'): return
+
+        self.reserved = list(set(reserved).union(set(self.__reserved)))
+        self.required = required
 
         name, filepath, root, filename = ensure_filepath(name, filepath, root, filename)
 
@@ -532,6 +537,8 @@ class AlphaConfig(AlphaClass):
         return None
 
     def is_parameter_path(self,parameters,data=None):
+        if type(parameters) == str and "/" in parameters:
+            parameters = parameters.split('/')
         if type(parameters) == str:
             parameters = [parameters]
         if data is None:
@@ -557,14 +564,15 @@ class AlphaConfig(AlphaClass):
         show(self.data)
 
     def _check_required(self):
-        if not 'required' in self.data:
-            return
+        if 'required' in self.data:
+            self.required = list(set(self.data['required']).union(set(self.required)))
 
-        for path in self.data['required']:
+        for path in self.required:
             if not self.is_path(path):
-                self.log.error("Missing '%s' key in config file"%('/'.join(path)))
+                self.log.error("Missing '%s' key in config file"%(path))
                 self.valid = False
-
+                exit()
+        
     def _check_reserved(self):
         for reserved_name in self.reserved:
             if reserved_name in self.data_origin:

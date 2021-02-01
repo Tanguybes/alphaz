@@ -17,7 +17,7 @@ from ...models.main import AlphaException
 from ._parameter import Parameter
 from ._requests import Requests
 
-SEPARATOR = "::"
+SEPARATOR = "__"
 
 
 def check_format(data, depth=3):
@@ -110,10 +110,11 @@ class Route(Requests):
         return self.is_cache()
 
     def get_key(self):
-        key = "%s%s" % (self.route, SEPARATOR)
+        route = self.route if not self.route[0] == '/' else self.route[1:]
+        key = "%s%s" % (route, "__")
         for name, parameter in self.parameters.items():
             if parameter.cacheable and not parameter.private:
-                key += "%s=%s;" % (parameter.name, parameter.value)
+                key += "%s-%s_" % (parameter.name, parameter.value)
         return key
 
     def get_cache_path(self):
@@ -138,8 +139,8 @@ class Route(Requests):
             return
         try:
             returned = io_lib.archive_object(self.data, cache_path)
-        except:
-            self.log.error('Cannot cache route %s'%self.get_key())
+        except Exception as ex:
+            self.log.error('Cannot cache route %s: %s'%(self.get_key(), str(ex)))
 
     def get_cached(self):
         if self.log:
