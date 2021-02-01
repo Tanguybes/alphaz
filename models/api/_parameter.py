@@ -13,6 +13,7 @@ class Parameter:
         required: bool = False,
         ptype: type = str,
         private: bool = False,
+        mode: str =  "like"
     ):
 
         self.name = name
@@ -24,6 +25,7 @@ class Parameter:
         self.type = str(ptype).replace("<class '", "").replace("'>", "")
         self.value = None
         self.private = private
+        self.mode = mode
 
     def set_value(self):
         dataPost = request.get_json()
@@ -52,6 +54,10 @@ class Parameter:
             raise AlphaException(
                 "api_missing_parameter", parameters={"parameter": self.name}
             )
+
+        if self.ptype == str and self.mode == "like":
+            if (self.value is not None) and (self.value.startswith('*') or self.value.endswith('*')):
+                self.value   = self.value.replace('*','%')
 
         if self.ptype == bool and not self.value is None:
             str_value = str(self.value).lower()
