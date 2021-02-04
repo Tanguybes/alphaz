@@ -29,6 +29,12 @@ def get_cmd_output(cmd):
         i += 1
     return output_lines
 
+def replace_envs(text):
+    envs = re.findall(r"\$[_a-zA-Z]+",text)
+    for env in envs:
+        if env[1:] in os.environ:
+            text = text.replace(env, os.environ[env[1:]])
+    return text
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Screens ensure")
@@ -67,6 +73,7 @@ if __name__ == "__main__":
     screens_list = list_screens()
         
     for name, screen in screens.items():
+        screen = {x:replace_envs(y) for x,y in screen.items()}
         active = screen["active"]
         if not active:
             continue
