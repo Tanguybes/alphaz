@@ -44,6 +44,8 @@ class Route(Requests):
         route: str,
         parameters: List[Parameter],
         cache: bool = False,
+        logged:bool=False,
+        admin:bool=False,
         timeout=None,
         cache_dir=None,
         log=None,
@@ -53,6 +55,8 @@ class Route(Requests):
         self.uuid: str = uuid
         self.route: str = route
         self.cache: bool = cache
+        self.logged: bool = logged
+        self.admin: bool = admin
 
         self.parameters: Dict[Parameter] = {y.name: y for y in parameters}
 

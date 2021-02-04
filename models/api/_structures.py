@@ -419,7 +419,7 @@ class AlphaFlask(Flask, Requests):
                 self.warning("Wrong permission: %s is not an admin"%user_data)
 
         admin_password = self.conf.get("admin_password")
-        if route["admin"] and admin_password is not None:
+        if self["admin"] and admin_password is not None:
             if secure_lib.check_magic_code(self["admin"], admin_password):
                 return True
 

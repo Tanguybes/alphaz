@@ -17,13 +17,21 @@ from core import core
 
 api = core.api
 db = core.db
-log = core.get_logger("api")
+LOG = core.get_logger("api")
 
 ROUTES = {}
 
 # Specify the debug panels you want
 # api.config['DEBUG_TB_PANELS'] = [ 'flask_debugtoolbar.panels.versions.VersionDebugPanel', 'flask_debugtoolbar.panels.timer.TimerDebugPanel', 'flask_debugtoolbar.panels.headers.HeaderDebugPanel', 'flask_debugtoolbar.panels.request_vars.RequestVarsDebugPanel', 'flask_debugtoolbar.panels.template.TemplateDebugPanel', 'flask_debugtoolbar.panels.sqlalchemy.SQLAlchemyDebugPanel', 'flask_debugtoolbar.panels.logger.LoggingPanel', 'flask_debugtoolbar.panels.profiler.ProfilerDebugPanel', 'flask_debugtoolbar_lineprofilerpanel.panels.LineProfilerPanel' ]
 # toolbar = flask_debugtoolbar.DebugToolbarExtension(api)
+
+default_parameters = [
+    Parameter("reset_cache", ptype=bool, default=False, private=True, cacheable=False),
+    Parameter("requester", ptype=str, private=True, cacheable=False),
+    Parameter("format", ptype=str, default="json", private=True, cacheable=False),
+    Parameter("admin", ptype=str, private=True, cacheable=False)
+]
+default_parameters_names = [p.name for p in default_parameters]
 
 def route(
     path,
@@ -44,17 +52,17 @@ def route(
         parameters = []
     for i, parameter in enumerate(parameters):
         if type(parameter) == str:
-            parameters[i] = Parameter(parameter)
-
-    parameters.append(Parameter("reset_cache", ptype=bool, default=False, private=True, cacheable=False))
-    parameters.append(Parameter("requester", ptype=str, private=True, cacheable=False))
-    parameters.append(Parameter("format", ptype=str, default="json", private=True, cacheable=False))
+            parameter = Parameter(parameter)
+            parameters[i] = parameter
+        if parameter.name in default_parameters_names:
+            LOG.critical("Parameter could not be named <%s> for route <%s>!"%(parameter.name,path))
+    parameters.extend(default_parameters)
 
     def api_in(func):
         @api.route(path, methods=methods, endpoint=func.__name__)
         def api_wrapper(*args, **kwargs):
             if path not in ["/", "/status"]:
-                log.debug(
+                LOG.debug(
                     "get api route {:10} with method <{}>".format(path, func.__name__)
                 )
 
@@ -62,7 +70,7 @@ def route(
             uuid_request = api.get_uuid()
             # ROUTES
             __route = Route(
-                uuid_request, path, parameters, cache=cache, timeout=timeout,
+                uuid_request, path, parameters, cache=cache, timeout=timeout, admin=admin, logged=logged,
                 cache_dir = api.cache_dir,
                 log=api.log,
                 jwt_secret_key="" if not "JWT_SECRET_KEY" in api.config else api.config["JWT_SECRET_KEY"]
@@ -82,11 +90,11 @@ def route(
                 user = api.get_logged_user()
                 token = __route.get_token()
                 if logged and token is None:
-                    log.warning("Wrong permission: empty token")
+                    LOG.warning("Wrong permission: empty token")
                     __route.access_denied()
                     return __route.get_return()
                 elif logged and (user is None or len(user) == 0):
-                    log.warning("Wrong permission: wrong user", user)
+                    LOG.warning("Wrong permission: wrong user", user)
                     __route.access_denied()
                     return __route.get_return()
 

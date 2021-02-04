@@ -23,7 +23,7 @@ def has_no_empty_params(rule):
     return len(defaults) >= len(arguments)
 
 @route("/routes",parameters=[
-    Parameter('admin',default=False,ptype=bool)
+    Parameter('admin_routes',default=False,ptype=bool)
 ])
 def site_map():
     links = []
