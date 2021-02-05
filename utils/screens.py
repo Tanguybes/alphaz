@@ -1,4 +1,4 @@
-import subprocess, os, psutil, logging, json, argparse, time
+import subprocess, os, psutil, logging, json, argparse, time, re
 from logging.handlers import TimedRotatingFileHandler
 from screenutils import list_screens, Screen
 import requests
@@ -30,10 +30,12 @@ def get_cmd_output(cmd):
     return output_lines
 
 def replace_envs(text):
+    if type(text) != str:
+       return text
     envs = re.findall(r"\$[_a-zA-Z]+",text)
     for env in envs:
         if env[1:] in os.environ:
-            text = text.replace(env, os.environ[env[1:]])
+            text = text.replace(env, os.environ[env[1:]].strip())
     return text
 
 if __name__ == "__main__":
@@ -99,6 +101,7 @@ if __name__ == "__main__":
             restarted = False
             if "request" in screen:
                 info("   ==> Api restarting ...")
+                info("      Fetching %s"%screen["request"])
                 time.sleep(5)
                 
                 times = 10
