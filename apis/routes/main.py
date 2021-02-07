@@ -9,69 +9,74 @@ from ...utils.api import route, Parameter
 from ...utils.time import tic, tac
 
 from core import core
+
 api = core.api
-db  = core.db
-LOG = core.get_logger('api')
+db = core.db
+LOG = core.get_logger("api")
 
-@api.route('/assets/<path:path>')
+
+@api.route("/assets/<path:path>")
 def send_js(path):
-    return send_from_directory('assets', filename=path)
+    return send_from_directory("assets", filename=path)
 
-@api.route('/images/<path:path>')
+
+@api.route("/images/<path:path>")
 def send_images(path):
-    return send_from_directory('images', filename=path)
+    return send_from_directory("images", filename=path)
 
-@route('/page', parameters=[
-    Parameter('page', required=True, ptype=str)
-])
+
+@route("/page", parameters=[Parameter("page", required=True, ptype=str)])
 def index():
-    api.set_html(api.get('page'))
+    api.set_html(api.get("page"))
 
-@route('/profil/pic',logged=True)
+
+@route("/profil/pic", logged=True)
 def get_profil_pic():
-    file_path = core.config.get('directories/images')
-    api.get_file(file_path,api.get_logged_user()['id'])
+    file_path = core.config.get("directories/images")
+    api.get_file(file_path, api.get_logged_user()["id"])
 
-@route('/files/upload',logged=True,methods=['POST'])
+
+@route("/files/upload", logged=True, methods=["POST"])
 def upload_file():
-    from flask import request
-    uploaded_file = request.files['file']
-    ext = uploaded_file.filename.split('.')[1]
-    # str(filename) + '.' +
-    filename = str(    api.get_logged_user()['id']) + '.' + ext
+    uploaded_file = request.files["file"]
+    ext = uploaded_file.filename.split(".")[1]
+    filename = str(api.get_logged_user()["id"]) + "." + ext
 
-    file_path = core.config.get('directories/images')
-    print('uploaded file to',file_path)
-    api.set_file(file_path,filename)
+    file_path = core.config.get("directories/images")
+    api.set_file(file_path, filename)
 
-@route('status')
+
+@route("status")
 def status():
     return True
-    
-@route('/')
+
+
+@route("/")
 def home():
     config = api.conf
 
     tests = None
     try:
-        tests = test_lib.get_tests_auto(core.config.get('directories/tests'))
+        tests = test_lib.get_tests_auto(core.config.get("directories/tests"))
     except Exception as ex:
         LOG.error(ex)
 
     parameters = {
-        'mode':core.config.configuration,
-        'mode_color': '#e74c3c' if core.config.configuration == 'prod' else ('#0270D7' if core.config.configuration == 'dev' else '#2ecc71'),
-        'title':config.get('templates/home/title'),
-        'description':config.get('templates/home/description'),
-        'year':datetime.datetime.now().year,
-        'users':0,
-        'ip': request.environ['REMOTE_ADDR'],
-        'admin': config.get('admin_databases'),
-        'routes': api_lib.get_routes_infos(log=LOG),
-        'compagny': config.get('parameters/compagny'),
-        'compagny_website': config.get('parameters/compagny_website'),
-        'dashboard':config.get("dashboard/dashboard/active"),
-        'tests':tests,
-        'databases':database_lib.get_databases_tables_dict(core)
+        "mode": core.config.configuration,
+        "mode_color": "#e74c3c"
+        if core.config.configuration == "prod"
+        else ("#0270D7" if core.config.configuration == "dev" else "#2ecc71"),
+        "title": config.get("templates/home/title"),
+        "description": config.get("templates/home/description"),
+        "year": datetime.datetime.now().year,
+        "users": 0,
+        "ip": request.environ["REMOTE_ADDR"],
+        "admin": config.get("admin_databases"),
+        "routes": api_lib.get_routes_infos(log=LOG),
+        "compagny": config.get("parameters/compagny"),
+        "compagny_website": config.get("parameters/compagny_website"),
+        "dashboard": config.get("dashboard/dashboard/active"),
+        "tests": tests,
+        "databases": database_lib.get_databases_tables_dict(core),
     }
-    api.set_html('home.html', parameters=parameters)
+    api.set_html("home.html", parameters=parameters)

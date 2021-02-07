@@ -7,8 +7,6 @@ from .. import users
 from core import core
 
 api = core.api
-db = core.db
-log = core.get_logger("api")
 
 
 @route(
@@ -24,15 +22,7 @@ log = core.get_logger("api")
 def register():
     if api.get_logged_user() is not None:
         raise AlphaException("logged")
-
-    users.try_register_user(
-        api,
-        db,
-        api.get("mail"),
-        api.get("username"),
-        api.get("password"),
-        api.get("password_confirmation"),
-    )
+    users.try_register_user(**api.get_parameters())
 
 
 @route(
@@ -43,8 +33,7 @@ def register():
 def register_validation():
     if api.get_logged_user() is not None:
         raise AlphaException("logged")
-
-    users.confirm_user_registration(api, token=api.get("tmp_token"), db=db)
+    users.confirm_user_registration(**api.get_parameters())
 
 
 # LOGIN
@@ -57,9 +46,7 @@ def register_validation():
     ],
 )
 def login():
-    users.try_login(
-        api, db, api.get("username"), api.get("password"), request.remote_addr
-    )
+    return users.try_login(**api.get_parameters())
 
 
 @route(
@@ -74,14 +61,13 @@ def password_lost():
     if api.get_logged_user() is not None:
         raise AlphaException("logged")
 
-    username = api.get("username")
-    mail = api.get("mail")
+    username = api["username"]
+    mail = api.get["mail"]
 
-    if username is not None or mail is not None:
-        username_or_mail = username if mail is None else mail
-        users.ask_password_reset(api, username_or_mail, db=db)
-    else:
-        AlphaException("inputs")
+    if username is None and mail is None:
+        raise AlphaException("inputs")
+
+    users.ask_password_reset(username if mail is None else mail)
 
 
 @route(
@@ -96,21 +82,12 @@ def password_lost():
 def password_reset_validation():
     if api.get_logged_user() is not None:
         raise AlphaException("logged")
-
-    users.confirm_user_password_reset(
-        api,
-        token=api.get("tmp_token"),
-        password=api.get("password"),
-        password_confirmation=api.get("password_confirmation"),
-        db=db,
-    )
+    users.confirm_user_password_reset(**api.get_parameters())
 
 
 @route("/logout", cache=False, logged=False, methods=["GET", "POST"])
 def logout():
-    token = api.get_token()
-
-    users.logout(api, token, db=db)
+    users.logout(token)
 
 
 @route(
@@ -123,13 +100,4 @@ def logout():
     ],
 )
 def reset_user_password():
-    user_data = api.get_logged_user()
-
-    users.try_reset_password(
-        api,
-        user_data,
-        api["password"],
-        api["password_confirmation"],
-        db=db,
-        log=api.log,
-    )
+    users.try_reset_password(**api.get_parameters())

@@ -2,93 +2,153 @@ from . import sql_lib, secure_lib
 
 from ..models.database import main_definitions as defs
 
-def get_user_data_by_usernamePassword(db,username, password_attempt,log=None): 
-    results  = db.select(defs.User,filters=[defs.User.username==username],json=True)
+from core import core
+
+DB = core.get_database("users")
+
+
+def __get_user_data_by_identifier_and_password(
+    identifier, password_attempt, identifier_type="username"
+):
+    filters = (
+        [defs.User.username == username]
+        if identifier_type.lower() == "username"
+        else [defs.User.mail == mail]
+    )
+    results = DB.select(defs.User, filters=filters, json=True)
 
     for user in results:
-        user_id         = user['id']
-        hash_saved      = user['password']
-        valid           = secure_lib.compare_passwords(password_attempt,hash_saved)
-
-        if valid:
-            return get_user_data_by_id(db, user_id)
+        user_id = user["id"]
+        if secure_lib.compare_passwords(password_attempt, user["password"]):
+            return get_user_data_by_id(user_id)
     return None
 
-def get_user_data_by_mailPassword(db,mail, password_attempt,log=None):
-    results  = db.select(defs.User,filters=[defs.User.mail==mail],json=True)
 
-    for user in results:
-        user_id         = user['id']
-        hash_saved      = user['password']
-        valid           = secure_lib.compare_passwords(password_attempt,hash_saved)
+def get_user_data_by_username_and_password(username, password_attempt):
+    """Get user data from database by username
 
-        if valid:
-            return get_user_data_by_id(db, user_id)
-    return None
+    Args:
+        mail ([type]): [description]
+        password_attempt ([type]): [description]
 
-def get_user_data_FromLogin(db,login, password,log=None):
-    user_mail       = get_user_data_by_mailPassword(db,login, password,log=log)
-    user_username   = get_user_data_by_usernamePassword(db,login, password,log=log)
+    Returns:
+        [type]: [description]
+    """
+    return __get_user_data_by_identifier_and_password(
+        identifier=username,
+        password_attempt=password_attempt,
+        identifier_type="username",
+    )
+
+
+def get_user_data_by_mail_and_password(mail, password_attempt):
+    """Get user data from database by mail
+
+    Args:
+        mail ([type]): [description]
+        password_attempt ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
+    return __get_user_data_by_identifier_and_password(
+        identifier=username, password_attempt=password_attempt, identifier_type="mail"
+    )
+
+
+def get_user_data_from_login(login, password):
+    """Get user data from database either by mail or username
+
+    Args:
+        login ([type]): [description]
+        password ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
+    user_mail = __get_user_data_by_identifier_and_password(
+        login, password, identifier_type="mail"
+    )
+    user_username = __get_user_data_by_identifier_and_password(
+        login, password, identifier_type="username"
+    )
     if user_mail is not None:
         return user_mail
     if user_username is not None:
         return user_username
     return None
 
-def get_user_data(db, value, column,log=None):
-    ''' Get the user role associated with given column'''
-    results  = db.select(defs.User,filters=[defs.User.__dict__[column]==value],json=True)
-    if len(results) != 0:
-        return results[0]
-    return {}
 
-def get_user_data_by_id(db, user_id,log=None):
-    return get_user_data(db, user_id, "id")
-   
-def get_user_data_by_logged_token(db, token,log=None):
-    return get_user_data(db, token, "token")
-    
-def get_user_data_by_registration_token(db, token,log=None):
-    return get_user_data(db, token, "registration_token")
-    
-def get_user_data_by_password_reset_token(db, token,log=None):
-    return get_user_data(db, token, "password_reset_token")
-        
-def get_user_data_by_mail(db, mail,log=None):
-    return get_user_data(db, mail, "mail")
-    
-def get_user_data_by_username(db, username,log=None):
-    return get_user_data(db, username, "username")
-      
-def get_user_data_by_telegram_id(db, telegram_id,log=None):
-    return get_user_data(db, telegram_id, "telegram_id")
+def __get_user_data(value, column):
+    """ Get the user role associated with given column"""
+    return DB.select(
+        defs.User, filters=[defs.User.__dict__[column] == value], first=True, json=True
+    )
 
-def update_users(db):
-    ''' Update all users '''
-    # Connect to db
-    
+
+def get_user_data_by_id(user_id):
+    return __get_user_data(user_id, "id")
+
+
+def get_user_data_by_logged_token(token):
+    return __get_user_data(token, "token")
+
+
+def get_user_data_by_registration_token(token):
+    return __get_user_data(token, "registration_token")
+
+
+def get_user_data_by_password_reset_token(token):
+    return __get_user_data(token, "password_reset_token")
+
+
+def get_user_data_by_mail(mail):
+    return __get_user_data(mail, "mail")
+
+
+def get_user_data_by_username(username):
+    return __get_user_data(username, "username")
+
+
+def get_user_data_by_telegram_id(telegram_id):
+    return __get_user_data(telegram_id, "telegram_id")
+
+
+def update_users():
+    """ Update all users """
+
     # Set expired states if needed
     query = "UPDATE user SET role = 0 WHERE expire <= UTC_TIMESTAMP();"
-    db.execute_query(query,None)
-    
+    DB.execute_query(query, None)
+
     # Set expired states if needed
     query = "UPDATE user SET password_reset_token = 'consumed' WHERE password_reset_token_expire <= UTC_TIMESTAMP();"
-    db.execute_query(query,None)
-    
+    DB.execute_query(query, None)
+
     # Remove non activated in time accounts
     query = "DELETE FROM user WHERE role = -1 AND date_registred + INTERVAL 15 MINUTE > UTC_TIMESTAMP();"
-    db.execute_query(query,None)
-    
+    DB.execute_query(query, None)
+
     # Remove expired sessions
     query = "DELETE FROM user_session WHERE expire <= UTC_TIMESTAMP();"
-    db.execute_query(query,None)
-                 
-def is_valid_mail(db,email): #TODO: update
-    results     = db.select(defs.MailingList,filters=[defs.MailingList.email==email],json=True)
-    valid       = len([x['email'] for x in results]) != 0
-    return valid
+    DB.execute_query(query, None)
 
-def get_all_address_mails(db):
-    results     = db.select(defs.MailingList,distinct=defs.MailingList.email,json=True)
-    emails      = list(set([x['email'] for x in results]))
-    return emails
+
+def is_valid_mail(email):  # TODO: update
+    return (
+        DB.select(
+            defs.MailingList,
+            filters=[defs.MailingList.email == email],
+            distinct=defs.MailingList.email,
+            unique=defs.MailingList.email,
+            first=True,
+        )
+        != None
+    )
+
+
+def get_all_address_mails():
+    return DB.select(
+        defs.MailingList, distinct=defs.MailingList.email, unique=defs.MailingList.email
+    )
+

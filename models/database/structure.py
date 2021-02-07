@@ -12,9 +12,11 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql.expression import or_, and_, all_
-from flask_sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy, BaseQuery
 from sqlalchemy.engine.reflection import Inspector
-
+from sqlalchemy.exc import OperationalError
+from time import sleep
+import logging
 from .row import Row
 from .utils import get_schema
 
@@ -43,9 +45,42 @@ def get_compiled_query(query):
 
 
 def add_own_encoders(conn, cursor, query, *args):
-    if hasattr(cursor.connection,"encoders"):
+    if hasattr(cursor.connection, "encoders"):
         cursor.connection.encoders[np.float64] = lambda value, encoders: float(value)
         cursor.connection.encoders[np.int64] = lambda value, encoders: int(value)
+
+
+class RetryingQuery(BaseQuery):
+
+    __retry_count__ = 3
+    __retry_sleep_interval_sec__ = 0.5
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def __iter__(self):
+        attempts = 0
+        while True:
+            attempts += 1
+            try:
+                return super().__iter__()
+            except OperationalError as ex:
+                if "Lost connection to MySQL server during query" not in str(ex):
+                    raise
+                if attempts < self.__retry_count__:
+                    logging.debug(
+                        "MySQL connection lost - sleeping for %.2f sec and will retry (attempt #%d)",
+                        self.__retry_sleep_interval_sec__,
+                        attempts,
+                    )
+                    sleep(self.__retry_sleep_interval_sec__)
+                    continue
+                else:
+                    raise
+
+
+class BaseModel:
+    query_class = RetryingQuery
 
 
 class AlphaDatabaseCore(SQLAlchemy):
@@ -57,6 +92,7 @@ class AlphaDatabaseCore(SQLAlchemy):
         config=None,
         timeout: int = None,
         main: bool = False,
+        retry: bool = False,
         **kwargs
     ):
 
@@ -68,7 +104,16 @@ class AlphaDatabaseCore(SQLAlchemy):
 
         event.listen(self._engine, "before_cursor_execute", add_own_encoders)
 
-        super().__init__(*args, engine_options={}, **kwargs)
+        if retry:
+            super().__init__(
+                *args,
+                engine_options={},
+                **kwargs,
+                model_class=BaseModel,
+                query_class=RetryingQuery
+            )
+        else:
+            super().__init__(*args, engine_options={}, **kwargs)
 
         self.name: str = name
         self.main = main
@@ -441,7 +486,8 @@ class AlphaDatabase(AlphaDatabaseCore):
         except Exception as ex:
             self.query_str = get_compiled_query(query)
             self.log.error('non valid query "%s" \n%s' % (self.query_str, str(ex)))
-            self.session.close()
+            if close:
+                self.session.close()
             raise ex
             # raise AlphaException('non_valid_query',get_compiled_query(query),str(ex)))
         if close:

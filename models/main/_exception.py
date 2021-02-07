@@ -14,6 +14,8 @@ def get_message_from_name(name):
 class AlphaException(Exception):
     def __init__(self, name, description=None, parameters: Dict[str, object] = {}):
         self.name = name
+        if isinstance(name, Exception):
+            self.name = "exception"
 
         if name in EXCEPTIONS:
             if not "text" in EXCEPTIONS[name]:

@@ -29,9 +29,10 @@ default_parameters = [
     Parameter("reset_cache", ptype=bool, default=False, private=True, cacheable=False),
     Parameter("requester", ptype=str, private=True, cacheable=False),
     Parameter("format", ptype=str, default="json", private=True, cacheable=False),
-    Parameter("admin", ptype=str, private=True, cacheable=False)
+    Parameter("admin", ptype=str, private=True, cacheable=False),
 ]
 default_parameters_names = [p.name for p in default_parameters]
+
 
 def route(
     path,
@@ -55,7 +56,10 @@ def route(
             parameter = Parameter(parameter)
             parameters[i] = parameter
         if parameter.name in default_parameters_names:
-            LOG.critical("Parameter could not be named <%s> for route <%s>!"%(parameter.name,path))
+            LOG.critical(
+                "Parameter could not be named <%s> for route <%s>!"
+                % (parameter.name, path)
+            )
     parameters.extend(default_parameters)
 
     def api_in(func):
@@ -70,8 +74,14 @@ def route(
             uuid_request = api.get_uuid()
             # ROUTES
             __route = Route(
-                uuid_request, path, parameters, cache=cache, timeout=timeout, admin=admin, logged=logged,
-                cache_dir = api.cache_dir,
+                uuid_request,
+                path,
+                parameters,
+                cache=cache,
+                timeout=timeout,
+                admin=admin,
+                logged=logged,
+                cache_dir=api.cache_dir,
                 log=api.log,
                 jwt_secret_key=""
                 if not "JWT_SECRET_KEY" in api.config
@@ -128,7 +138,7 @@ def route(
                     ):
                         raise __route.set_error(ex)
                     if not "alpha" in str(type(ex)).lower():
-                        log.error(ex)
+                        LOG.error(ex)
                         __route.set_error(AlphaException(ex))
                     else:
                         __route.set_error(ex)
