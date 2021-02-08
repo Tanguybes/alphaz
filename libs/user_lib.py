@@ -11,9 +11,9 @@ def __get_user_data_by_identifier_and_password(
     identifier, password_attempt, identifier_type="username"
 ):
     filters = (
-        [defs.User.username == username]
+        [defs.User.username == identifier]
         if identifier_type.lower() == "username"
-        else [defs.User.mail == mail]
+        else [defs.User.mail == identifier]
     )
     results = DB.select(defs.User, filters=filters, json=True)
 
