@@ -2,6 +2,7 @@ import os, datetime, inspect, sys, re, traceback, uuid, time, logging
 from logging.handlers import TimedRotatingFileHandler
 
 import platform
+
 PLATFORM = platform.system().lower()
 
 from . import _colorations, _utils
@@ -14,8 +15,9 @@ TIMINGS = []
 
 base_time = datetime.datetime.now()
 
+
 class NoParsingFilter(logging.Filter):
-    def __init__(self, name='', excludes = {}, level=None):
+    def __init__(self, name="", excludes={}, level=None):
         super().__init__(name)
         self.excludes = excludes
         self.level = level
@@ -30,52 +32,56 @@ class NoParsingFilter(logging.Filter):
                         return False
         return True
 
-class AlphaLogger():   
-    date_format             = "%Y-%m-%d %H:%M:%S"
-    format_log              = "{$date} - {$level:7} - {$pid:5} - {$file:>15}.{$line:<4} - {$name:<14}: $message" # %(processName)s %(filename)s:%(lineno)s
+
+class AlphaLogger:
+    date_format = "%Y-%m-%d %H:%M:%S"
+    format_log = "{$date} - {$level:7} - {$pid:5} - {$file:>15}.{$line:<4} - {$name:<14}: $message"  # %(processName)s %(filename)s:%(lineno)s
 
     monitoring_logger = None
 
-    def __init__(self, 
-            name: str,
-            filename:str = None,
-            root: str = None,
-            cmd_output: bool = True,
-            level:str = 'INFO',
-            colors=None,
-            database = None,
-            excludes = None
-        ):
-        self.level: str          = level.upper()
-        self.date_str: str       = ""
-        self.database_name: str  = database
-        self.database       = None
+    def __init__(
+        self,
+        name: str,
+        filename: str = None,
+        root: str = None,
+        cmd_output: bool = True,
+        level: str = "INFO",
+        colors=None,
+        database=None,
+        excludes=None,
+    ):
+        self.level: str = level.upper()
+        self.date_str: str = ""
+        self.database_name: str = database
+        self.database = None
         self.excludes = excludes
 
         if filename is None:
-            filename        = name
+            filename = name
         if root is None:
             """
             parentframe     = inspect.stack()[1]
             module          = inspect.getmodule(parentframe[0])
             root            = os.path.abspath(module.__file__).replace(module.__file__,'')"""
-            root            = _utils.get_alpha_logs_root()
+            root = _utils.get_alpha_logs_root()
 
-        self.root           =  _utils.check_root(root)
-        log_path            = self.root + os.sep + filename + '.log'
+        self.root = _utils.check_root(root)
+        log_path = self.root + os.sep + filename + ".log"
 
         # Create logger
-        self.logger             = logging.getLogger(name)
+        self.logger = logging.getLogger(name)
 
-        level_show = _utils.get_level(level if level is not None else 'INFO')
+        level_show = _utils.get_level(level if level is not None else "INFO")
         self.logger.setLevel(level_show)
 
         # File handler
-        handler             = TimedRotatingFileHandler(log_path, when="midnight", interval=1,backupCount=7)
+        handler = TimedRotatingFileHandler(
+            log_path, when="midnight", interval=1, backupCount=7
+        )
 
         if PLATFORM == "windows":
-            handler         = ConcurrentRotatingFileHandler(log_path,"a", 512*1024, 5)
-        #handler.suffix  = "%Y%m%d"
+            handler = ConcurrentRotatingFileHandler(log_path, "a", 512 * 1024, 5)
+        # handler.suffix  = "%Y%m%d"
 
         self.logger.addHandler(handler)
 
@@ -86,16 +92,27 @@ class AlphaLogger():
             self.logger.addHandler(handler)
 
         if self.excludes and len(self.excludes):
-            self.logger.addFilter(NoParsingFilter(excludes=self.excludes, level=self.level))
+            self.logger.addFilter(
+                NoParsingFilter(excludes=self.excludes, level=self.level)
+            )
 
-        self.pid            = os.getpid()
-        self.name           = name
-        #self.cmd_output     = cmd_output if cmd_output is not None else True
+        self.pid = os.getpid()
+        self.name = name
+        # self.cmd_output     = cmd_output if cmd_output is not None else True
 
         self.last_level = None
         self.last_message = None
-    
-    def _log(self,message:str,stack,stack_level:int,level:str='INFO',monitor:str=None,save=False,ex:Exception=None):
+
+    def _log(
+        self,
+        message: str,
+        stack,
+        stack_level: int,
+        level: str = "INFO",
+        monitor: str = None,
+        save=False,
+        ex: Exception = None,
+    ):
         """
                 frame       = inspect.stack()[1]
         module      = inspect.getmodule(frame[0])
@@ -104,29 +121,34 @@ class AlphaLogger():
             origin  = os.path.basename(module.__file__)
         """
 
-        if message is None and ex is not None: 
+        if message is None and ex is not None:
             message = ex
             ex = None
-        if monitor: save = True
+        if monitor:
+            save = True
 
         if isinstance(message, Exception):
-            message    = traceback.format_exc()
+            message = traceback.format_exc()
 
         if monitor is not None and self.monitoring_logger is None:
-            self.monitoring_logger  = AlphaMonitorLogger('monitoring',root=self.root,cmd_output=False)
+            self.monitoring_logger = AlphaMonitorLogger(
+                "monitoring", root=self.root, cmd_output=False
+            )
 
         self.set_current_date()
 
-        full_message                = self.get_formatted_message(message,stack,stack_level,level)
+        full_message = self.get_formatted_message(message, stack, stack_level, level)
 
         if ex is not None:
-            full_message    += "/n" + traceback.format_exc()
+            full_message += "/n" + traceback.format_exc()
 
         fct = getattr(self.logger, level.lower())
         fct(full_message)
         if monitor is not None:
-            fct_monitor = getattr(self.monitoring_logger,level.lower())
-            fct_monitor(message=full_message.replace(message,"[%s] %s"%(monitor,message)))
+            fct_monitor = getattr(self.monitoring_logger, level.lower())
+            fct_monitor(
+                message=full_message.replace(message, "[%s] %s" % (monitor, message))
+            )
 
         self.last_level = level.upper()
         self.last_message = message
@@ -141,73 +163,132 @@ class AlphaLogger():
         """if save: #TODO :activate
             self.__log_in_db(text, origin=origin, type="error")"""
 
-    def get_formatted_message(self,message,stack,stack_level:int,level):
+    def get_formatted_message(self, message, stack, stack_level: int, level):
         msg = self.format_log
 
         parameters = re.findall("\{\$([a-zA-Z0-9]*):?[0-9<>]*\}", msg)
 
         parameters_values = []
 
+        if stack_level >= len(stack):
+            stack_level = len(stack) - 1
         caller = inspect.getframeinfo(stack[stack_level][0])
 
-        structure = '$%s'
+        structure = "$%s"
         keys = {
-            'date':     self.date_str,
-            'pid':      self.pid,
-            'level':    level.upper(),
-            'name':     self.name,
-            'path':     caller.filename,
-            'file':     caller.filename.split(os.sep)[-1].replace('.py',''),
-            'line':     caller.lineno
+            "date": self.date_str,
+            "pid": self.pid,
+            "level": level.upper(),
+            "name": self.name,
+            "path": caller.filename,
+            "file": caller.filename.split(os.sep)[-1].replace(".py", ""),
+            "line": caller.lineno,
         }
-        
+
         for parameter_name in parameters:
             if parameter_name in keys:
-                msg = msg.replace(structure%parameter_name,'')
+                msg = msg.replace(structure % parameter_name, "")
                 parameters_values.append(keys[parameter_name])
 
-        msg = msg.format(*parameters_values).replace(structure%'message',str(message))
+        msg = msg.format(*parameters_values).replace(
+            structure % "message", str(message)
+        )
         return msg
 
-    def info(self,message=None,monitor=None,level=1,save=False,ex:Exception=None):
-        self._log(message,stack=inspect.stack(),stack_level=level,level='info',monitor=monitor,save=save,ex=ex)
+    def info(
+        self, message=None, monitor=None, level=1, save=False, ex: Exception = None
+    ):
+        self._log(
+            message,
+            stack=inspect.stack(),
+            stack_level=level,
+            level="info",
+            monitor=monitor,
+            save=save,
+            ex=ex,
+        )
 
-    def warning(self,message=None,monitor=None,level=1,save=False,ex:Exception=None):
-        self._log(message,stack=inspect.stack(),stack_level=level,level='warning',monitor=monitor,save=save,ex=ex)
+    def warning(
+        self, message=None, monitor=None, level=1, save=False, ex: Exception = None
+    ):
+        self._log(
+            message,
+            stack=inspect.stack(),
+            stack_level=level,
+            level="warning",
+            monitor=monitor,
+            save=save,
+            ex=ex,
+        )
 
-    def error(self,message=None,monitor=None,level=1,save=False,ex:Exception=None):
-        self._log(message,stack=inspect.stack(),stack_level=level,level='error',monitor=monitor,save=save,ex=ex)
+    def error(
+        self, message=None, monitor=None, level=1, save=False, ex: Exception = None
+    ):
+        self._log(
+            message,
+            stack=inspect.stack(),
+            stack_level=level,
+            level="error",
+            monitor=monitor,
+            save=save,
+            ex=ex,
+        )
 
-    def debug(self,message=None,monitor=None,level=1,save=False,ex:Exception=None):
-        self._log(message,stack=inspect.stack(),stack_level=level,level='debug',monitor=monitor,save=save,ex=ex)
+    def debug(
+        self, message=None, monitor=None, level=1, save=False, ex: Exception = None
+    ):
+        self._log(
+            message,
+            stack=inspect.stack(),
+            stack_level=level,
+            level="debug",
+            monitor=monitor,
+            save=save,
+            ex=ex,
+        )
 
-    def critical(self,message=None, monitor=None,level=1,save=False,ex:Exception=None):
-        self._log(message,stack=inspect.stack(),stack_level=level,level='critical',monitor=monitor,save=save,ex=ex)
+    def critical(
+        self, message=None, monitor=None, level=1, save=False, ex: Exception = None
+    ):
+        self._log(
+            message,
+            stack=inspect.stack(),
+            stack_level=level,
+            level="critical",
+            monitor=monitor,
+            save=save,
+            ex=ex,
+        )
 
     def set_current_date(self):
-        current_date        = datetime.datetime.now()
-        self.date_str       = current_date.strftime(self.date_format)
+        current_date = datetime.datetime.now()
+        self.date_str = current_date.strftime(self.date_format)
 
-    def process_start(self,name,parameters):
-        uuid_process                    = str(uuid.uuid4())
-        PROCESSES[uuid_process]    =  {'uuid':uuid,'name':name, 'parameters':parameters,'datetime':datetime.datetime.now()}
-        self.process_log(uuid_process, name, parameters, 'START')
+    def process_start(self, name, parameters):
+        uuid_process = str(uuid.uuid4())
+        PROCESSES[uuid_process] = {
+            "uuid": uuid,
+            "name": name,
+            "parameters": parameters,
+            "datetime": datetime.datetime.now(),
+        }
+        self.process_log(uuid_process, name, parameters, "START")
         return uuid_process
 
     def process_end(self, uuid_process, name, parameters, error=None):
-        PROCESS_INFOS                   = None
+        PROCESS_INFOS = None
         if uuid_process in PROCESSES:
-            PROCESS_INFOS               = PROCESSES[uuid_process] 
+            PROCESS_INFOS = PROCESSES[uuid_process]
 
-        status = 'INFOS'
+        status = "INFOS"
         if PROCESS_INFOS is not None:
-            if name != PROCESS_INFOS['name']:
-                status      = 'NAME'
-            elif parameters != PROCESS_INFOS['parameters']:
-                status      = 'PARAM'
-            name        = PROCESS_INFOS['name']
-            parameters  = PROCESS_INFOS['parameters']
-            status      = 'END'
+            if name != PROCESS_INFOS["name"]:
+                status = "NAME"
+            elif parameters != PROCESS_INFOS["parameters"]:
+                status = "PARAM"
+            name = PROCESS_INFOS["name"]
+            parameters = PROCESS_INFOS["parameters"]
+            status = "END"
 
         if error is not None:
             status = str(error)
@@ -222,36 +303,52 @@ class AlphaLogger():
         from ...models.database.main_definitions import Logs
 
         # Connect to db
-        stackraw    = traceback.format_stack()
-        stack       = ''.join(stackraw) if stackraw is not None else ''
+        stackraw = traceback.format_stack()
+        stack = "".join(stackraw) if stackraw is not None else ""
 
         if self.database is not None:
-            self.database.insert(Logs, values={
-            Logs.type_:type_, Logs.origin:origin, Logs.message:message, Logs.stack:stack})
+            self.database.insert(
+                Logs,
+                values={
+                    Logs.type_: type_,
+                    Logs.origin: origin,
+                    Logs.message: message,
+                    Logs.stack: stack,
+                },
+            )
 
     def print_error(self, error_msg, raise_exception=True):
-        '''Display the last error catched'''
-        if (str(error_msg)[:3] == '-W-'):
-            print('#-# WARNING #-#: ' + str(error_msg)[3:])
+        """Display the last error catched"""
+        if str(error_msg)[:3] == "-W-":
+            print("#-# WARNING #-#: " + str(error_msg)[3:])
         else:
-            error_msg = '#-# ERROR #-#: ' + str(error_msg)
-            error_msg += ' -----> ' + str(sys.exc_info()[0])
+            error_msg = "#-# ERROR #-#: " + str(error_msg)
+            error_msg += " -----> " + str(sys.exc_info()[0])
             self.error(error_msg)
             if raise_exception == True:
-                raise Exception(0,'#-# ERROR #-#')
+                raise Exception(0, "#-# ERROR #-#")
 
     def process_log(self, uuid_process, name, parameters, status):
         from ...models.database.main_definitions import Processes
 
         if type(parameters) != str:
-            parameters = ';'.join([str(x) for x in parameters])
+            parameters = ";".join([str(x) for x in parameters])
 
         if self.database is not None:
-            self.database.insert(Processes, values={
-                Processes.uuid:uuid_process, Processes.name:name, Processes.parameters:parameters, Processes.status:status})
+            self.database.insert(
+                Processes,
+                values={
+                    Processes.uuid: uuid_process,
+                    Processes.name: name,
+                    Processes.parameters: parameters,
+                    Processes.status: status,
+                },
+            )
+
 
 class AlphaMonitorLogger(AlphaLogger):
-    format_log              = "$message"
+    format_log = "$message"
+
 
 """
 @singleton

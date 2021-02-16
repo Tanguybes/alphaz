@@ -60,3 +60,7 @@ def init_all_database():
 
     for table in databases[api.get('database')]:
         database_lib.init_databases(core, api.get('database'),table,drop=api.get('drop'),log=log)
+
+@route("database/blocking",admin=True)
+def get_blocking_queries():
+    return core.db.get_blocked_queries()
