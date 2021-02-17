@@ -95,16 +95,26 @@ class AlphaDatabaseCore(SQLAlchemy):
         main: bool = False,
         **kwargs
     ):
-
         self.db_type: str = config["type"]
         if "user" in config:
             self.user: str = config["user"]
         cnx = config["cnx"]
-        self._engine = create_engine(cnx)
 
-        event.listen(self._engine, "before_cursor_execute", add_own_encoders)
+        engine = create_engine(cnx)
 
-        super().__init__(*args, engine_options={}, **kwargs)
+        event.listen(engine, "before_cursor_execute", add_own_encoders)
+
+        self._engine = engine
+        super().__init__(*args, engine_options={"max_identifier_length":128}, **kwargs)
+
+        """if not bind:
+            session = scoped_session(sessionmaker(autocommit=False,
+                                    autoflush=False,
+                                    bind=engine))
+            self._engine = engine
+            self.Model = declarative_base()
+            self.Model.query = session.query_property()
+            self._session = session"""
 
         self.name: str = name
         self.main = main

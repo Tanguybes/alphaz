@@ -5,8 +5,8 @@ def start_celery(worker=True,beat=False):
     from core import core
 
     config = core.api.conf
-    worker  = config.get("celery/worker")
-    beat    = config.get("celery/beat")
+    """worker  = config.get("celery/worker")
+    beat    = config.get("celery/beat")"""
 
     if beat or worker:
         cmd = 'pkill celery'

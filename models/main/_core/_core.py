@@ -101,6 +101,8 @@ class AlphaCore(AlphaClass):
             self.config.error("Missing <main> database configuration")
             exit()
 
+        #bind = not "NO_BIND" in os.environ or not "Y" in str(os.environ["NO_BIND"]).upper()
+        #if bind:
         self.api.set_databases(db_cnx)
 
         # databases
