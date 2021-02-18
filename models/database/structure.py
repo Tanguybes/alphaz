@@ -15,6 +15,9 @@ from sqlalchemy.sql.expression import or_, and_, all_
 from flask_sqlalchemy import SQLAlchemy, BaseQuery
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.exc import OperationalError
+from sqlalchemy.orm.base import object_mapper
+from sqlalchemy.orm.exc import UnmappedInstanceError
+
 from time import sleep
 import logging
 from .row import Row
@@ -24,6 +27,12 @@ from ...models.logger import AlphaLogger
 from ...libs import dict_lib
 from ...models.main import AlphaException
 
+def is_mapped(obj):
+    try:
+        object_mapper(obj)
+    except UnmappedInstanceError:
+        return False
+    return True
 
 def get_compiled_query(query):
     if hasattr(query, "statement"):
@@ -599,16 +608,19 @@ class AlphaDatabase(AlphaDatabaseCore):
         commit: bool = True,
         close: bool = False,
     ) -> bool:
-        query = self._get_filtered_query(model, filters=filters)
-        values_update = self.get_values(model, values, filters)
-
-        if fetch:
-            query.update(values_update, synchronize_session="fetch")
+        if hasattr(model, "metadata"): 
+            self.session.merge(model)
         else:
-            try:
-                query.update(values_update, synchronize_session="evaluate")
-            except:
+            query = self._get_filtered_query(model, filters=filters)
+            values_update = self.get_values(model, values, filters)
+
+            if fetch:
                 query.update(values_update, synchronize_session="fetch")
+            else:
+                try:
+                    query.update(values_update, synchronize_session="evaluate")
+                except:
+                    query.update(values_update, synchronize_session="fetch")
 
         if commit:
             return self.commit(close)
