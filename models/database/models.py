@@ -8,6 +8,7 @@ from sqlalchemy import (
     Text,
     DateTime,
     UniqueConstraint,
+    event
 )
 from sqlalchemy.types import TypeDecorator
 
@@ -54,6 +55,30 @@ class AlphaTable(object):
             return class_obj.schema
         return get_schema(class_obj)
 
+    @staticmethod
+    def set_attrib_listener(target, value, old_value, initiator):
+        tg = target.__table__.c[initiator.key]
+        python_type = tg.type.python_type
+        if value is None:
+            return None
+        if python_type == datetime.datetime and type(value) == str:
+            return datetime.datetime.strptime(value,"%Y-%m-%dT%H:%M:%S") if 'T' in value else datetime.datetime.strptime(value,"%Y-%m-%d %H:%M:%S")
+        if python_type == datetime.datetime and type(value) == datetime.datetime:
+            return value
+        try:
+            return python_type(value)
+        except Exception as ex:
+            raise
+
+    @classmethod
+    def __declare_last__(cls):
+        for column in cls.__table__.columns.values():
+            event.listen(
+                getattr(cls, column.key),
+                "set",
+                cls.set_attrib_listener,
+                retval=True,
+            )
 
 class AlphaTableId(AlphaTable):
     id = AlphaColumn(Integer, primary_key=True, autoincrement=True)

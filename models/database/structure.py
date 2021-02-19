@@ -15,6 +15,9 @@ from sqlalchemy.sql.expression import or_, and_, all_
 from flask_sqlalchemy import SQLAlchemy, BaseQuery
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.exc import OperationalError
+from sqlalchemy.orm.base import object_mapper
+from sqlalchemy.orm.exc import UnmappedInstanceError
+
 from time import sleep
 import logging
 from .row import Row
@@ -24,6 +27,12 @@ from ...models.logger import AlphaLogger
 from ...libs import dict_lib
 from ...models.main import AlphaException
 
+def is_mapped(obj):
+    try:
+        object_mapper(obj)
+    except UnmappedInstanceError:
+        return False
+    return True
 
 def get_compiled_query(query):
     if hasattr(query, "statement"):
@@ -95,16 +104,26 @@ class AlphaDatabaseCore(SQLAlchemy):
         main: bool = False,
         **kwargs
     ):
-
         self.db_type: str = config["type"]
         if "user" in config:
             self.user: str = config["user"]
         cnx = config["cnx"]
-        self._engine = create_engine(cnx)
 
-        event.listen(self._engine, "before_cursor_execute", add_own_encoders)
+        engine = create_engine(cnx)
 
-        super().__init__(*args, engine_options={}, **kwargs)
+        event.listen(engine, "before_cursor_execute", add_own_encoders)
+
+        self._engine = engine
+        super().__init__(*args, engine_options={"max_identifier_length":128}, **kwargs)
+
+        """if not bind:
+            session = scoped_session(sessionmaker(autocommit=False,
+                                    autoflush=False,
+                                    bind=engine))
+            self._engine = engine
+            self.Model = declarative_base()
+            self.Model.query = session.query_property()
+            self._session = session"""
 
         self.name: str = name
         self.main = main
@@ -589,16 +608,19 @@ class AlphaDatabase(AlphaDatabaseCore):
         commit: bool = True,
         close: bool = False,
     ) -> bool:
-        query = self._get_filtered_query(model, filters=filters)
-        values_update = self.get_values(model, values, filters)
-
-        if fetch:
-            query.update(values_update, synchronize_session="fetch")
+        if hasattr(model, "metadata"): 
+            self.session.merge(model)
         else:
-            try:
-                query.update(values_update, synchronize_session="evaluate")
-            except:
+            query = self._get_filtered_query(model, filters=filters)
+            values_update = self.get_values(model, values, filters)
+
+            if fetch:
                 query.update(values_update, synchronize_session="fetch")
+            else:
+                try:
+                    query.update(values_update, synchronize_session="evaluate")
+                except:
+                    query.update(values_update, synchronize_session="fetch")
 
         if commit:
             return self.commit(close)

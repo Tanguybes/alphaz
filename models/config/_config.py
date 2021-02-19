@@ -516,7 +516,6 @@ class AlphaConfig(AlphaClass):
                     name = cf_db['service_name']
                     c = "(DESCRIPTION = (LOAD_BALANCE=on) (FAILOVER=ON) (ADDRESS = (PROTOCOL = TCP)(HOST = %s)(PORT = %s)) (CONNECT_DATA = (SERVER = DEDICATED) (SERVICE_NAME = %s)))"%(host,port,name)
                 cnx_str        = 'oracle://%s:%s@%s'%(user,password,c)
-            
             elif db_type == "sqlite":
                 cnx_str        = 'sqlite:///' + cf_db['path']
 
