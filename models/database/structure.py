@@ -27,13 +27,6 @@ from ...models.logger import AlphaLogger
 from ...libs import dict_lib
 from ...models.main import AlphaException
 
-def is_mapped(obj):
-    try:
-        object_mapper(obj)
-    except UnmappedInstanceError:
-        return False
-    return True
-
 def get_compiled_query(query):
     if hasattr(query, "statement"):
         full_query_str = query.statement.compile(compile_kwargs={"literal_binds": True})
@@ -110,10 +103,9 @@ class AlphaDatabaseCore(SQLAlchemy):
         cnx = config["cnx"]
 
         engine = create_engine(cnx)
-
         event.listen(engine, "before_cursor_execute", add_own_encoders)
-
         self._engine = engine
+        
         super().__init__(*args, engine_options={"max_identifier_length":128}, **kwargs)
 
         """if not bind:
