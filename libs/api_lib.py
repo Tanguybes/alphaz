@@ -34,6 +34,8 @@ def get_columns_values_output(objects:list,columns:list=None) -> dict:
 
     data                = {}
     data['columns']     = [x for x in columns if x in results[0]]
+    data['values']      = [[x[y] for y in columns if y in x] for x in results]
+    data['values_nb']   = len(data['values'])
     return data
 
 def get_routes_infos(log:AlphaLogger=None,categories=None,routes=None,reload_=False) -> dict:
