@@ -62,7 +62,7 @@ class AlphaTable(object):
         if value is None:
             return None
         if python_type == datetime.datetime and type(value) == str:
-            return datetime.datetime.strptime(value,"%Y-%m-%d %H:%M:%S")
+            return datetime.datetime.strptime(value,"%Y-%m-%dT%H:%M:%S") if 'T' in value else datetime.datetime.strptime(value,"%Y-%m-%d %H:%M:%S")
         if python_type == datetime.datetime and type(value) == datetime.datetime:
             return value
         try:
