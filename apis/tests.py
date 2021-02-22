@@ -1,17 +1,16 @@
-"""
-Tests methods for api
-"""
+"""Tests methods for api."""
 
 import datetime
 
 from ..models.database.main_definitions import Test
-
 from core import core
 DB = core.db
 
 def insert():
-    """insert test
-      
+    """insert test.
+
+    Raises:
+        ex: [description]
     Raises:
         ex: [description]
 

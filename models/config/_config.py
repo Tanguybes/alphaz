@@ -507,8 +507,15 @@ class AlphaConfig(AlphaClass):
                 user,password,host,port,name = cf_db['user'], cf_db['password'], cf_db['host'], cf_db['port'], cf_db['name']
                 cnx_str        = 'mysql+pymysql://%s:%s@%s:%s/%s'%(user,password,host,port,name)
             elif db_type == 'oracle':
-                user,password,host,port,name = cf_db['user'], cf_db['password'], cf_db['host'], cf_db['port'], cf_db['sid']
-                cnx_str        = 'oracle://%s:%s@%s:%s/%s'%(user,password,host,port,name)
+                c = ""
+                user,password,host,port = cf_db['user'], cf_db['password'], cf_db['host'], cf_db['port']
+                if "sid" in cf_db:
+                    name = cf_db['sid']
+                    c = '%s:%s/%s'%(host,port,name)
+                elif "service_name" in cf_db:
+                    name = cf_db['service_name']
+                    c = "(DESCRIPTION = (LOAD_BALANCE=on) (FAILOVER=ON) (ADDRESS = (PROTOCOL = TCP)(HOST = %s)(PORT = %s)) (CONNECT_DATA = (SERVER = DEDICATED) (SERVICE_NAME = %s)))"%(host,port,name)
+                cnx_str        = 'oracle://%s:%s@%s'%(user,password,c)
             elif db_type == "sqlite":
                 cnx_str        = 'sqlite:///' + cf_db['path']
 

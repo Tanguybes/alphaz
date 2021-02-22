@@ -1,95 +1,103 @@
 from flask import request
 
 from ...utils.api import route, Parameter
-from ..models.main import AlphaException
+from ...models.main import AlphaException
 from .. import users
 
 from core import core
 
-api         = core.api
-db          = core.db
-log         = core.get_logger('api')
+api = core.api
 
 
-@route('/register', methods = ['POST'],
-    parameters = [
-        Parameter('mail',required=True),
-        Parameter('username',required=True),
-        Parameter('password',required=True),
-        Parameter('password_confirmation',required=True),
-    ])
+@route(
+    "/register",
+    methods=["POST"],
+    parameters=[
+        Parameter("mail", required=True),
+        Parameter("username", required=True),
+        Parameter("password", required=True),
+        Parameter("password_confirmation", required=True),
+    ],
+)
 def register():
     if api.get_logged_user() is not None:
-        raise AlphaException('logged')
+        raise AlphaException("logged")
+    users.try_register_user(**api.get_parameters())
 
-    users.try_register_user(
-        api,
-        db,
-        api.get('mail'), 
-        api.get('username'), 
-        api.get('password'), 
-        api.get('password_confirmation'))
 
-@route('/register/validation',methods = ['GET'],
-    parameters  = [
-        Parameter('tmp_token',required=True)
-    ])
+@route(
+    "/register/validation",
+    methods=["GET"],
+    parameters=[Parameter("tmp_token", required=True)],
+)
 def register_validation():
     if api.get_logged_user() is not None:
-        raise AlphaException('logged')
+        raise AlphaException("logged")
+    users.confirm_user_registration(**api.get_parameters())
 
-    users.confirm_user_registration(api,token   = api.get('tmp_token'),db=db)
 
 # LOGIN
-@route('/auth', methods = ['POST'],
-    parameters  = [
-        Parameter('username',required=True),
-        Parameter('password',required=True)
-    ])
+@route(
+    "/auth",
+    methods=["POST"],
+    parameters=[
+        Parameter("username", required=True),
+        Parameter("password", required=True),
+    ],
+)
 def login():
-    users.try_login(api, db, api.get('username'), api.get('password'), request.remote_addr)
+    return users.try_login(**api.get_parameters())
 
-@route('/password/lost', methods = ['POST'],
-    parameters = [
-        Parameter('username',required=False),
-        Parameter('mail',required=False)
-    ])
+
+@route(
+    "/password/lost",
+    methods=["POST"],
+    parameters=[
+        Parameter("username", required=False),
+        Parameter("mail", required=False),
+    ],
+)
 def password_lost():
     if api.get_logged_user() is not None:
-        raise AlphaException('logged')
+        raise AlphaException("logged")
 
-    username    = api.get('username')
-    mail        = api.get('mail')
+    username = api["username"]
+    mail = api.get["mail"]
 
-    if username is not None or mail is not None:
-        username_or_mail    = username if mail is None else mail
-        users.ask_password_reset(api,username_or_mail,db=db) 
-    else:
-        AlphaException('inputs')
+    if username is None and mail is None:
+        raise AlphaException("inputs")
 
-@route('/password/reset', methods = ['GET', 'POST'],
-    parameters  = [
-        Parameter('tmp_token',required=True),
-        Parameter('password',required=True),
-        Parameter('password_confirmation',required=True)
-    ])
+    users.ask_password_reset(username if mail is None else mail)
+
+
+@route(
+    "/password/reset",
+    methods=["GET", "POST"],
+    parameters=[
+        Parameter("tmp_token", required=True),
+        Parameter("password", required=True),
+        Parameter("password_confirmation", required=True),
+    ],
+)
 def password_reset_validation():
     if api.get_logged_user() is not None:
-        raise AlphaException('logged')
+        raise AlphaException("logged")
+    users.confirm_user_password_reset(**api.get_parameters())
 
-    users.confirm_user_password_reset(api,token=api.get('tmp_token'), password=api.get('password'), password_confirmation=api.get('password_confirmation'),db=db)
 
-@route('/logout',cache=False,logged=False,methods = ['GET', 'POST'])
+@route("/logout", cache=False, logged=False, methods=["GET", "POST"])
 def logout():
-    token   = api.get_token()
+    users.logout(token)
 
-    users.logout(api,token,db=db)
 
-@route('/profile/password', logged=True, methods = ['POST'],
-    parameters  = [
-        Parameter('password',required=True),
-        Parameter('password_confirmation',required=True)
-    ])
-    user_data               = api.get_logged_user()
-
-    users.try_reset_password(api,user_data, api.get('password'), api.get('password_confirmation'),db=db,log=api.log)users.try_reset_password(api,user_data, api.get('password'), api.get('password_confirmation'),db=db,log=api.log)
+@route(
+    "/profile/password",
+    logged=True,
+    methods=["POST"],
+    parameters=[
+        Parameter("password", required=True),
+        Parameter("password_confirmation", required=True),
+    ],
+)
+def reset_user_password():
+    users.try_reset_password(**api.get_parameters())

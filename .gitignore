@@ -106,3 +106,4 @@ venv.bak/
 .log
 .log.*
 logs
+.vs

@@ -21,7 +21,7 @@ class AlphaJSONEncoder(JSONEncoder):
 
         self.rules[np.int64] = int
         self.rules[np.bool_] = lambda o: o is True
-        self.rules[datetime.datetime] = lambda o: str(o.strftime("%Y-%m-%d %H:%M:%S"))
+        self.rules[datetime.datetime] = lambda o: str(o.strftime("%Y-%m-%dT%H:%M:%S")) if 'T' in str(o) else str(o.strftime("%Y-%m-%d %H:%M:%S"))
         self.rules[pd.DataFrame] = lambda o: o.to_json(orient='index')
         self.rules[bytes] = lambda o: o.decode('utf-8')
         self.rules[dict_keys] = lambda o: list(o)

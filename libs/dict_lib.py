@@ -1,7 +1,12 @@
+def sort_dict(x, value=False, reverse=False):
+    sorted_x = {
+        x: y
+        for x, y in sorted(
+            x.items(), key=lambda kv: kv[1 if value else 0], reverse=reverse
+        )
+    }
+    return sorted_x
 
-def sort_dict(x, value = False):
-    sorted_x = {x:y for x,y in sorted(x.items(), key=lambda kv: kv[1 if value else 0])}
-    return sorted_x 
 
 def get_nested_dict_from_list(in_list) -> dict:
     """Convert list ['a','b','c'] to a nested dict {'a':{'b':{'c':{}}}}
@@ -17,14 +22,16 @@ def get_nested_dict_from_list(in_list) -> dict:
         out = {key: out}
     return out
 
+
 def get_nested(data, *args):
     if args and data:
-        element  = args[0]
+        element = args[0]
         if element:
             value = data.get(element)
             return value if len(args) == 1 else get_nested(value, *args[1:])
 
-def merge_dict(d1:dict, d2:dict) -> dict:
+
+def merge_dict(d1: dict, d2: dict) -> dict:
     """update first dict with second recursively
 
     Args:

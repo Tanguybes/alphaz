@@ -44,12 +44,13 @@ class Route(Requests):
         route: str,
         parameters: List[Parameter],
         cache: bool = False,
-        logged:bool=False,
-        admin:bool=False,
+        logged: bool = False,
+        admin: bool = False,
         timeout=None,
         cache_dir=None,
         log=None,
-        jwt_secret_key=None
+        jwt_secret_key=None,
+        mode=None
     ):
         self.__timeout = timeout
         self.uuid: str = uuid
@@ -62,7 +63,7 @@ class Route(Requests):
 
         self.lasttime = datetime.datetime.now()
 
-        self.mode = "data"
+        self.mode = mode.lower() if mode != None else "data"
 
         self.data = {}
         self.returned = {}
@@ -74,12 +75,12 @@ class Route(Requests):
         self.file_to_set = (None, None)
 
         self.cache_dir = cache_dir
-        self.log=log
+        self.log = log
 
         self.init_return()
 
     def is_outdated(self):
-        return  (datetime.datetime.now() - self.lasttime).total_seconds() > 60 * 5
+        return (datetime.datetime.now() - self.lasttime).total_seconds() > 60 * 5
 
     def get(self, name):
         if not name in self.parameters:
@@ -114,7 +115,7 @@ class Route(Requests):
         return self.is_cache()
 
     def get_key(self):
-        route = self.route if not self.route[0] == '/' else self.route[1:]
+        route = self.route if not self.route[0] == "/" else self.route[1:]
         key = "%s%s" % (route, "__")
         for name, parameter in self.parameters.items():
             if parameter.cacheable and not parameter.private:
@@ -144,7 +145,7 @@ class Route(Requests):
         try:
             returned = io_lib.archive_object(self.data, cache_path)
         except Exception as ex:
-            self.log.error('Cannot cache route %s: %s'%(self.get_key(), str(ex)))
+            self.log.error("Cannot cache route %s: %s" % (self.get_key(), str(ex)))
 
     def get_cached(self):
         if self.log:
@@ -167,12 +168,15 @@ class Route(Requests):
 
     def timeout(self):
         self.returned["status"] = "timeout"
+        self.returned["status_code"] = 524
         self.returned["error"] = 1
 
     def access_denied(self):
+        self.returned["status"] = "unauthorized"
+        self.returned["status_description"] = "unauthorized".capitalize()
         self.returned["token_status"] = "denied"
         self.returned["error"] = 1
-        self.returned["status"] = 401
+        self.returned["status_code"] = 401
 
     def set_error(self, message: str, description: str = None):
         if type(message) == AlphaException:
@@ -182,6 +186,7 @@ class Route(Requests):
 
         self.mode == "data"
         self.returned["status"] = message
+        self.returned["status_code"] = 520
         self.returned["status_description"] = description if description else message
         self.returned["error"] = 1
 
@@ -190,7 +195,12 @@ class Route(Requests):
         self.message = message
 
     def init_return(self):
-        returned = {"token_status": "success", "status": "success", "error": 0}
+        returned = {
+            "token_status": "success",
+            "status": "success",
+            "error": 0,
+            "status_code": 200,
+        }
         self.file_to_get = (None, None)
         self.file_to_set = (None, None)
         self.returned, self.data = returned, {}
@@ -209,11 +219,14 @@ class Route(Requests):
 
     def set_html(self, page, parameters={}):
         self.mode = "html"
-        self.html = {"page": page, "parameters": parameters}
+        self.data = {"page": page, "parameters": parameters}
 
     def get_return(self, forceData=False, return_status=None):
         if self.mode == "html":
-            return render_template(self.html["page"], **self.html["parameters"])
+            if "page" in self.data:
+                return render_template(self.data["page"], **self.data["parameters"])
+            else:
+                return self.data
         if self.mode == "print":
             return self.message
 

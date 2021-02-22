@@ -1,5 +1,5 @@
 # import mysql.connector
-import inspect, os
+import inspect, os, re
 import numpy as np
 
 # from ...libs.oracle_lib import Connection
@@ -8,21 +8,24 @@ from pymysql.err import IntegrityError
 
 from sqlalchemy import inspect as inspect_sqlalchemy
 from sqlalchemy import update, create_engine, event
-from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.orm import scoped_session, sessionmaker, Session
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql.expression import or_, and_, all_
-from flask_sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy, BaseQuery
 from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.orm.base import object_mapper
+from sqlalchemy.orm.exc import UnmappedInstanceError
 
+from time import sleep
+import logging
 from .row import Row
 from .utils import get_schema
 
 from ...models.logger import AlphaLogger
-
-# from ...libs import database_lib
+from ...libs import dict_lib
 from ...models.main import AlphaException
-
 
 def get_compiled_query(query):
     if hasattr(query, "statement"):
@@ -43,9 +46,44 @@ def get_compiled_query(query):
 
 
 def add_own_encoders(conn, cursor, query, *args):
-    if hasattr(cursor.connection,"encoders"):
+    if hasattr(cursor.connection, "encoders"):
         cursor.connection.encoders[np.float64] = lambda value, encoders: float(value)
         cursor.connection.encoders[np.int64] = lambda value, encoders: int(value)
+
+
+class RetryingQuery(BaseQuery):
+
+    __retry_count__ = 3
+    __retry_sleep_interval_sec__ = 0.5
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def __iter__(self):
+        attempts = 0
+        while True:
+            attempts += 1
+            try:
+                return super().__iter__()
+            except OperationalError as ex:
+                if "Lost connection to MySQL server during query" not in str(ex):
+                    print(">> Retry failed")
+                    raise
+                if attempts < self.__retry_count__:
+                    print(">>Retry")
+                    logging.debug(
+                        "MySQL connection lost - sleeping for %.2f sec and will retry (attempt #%d)",
+                        self.__retry_sleep_interval_sec__,
+                        attempts,
+                    )
+                    sleep(self.__retry_sleep_interval_sec__)
+                    continue
+                else:
+                    raise
+
+
+class BaseModel:
+    query_class = RetryingQuery
 
 
 class AlphaDatabaseCore(SQLAlchemy):
@@ -59,16 +97,25 @@ class AlphaDatabaseCore(SQLAlchemy):
         main: bool = False,
         **kwargs
     ):
-
         self.db_type: str = config["type"]
         if "user" in config:
             self.user: str = config["user"]
         cnx = config["cnx"]
-        self._engine = create_engine(cnx)
 
-        event.listen(self._engine, "before_cursor_execute", add_own_encoders)
+        engine = create_engine(cnx)
+        event.listen(engine, "before_cursor_execute", add_own_encoders)
+        self._engine = engine
+        
+        super().__init__(*args, engine_options={"max_identifier_length":128}, **kwargs)
 
-        super().__init__(*args, engine_options={}, **kwargs)
+        """if not bind:
+            session = scoped_session(sessionmaker(autocommit=False,
+                                    autoflush=False,
+                                    bind=engine))
+            self._engine = engine
+            self.Model = declarative_base()
+            self.Model.query = session.query_property()
+            self._session = session"""
 
         self.name: str = name
         self.main = main
@@ -79,6 +126,12 @@ class AlphaDatabaseCore(SQLAlchemy):
         self.error = None
 
         self.query_str = None
+
+    """def get_engine(self, bind=None):
+        return self.db.get_engine(bind=self.name)
+
+    def get_session(self):
+        return self.db.session"""
 
     def test(self, close=False):
         """[Test the connection]
@@ -119,27 +172,37 @@ class AlphaDatabase(AlphaDatabaseCore):
         super().__init__(*args, **kwargs)
 
     def drop(self, table_model):
-        table_model.__table__.drop(self._engine)
+        table_model.__table__.drop(self.get_engine())
 
-    def execute(self, query, values=None):
-        return self.execute_query(query, values)
+    def execute(self, query, values=None, commit=True, close=False):
+        return self.execute_query(query, values, commit=commit, close=close)
 
     def execute_many_query(self, query, values=None, commit=True, close=False):
-        return self.execute_query(query, values, multi=True)
+        return self.execute_query(query, values, multi=True, commit=commit)
 
-    def execute_query(self, query, values=None, multi=False, commit=True, close=False):
+    def execute_query(
+        self,
+        query,
+        values={},
+        multi: bool = False,
+        commit: bool = True,
+        close: bool = False,
+    ) -> bool:
         if self.db_type == "sqlite":
             query = query.replace("%s", "?")
 
         # redirect to get if select
         select = query.strip().upper()[:6] == "SELECT"
         if select:
-            return self.get_query_results(query, values, unique=False)
+            return self.get_query_results(query, values, unique=False, close=close)
+
+        """session = self.get_engine().connect()
+        trans = session.begin()"""
 
         try:
             if multi:
-                for V in values:
-                    self._engine.execute(query, V)
+                for value in values:
+                    self._engine.execute(query, value)
             else:
                 self._engine.execute(query, values)
             self.query_str = get_compiled_query(query)
@@ -148,14 +211,16 @@ class AlphaDatabase(AlphaDatabaseCore):
             if close:
                 self.session.close()
             return True
-        except Exception as err:
-            self.log.error(err)
+        except Exception as ex:
+            self.log.error(ex)
             return False
 
     def get(self, query, values=None, unique=False, log=None):
         return self.get_query_results(query, values=values, unique=unique, log=log)
 
-    def get_query_results(self, query, values=None, unique=False, log=None):
+    def get_query_results(
+        self, query, values=None, unique=False, log=None, close=False
+    ):
         session = self.get_engine(self.app, self.name)
 
         if self.db_type == "sqlite":
@@ -167,6 +232,13 @@ class AlphaDatabase(AlphaDatabaseCore):
         rows = []
         try:
             if values is not None:
+                if type(values) == list:
+                    dict_values = {}
+                    for i, val in enumerate(values):
+                        query = query.replace("%s", ":p%s" % i, 1)
+                        dict_values["p%s" % i] = val
+                    values = dict_values
+
                 resultproxy = session.execute(query, values)
             else:
                 resultproxy = session.execute(query)
@@ -186,24 +258,60 @@ class AlphaDatabase(AlphaDatabaseCore):
                     for value in results
                 ]
             self.query_str = get_compiled_query(query)
-        except Exception as err:
-            stack = inspect.stack()
-            parentframe = stack[1]
-            module = inspect.getmodule(parentframe[0])
-            root = os.path.abspath(module.__file__).replace(module.__file__, "")
-            error_message = "In file {} line {}:\n {} \n\n {}".format(
-                parentframe.filename,
-                parentframe.lineno,
-                "\n".join(parentframe.code_context),
-                err,
-            )
+        except Exception as ex:
             if self.log is not None:
-                self.log.error(error_message)
-
-            # function    = parentframe.function
-            # index       = parentframe.index
+                self.log.error(ex)
+            """
+            except Exception as err:
+                stack = inspect.stack()
+                parentframe = stack[1]
+                module = inspect.getmodule(parentframe[0])
+                root = os.path.abspath(module.__file__).replace(module.__file__, "")
+                error_message = "In file {} line {}:\n {} \n\n {}".format(
+                    parentframe.filename,
+                    parentframe.lineno,
+                    "\n".join(parentframe.code_context),
+                    err,
+                )
+                if self.log is not None:
+                    self.log.error(error_message)
+            """
+        if close:
+            session.close()
 
         return rows
+
+    # MySQL thread id 6081, OS thread handle 0x7f475abcc700, query id 9036497 localhost 127.0.0.1 golliathdb
+
+    def get_blocked_queries(self):
+        query = """SELECT SQL_TEXT
+        FROM performance_schema.events_statements_history ESH,
+            performance_schema.threads T
+        WHERE ESH.THREAD_ID = T.THREAD_ID
+        AND ESH.SQL_TEXT IS NOT NULL
+        AND T.PROCESSLIST_ID = %s
+        ORDER BY ESH.EVENT_ID LIMIT 10;"""
+
+        transaction_id = None
+        result_list = self.get_engine().execute("show engine innodb status;")
+        outputs = {}
+        for result in list(result_list)[0]:
+            for line in result.split("\n"):
+                if transaction_id is not None:
+                    matchs_thread = re.findall("thread id ([0-9]*),", line)
+                    matchs_query = re.findall("query id ([0-9]*)", line)
+                    if len(matchs_thread):
+                        trs = self.get_query_results(query % matchs_thread[0])
+                        outputs[int(times)] = [x["SQL_TEXT"] for x in trs]
+                    transaction_id = None
+
+                matchs_tr = re.findall(
+                    "---TRANSACTION ([0-9]*), ACTIVE ([0-9]*) sec", line
+                )
+                if len(matchs_tr) != 0:
+                    transaction_id, times = matchs_tr[0]
+        outputs = dict_lib.sort_dict(outputs, reverse=True)
+        return outputs
 
     def insert(self, model, values={}, commit=True, test=False, close=False):
         values_update = self.get_values(model, values, {})
@@ -212,14 +320,13 @@ class AlphaDatabase(AlphaDatabaseCore):
         )
 
     def insert_or_update(self, model, values={}, commit=True, test=False):
+        # return self.upsert(model, values)
         values_update = self.get_values(model, values, {})
         return self.add(
             model, parameters=values_update, commit=commit, test=test, update=True
         )
 
-    def add_or_update(
-        self, obj, parameters=None, commit=True, test=False, update=False
-    ):
+    def add_or_update(self, obj, parameters=None, commit=True, test=False, update=True):
         return self.add(
             obj=obj, parameters=parameters, commit=commit, test=test, update=True
         )
@@ -249,19 +356,18 @@ class AlphaDatabase(AlphaDatabaseCore):
                 obj_ = self.session.merge(obj)
 
         if commit:
-            try:
-                self.commit()
-
-            except Exception as ex:
+            self.commit()
+            """except Exception as ex:
                 primaryKeyColName = inspect_sqlalchemy(obj)
 
-                raise AlphaException("database_insert", description=str(ex))
+                raise AlphaException("database_insert", description=str(ex))"""
         if close:
             self.session.close()
         return obj
 
     def upsert(self, model, rows):
-        session = self.session
+        from sqlalchemy.dialects import postgresql
+        from sqlalchemy import UniqueConstraint
 
         table = model.__table__
         stmt = postgresql.insert(table)
@@ -299,31 +405,37 @@ class AlphaDatabase(AlphaDatabaseCore):
             return row
 
         rows = list(filter(None, (handle_foreignkeys_constraints(row) for row in rows)))
-        session.execute(stmt, rows)
+        self.session.execute(stmt, rows)
 
     def commit(self, close=False):
+        valid = True
         try:
             self.session.commit()
         except Exception as ex:
             raise ex
-            LOG.error(ex=ex)
+            self.log.error(ex=ex)
             self.session.rollback()
+            valid = False
         finally:
             if close:
-                self.session.close()
+                self.close()
+        return valid
 
-    def delete_obj(self, obj, commit=True):
+    def delete_obj(self, obj, commit: bool = True, close: bool = False) -> bool:
         self.session.delete(obj)
         if commit:
-            self.commit()
+            return self.commit(close=close)
+        return True
 
-    def delete(self, model, filters=None, commit=True):
+    def delete(
+        self, model, filters=None, commit: bool = True, close: bool = False
+    ) -> bool:
         objs = self.select(model, filters=filters, json=False)
 
         for obj in objs:
             self.delete_obj(obj, commit=False)
         if commit:
-            self.commit()
+            return self.commit(close=close)
         return True
 
     def ensure(self, table_name: str, drop: bool = False):
@@ -474,21 +586,37 @@ class AlphaDatabase(AlphaDatabaseCore):
                 return (
                     None if len(results_json) == 0 else list(results_json.values())[0]
                 )
+
+        if close:
+            self.close()
         return results_json
 
-    def update(self, model, values={}, filters=None, fetch=True):
-        query = self._get_filtered_query(model, filters=filters)
-        values_update = self.get_values(model, values, filters)
-
-        if fetch:
-            query.update(values_update, synchronize_session="fetch")
+    def update(
+        self,
+        model,
+        values={},
+        filters=None,
+        fetch: bool = True,
+        commit: bool = True,
+        close: bool = False,
+    ) -> bool:
+        if hasattr(model, "metadata"): 
+            self.session.merge(model)
         else:
-            try:
-                query.update(values_update, synchronize_session="evaluate")
-            except:
-                query.update(values_update, synchronize_session="fetch")
+            query = self._get_filtered_query(model, filters=filters)
+            values_update = self.get_values(model, values, filters)
 
-        self.commit()
+            if fetch:
+                query.update(values_update, synchronize_session="fetch")
+            else:
+                try:
+                    query.update(values_update, synchronize_session="evaluate")
+                except:
+                    query.update(values_update, synchronize_session="fetch")
+
+        if commit:
+            return self.commit(close)
+        return True
 
     def get_values(self, model, values, filters=None):
         values_update = {}

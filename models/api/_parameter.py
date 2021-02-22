@@ -1,4 +1,7 @@
+import json
 from flask import request
+from sqlalchemy.orm.base import object_mapper
+from sqlalchemy.orm.exc import UnmappedInstanceError
 
 from ..main import AlphaException
 
@@ -119,4 +122,8 @@ class Parameter:
                     "api_wrong_parameter_value",
                     parameters={"parameter": self.name, "type": "float", "value":self.value},
                 )
+
+        if hasattr(self.ptype, "metadata"):
+            r =  json.loads(self.value)
+            self.value = self.ptype(**r)
 

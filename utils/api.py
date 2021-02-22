@@ -29,9 +29,10 @@ default_parameters = [
     Parameter("reset_cache", ptype=bool, default=False, private=True, cacheable=False),
     Parameter("requester", ptype=str, private=True, cacheable=False),
     Parameter("format", ptype=str, default="json", private=True, cacheable=False),
-    Parameter("admin", ptype=str, private=True, cacheable=False)
+    Parameter("admin", ptype=str, private=True, cacheable=False),
 ]
 default_parameters_names = [p.name for p in default_parameters]
+
 
 def route(
     path,
@@ -42,7 +43,8 @@ def route(
     admin=False,
     timeout=None,
     cat=None,
-    description=None
+    description=None,
+    mode=None
 ):
     if path[0] != "/":
         path = "/" + path
@@ -55,7 +57,10 @@ def route(
             parameter = Parameter(parameter)
             parameters[i] = parameter
         if parameter.name in default_parameters_names:
-            LOG.critical("Parameter could not be named <%s> for route <%s>!"%(parameter.name,path))
+            LOG.critical(
+                "Parameter could not be named <%s> for route <%s>!"
+                % (parameter.name, path)
+            )
     parameters.extend(default_parameters)
 
     def api_in(func):
@@ -66,17 +71,28 @@ def route(
                     "get api route {:10} with method <{}>".format(path, func.__name__)
                 )
 
-            #uuid_request = path + "&".join("%s=%s"%(x.name,x.value) for x in parameters if not x.private)
+            # uuid_request = path + "&".join("%s=%s"%(x.name,x.value) for x in parameters if not x.private)
             uuid_request = api.get_uuid()
             # ROUTES
             __route = Route(
-                uuid_request, path, parameters, cache=cache, timeout=timeout, admin=admin, logged=logged,
-                cache_dir = api.cache_dir,
+                uuid_request,
+                path,
+                parameters,
+                cache=cache,
+                timeout=timeout,
+                admin=admin,
+                logged=logged,
+                cache_dir=api.cache_dir,
                 log=api.log,
-                jwt_secret_key="" if not "JWT_SECRET_KEY" in api.config else api.config["JWT_SECRET_KEY"]
+                jwt_secret_key=""
+                if not "JWT_SECRET_KEY" in api.config
+                else api.config["JWT_SECRET_KEY"],
+                mode=mode
             )
             api.routes_objects[uuid_request] = __route
-            api.routes_objects = {x:y for x,y in api.routes_objects.items() if not y.is_outdated()}
+            api.routes_objects = {
+                x: y for x, y in api.routes_objects.items() if not y.is_outdated()
+            }
 
             for parameter in parameters:
                 try:
@@ -122,16 +138,17 @@ def route(
                         api.get("error_format")
                         and api.get("error_format").lower() == "exception"
                     ):
-                        raise ex
+                        raise __route.set_error(ex)
                     if not "alpha" in str(type(ex)).lower():
-                        raise AlphaException(ex)
+                        LOG.error(ex)
+                        __route.set_error(AlphaException(ex))
                     else:
                         __route.set_error(ex)
                 if __route.cache:
                     __route.set_cache()
 
             data = __route.get_return()
-            #api.delete_current_route()
+            # api.delete_current_route()
             return data
 
         api_wrapper.__name__ = func.__name__
@@ -158,7 +175,7 @@ def route(
             "admin": admin,
             "timeout": timeout,
             "category": category,
-            "description": description
+            "description": description,
         }
         api_wrapper._kwargs = kwargs_
 
