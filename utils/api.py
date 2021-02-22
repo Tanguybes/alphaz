@@ -44,6 +44,7 @@ def route(
     timeout=None,
     cat=None,
     description=None,
+    mode=None
 ):
     if path[0] != "/":
         path = "/" + path
@@ -86,6 +87,7 @@ def route(
                 jwt_secret_key=""
                 if not "JWT_SECRET_KEY" in api.config
                 else api.config["JWT_SECRET_KEY"],
+                mode=mode
             )
             api.routes_objects[uuid_request] = __route
             api.routes_objects = {

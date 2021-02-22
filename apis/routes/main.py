@@ -7,6 +7,7 @@ from flask import request, send_from_directory
 from ...libs import test_lib, database_lib, api_lib, transactions_lib
 from ...utils.api import route, Parameter
 from ...utils.time import tic, tac
+from ...models.main import AlphaException
 
 from core import core
 
@@ -80,3 +81,15 @@ def home():
         "databases": database_lib.get_databases_tables_dict(core),
     }
     api.set_html("home.html", parameters=parameters)
+
+@route("doc", mode="html")
+def doc():
+    try:
+        import markdown2
+    except:
+        raise AlphaException("import_error", {"module":"markdown"})
+
+    with open("alphaz/help.md","r") as f:
+        content = f.read()
+        html = markdown2.markdown(content)
+        return html

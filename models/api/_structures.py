@@ -433,3 +433,21 @@ class AlphaFlask(Flask, Requests):
 
     def get_logged_user(self):
         return _utils.get_logged_user()
+
+    def is_get(self):
+        return request.method == "GET"
+
+    def is_post(self):
+        return request.method == "POST"
+
+    def is_put(self):
+        return request.method == "PUT"
+
+    def is_delete(self):
+        return request.method == "DELETE"
+
+    def is_patch(self):
+        return request.method == "PATCH"
+
+    def get_method(self):
+        return request.method

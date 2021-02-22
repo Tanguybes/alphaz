@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Marked in the browser</title>
+</head>
+<body>
+  <div id="content"></div>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+
+  <script>
+        $.ajax({
+            url: "help.md",
+            type: "GET",
+            crossDomain: true,
+            success: function (response) {
+                console.log(response);
+                document.getElementById('content').innerHTML =
+                    marked(response);
+            },
+            error: function (xhr, status) {
+                alert("error");
+            }
+        });
+
+      $.get("help.md", function(doc) {
+          console.log(doc);
+          document.getElementById('content').innerHTML =
+              marked(doc);
+    });
+
+  </script>
+</body>
+</html>

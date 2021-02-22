@@ -50,6 +50,7 @@ class Route(Requests):
         cache_dir=None,
         log=None,
         jwt_secret_key=None,
+        mode=None
     ):
         self.__timeout = timeout
         self.uuid: str = uuid
@@ -62,7 +63,7 @@ class Route(Requests):
 
         self.lasttime = datetime.datetime.now()
 
-        self.mode = "data"
+        self.mode = mode.lower() if mode != None else "data"
 
         self.data = {}
         self.returned = {}
@@ -218,11 +219,14 @@ class Route(Requests):
 
     def set_html(self, page, parameters={}):
         self.mode = "html"
-        self.html = {"page": page, "parameters": parameters}
+        self.data = {"page": page, "parameters": parameters}
 
     def get_return(self, forceData=False, return_status=None):
         if self.mode == "html":
-            return render_template(self.html["page"], **self.html["parameters"])
+            if "page" in self.data:
+                return render_template(self.data["page"], **self.data["parameters"])
+            else:
+                return self.data
         if self.mode == "print":
             return self.message
 
