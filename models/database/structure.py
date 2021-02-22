@@ -232,11 +232,15 @@ class AlphaDatabase(AlphaDatabaseCore):
         rows = []
         try:
             if values is not None:
-                if type(values) == list:
+                if type(values) == list and len(values) != 0:
                     dict_values = {}
                     for i, val in enumerate(values):
-                        query = query.replace("%s", ":p%s" % i, 1)
-                        dict_values["p%s" % i] = val
+                        if type(val) == dict:
+                            query = query.replace(":%s"%list(val.keys())[0], ":p%s" % i, 1)
+                            dict_values["p%s" % i] = list(val.values())[0]
+                        else:
+                            query = query.replace("?", ":p%s" % i, 1)
+                            dict_values["p%s" % i] = val
                     values = dict_values
 
                 resultproxy = session.execute(query, values)
