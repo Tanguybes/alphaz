@@ -16,7 +16,8 @@ class Parameter:
         required: bool = False,
         ptype: type = str,
         private: bool = False,
-        mode: str =  "like"
+        mode: str =  "like",
+        ovverride: bool = False
     ):
         """[summary]
 
@@ -40,6 +41,7 @@ class Parameter:
         self.value = None
         self.private = private
         self.mode = mode
+        self.ovverride = ovverride
 
     def set_value(self):
         dataPost = request.get_json()

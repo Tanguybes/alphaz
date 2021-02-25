@@ -400,6 +400,9 @@ class AlphaFlask(Flask, Requests):
         self.log.critical("Issue with route %s" % request_uuid, monitor="DB")
         return default_route
 
+    def get_path(self):
+        return self.get_current_route().route
+
     def check_is_admin(self) -> bool:
         """Check if user is an admin or not.
 

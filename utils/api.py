@@ -52,16 +52,21 @@ def route(
     parameters_error = None
     if parameters is None:
         parameters = []
+    ovverrides = []
     for i, parameter in enumerate(parameters):
         if type(parameter) == str:
             parameter = Parameter(parameter)
             parameters[i] = parameter
         if parameter.name in default_parameters_names:
-            LOG.critical(
-                "Parameter could not be named <%s> for route <%s>!"
-                % (parameter.name, path)
-            )
-    parameters.extend(default_parameters)
+            if not parameter.ovverride:
+                LOG.critical(
+                    "Parameter could not be named <%s> for route <%s>!"
+                    % (parameter.name, path)
+                )
+                exit()
+            else:
+                ovverrides.append(parameter.name)
+    parameters.extend([parameter for parameter in default_parameters if not parameter.name in ovverrides])
 
     def api_in(func):
         @api.route(path, methods=methods, endpoint=func.__name__)

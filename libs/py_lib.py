@@ -1,6 +1,8 @@
 import sys, imp, inspect, os, glob, copy
 from ..models.watcher import ModuleWatcher
 
+myself = lambda: inspect.stack()[1][3]
+
 def reload_modules(root,log=None):
     root = root.replace("\\","\\\\")
 
