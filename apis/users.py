@@ -12,7 +12,12 @@ from flask import request
 API = core.api
 DB = core.get_database("users")
 
+LOG = core.get_logger("users")
 LOGIN_MODE = core.api.conf.get("auth/mode")
+if LOGIN_MODE == "ldap":
+    import ldap
+    LDAP_SERVER = API.conf.get("auth/ldap/server")
+    BASE_DN = API.conf.get("auth/ldap/baseDN")
 
 # Serve for registration
 def try_register_user(mail, username, password, password_confirmation, validation=True):
@@ -121,18 +126,60 @@ def confirm_user_registration(token):
         if not valid:
             raise AlphaException("error")
 
+def check_credentials(username, password):
+    try:
+        l = ldap.initialize(LDAP_SERVER)
+        l.protocol_version = ldap.VERSION3    
+    except Exception as ex:
+        LOG.error(ex)
+        return None
+    searchScope = ldap.SCOPE_SUBTREE
+    retrieveAttributes = None 
+    searchFilter = "uid=%s" % username
+    try:
+        ldap_result_id = l.search(BASE_DN, searchScope, searchFilter, retrieveAttributes)
+        result_set = []
+        while 1:
+            result_type, result_data = l.result(ldap_result_id, 0)
+            if (result_data == []):
+                break
+            else:
+                if result_type == ldap.RES_SEARCH_ENTRY:
+                    result_set.append(result_data)
+
+        if result_set is not None and result_set[0] is not None and result_set[0][0] is not None and result_set[0][0][0] is not None:
+            LDAP_USERNAME = '%s' % result_set[0][0][0]
+            LDAP_PASSWORD = password
+            try:
+                ldap_client = ldap.initialize(LDAP_SERVER)
+                ldap_client.set_option(ldap.OPT_REFERRALS,0)
+                ldap_client.simple_bind_s(LDAP_USERNAME, LDAP_PASSWORD)
+            except ldap.INVALID_CREDENTIALS:
+                ldap_client.unbind()
+                LOG.error('Wrong username ili password')
+                return None
+            except ldap.SERVER_DOWN:
+                LOG.error('AD server not awailable')
+                return None
+            ldap_client.unbind()
+
+            return {x:y[0].decode() if len(y) == 1 else ([u.decode() for u in y]) for x,y in result_set[0][0][1].items()}
+    except Exception as ex:
+        LOG.error(ex)
+    return None
 
 def try_login(username, password):
     if API.get_logged_user() is not None:
         raise AlphaException("user_already_logged")
-    user_data = user_lib.get_user_data_from_login(username, password)
-    if LOGIN_MODE == "ldap" and user_data is None:
-        valid_ldap = True #TODO: modify
-        if not valid_ldap:
+    
+    if LOGIN_MODE == "ldap":
+        valid_ldap = check_credentials(username, password)
+        if valid_ldap is None:
             raise AlphaException("unknown_user")
-        try_register_user(mail=username, username=username, password=password, password_confirmation=password, validation=False)
+        try_register_user(mail=valid_ldap["mail"], username=username, password=password, password_confirmation=password, validation=False)
         user_data = user_lib.get_user_data_from_login(username, password)
     else:
+        user_data = user_lib.get_user_data_from_login(username, password)
         if user_data is None:
             raise AlphaException("unknown_user")
 
