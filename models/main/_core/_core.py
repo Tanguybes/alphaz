@@ -214,6 +214,7 @@ class AlphaCore(AlphaClass):
                 exit()
 
             self.models_sources.append("alphaz.models.database.main_definitions")
+            self.models_sources.append("alphaz.models.database.users_definitions")
             modules = flask_lib.get_definitions_modules(
                 self.models_sources, log=self.log
             )

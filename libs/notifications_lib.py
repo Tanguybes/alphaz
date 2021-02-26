@@ -1,4 +1,5 @@
-from ..models.database.main_definitions import Notification, User
+from ..models.database.main_definitions import Notification
+from ..models.database.users_definitions import User
 
 def add_notifications(api,db,element_type,element_action,id,users=None,all_users=True):
     user = api.get_logged_user()

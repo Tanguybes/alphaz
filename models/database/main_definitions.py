@@ -138,26 +138,6 @@ class Test(db.Model, AlphaTableIdUpdateDate):
     text_ = AlphaColumn(String(300))
     number_ = AlphaColumn(Integer)
     date_ = AlphaColumn(DateTime)
-
-
-class User(db.Model, AlphaTableId):
-    __bind_key__ = "main"
-    __tablename__ = "user"
-
-    username = AlphaColumn(String(30))
-    mail = AlphaColumn(String(40))
-    password = AlphaColumn(String(100))
-    password_reset_token = AlphaColumn(String(100))
-    password_reset_token_expire = AlphaColumn(DateTime)
-    telegram_id = AlphaColumn(String(100))
-    role = AlphaColumn(Integer)
-    expire = AlphaColumn(DateTime)
-    date_registred = AlphaColumn(DateTime)
-    last_activity = AlphaColumn(DateTime, onupdate=datetime.datetime.now())
-    registration_token = AlphaColumn(String(100))
-    registration_code = AlphaColumn(String(255))
-
-
 class Log(db.Model, AlphaTableIdUpdateDate):
     __bind_key__ = "main"
     __tablename__ = "log"
@@ -176,17 +156,6 @@ class ProcesseLog(db.Model, AlphaTableIdUpdateDate):
     name = AlphaColumn(String(20))
     parameters = AlphaColumn(String(100))
     status = AlphaColumn(String(5))
-
-
-class UserSession(db.Model, AlphaTableId):
-    __bind_key__ = "main"
-    __tablename__ = "user_session"
-
-    user_id = AlphaColumn(Integer)
-    token = AlphaColumn(String(255))
-    ip = AlphaColumn(String(50))
-    expire = AlphaColumn(DateTime)
-
 
 class MailHistory(db.Model, AlphaTableIdUpdateDate):
     __bind_key__ = "main"

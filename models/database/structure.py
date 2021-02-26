@@ -332,7 +332,7 @@ class AlphaDatabase(AlphaDatabaseCore):
 
     def add_or_update(self, obj, parameters=None, commit=True, test=False, update=True):
         return self.add(
-            obj=obj, parameters=parameters, commit=commit, test=test, update=True
+            obj, parameters=parameters, commit=commit, test=test, update=True
         )
 
     def add(
@@ -435,7 +435,8 @@ class AlphaDatabase(AlphaDatabaseCore):
         self, model, filters=None, commit: bool = True, close: bool = False
     ) -> bool:
         objs = self.select(model, filters=filters, json=False)
-
+        if len(objs) == 0:
+            return False
         for obj in objs:
             self.delete_obj(obj, commit=False)
         if commit:

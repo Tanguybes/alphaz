@@ -1,7 +1,7 @@
 import datetime, jwt
 from ..libs import user_lib, sql_lib, secure_lib
 
-from ..models.database import main_definitions as defs
+from ..models.database.users_definitions import User, UserSession
 
 from ..models.main import AlphaException
 
@@ -12,10 +12,12 @@ from flask import request
 API = core.api
 DB = core.get_database("users")
 
+LOGIN_MODE = core.api.conf.get("auth/mode")
+
 # Serve for registration
-def try_register_user(mail, username, password, password_confirmation):
-    userByMail = user_lib.get_user_data_by_mail(DB, mail)
-    userByUsername = user_lib.get_user_data_by_username(DB, username)
+def try_register_user(mail, username, password, password_confirmation, validation=True):
+    userByMail = user_lib.get_user_data_by_mail(mail)
+    userByUsername = user_lib.get_user_data_by_username(username)
 
     if "id" in userByMail or "id" in userByUsername:
         if ("id" in userByMail and userByMail["role"] < 0) or (
@@ -43,16 +45,16 @@ def try_register_user(mail, username, password, password_confirmation):
 
     parameters = {"token": token, "name": username, "mail": mail}
 
-    if not API.send_mail(
+    if validation and not API.send_mail(
         mail_config="registration", parameters_list=[parameters], db=DB
     ):
         raise AlphaException("sending")
     DB.add(
-        defs.User(
+        User(
             username=username,
             mail=mail,
             password=password_hashed,
-            role=-1,
+            role=-1 if validation else 1,
             date_registred=datetime.datetime.now(),
             last_activity=datetime.datetime.now(),
             registration_token=token,
@@ -61,8 +63,8 @@ def try_register_user(mail, username, password, password_confirmation):
 
 
 def ask_password_reset(username_or_mail):
-    user_by_mail = user_lib.get_user_data_by_mail(DB, username_or_mail)
-    user_by_username = user_lib.get_user_data_by_username(DB, username_or_mail)
+    user_by_mail = user_lib.get_user_data_by_mail(username_or_mail)
+    user_by_username = user_lib.get_user_data_by_username(username_or_mail)
 
     if len(user_by_mail.keys()) == 0 and len(user_by_username.keys()) == 0:
         raise AlphaException("unknown_inputs")
@@ -107,7 +109,7 @@ def confirm_user_registration(token):
     if "id" in user_data:
         # Set Role to 0 and revoke token
         user = DB.select(
-            defs.User, filters={"id": user_data["id"]}, first=True, json=False
+            User, filters={"id": user_data["id"]}, first=True, json=False
         )
         if user is None:
             raise AlphaException("error")
@@ -121,14 +123,23 @@ def confirm_user_registration(token):
 
 
 def try_login(username, password):
+    if API.get_logged_user() is not None:
+        raise AlphaException("user_already_logged")
     user_data = user_lib.get_user_data_from_login(username, password)
-    if user_data is None:
-        raise AlphaException("unknown_user")
+    if LOGIN_MODE == "ldap" and user_data is None:
+        valid_ldap = True #TODO: modify
+        if not valid_ldap:
+            raise AlphaException("unknown_user")
+        try_register_user(mail=username, username=username, password=password, password_confirmation=password, validation=False)
+        user_data = user_lib.get_user_data_from_login(username, password)
+    else:
+        if user_data is None:
+            raise AlphaException("unknown_user")
 
     if user_data["role"] == 0:
         raise AlphaException("account_not_validated")
-    if not "JWT_SECRET_kEY" in API.config:
-        raise AlphaException("Missing <JWT_SECRET_kEY> api parameter")
+    if not "JWT_SECRET_KEY" in API.config:
+        raise AlphaException("Missing <JWT_SECRET_KEY> api parameter")
 
     # Generate token
     encoded_jwt = jwt.encode(
@@ -137,9 +148,13 @@ def try_login(username, password):
             "id": user_data["id"],
             "time": str(datetime.datetime.now()),
         },
-        API.config["JWT_SECRET_kEY"],
+        API.config["JWT_SECRET_KEY"],
         algorithm="HS256",
-    ).decode("ascii")
+    )
+    try: #TODO: remove
+        encoded_jwt = encoded_jwt.decode("ascii")
+    except:
+        pass
 
     defaults_validity = {
         "days": 7,
@@ -159,8 +174,8 @@ def try_login(username, password):
     }
 
     # Add new token session related to user
-    if not DB.add(
-        defs.UserSession(
+    if not DB.add_or_update(
+        UserSession(
             user_id=user_data["id"],
             token=encoded_jwt,
             ip=request.remote_addr,
@@ -170,7 +185,7 @@ def try_login(username, password):
         raise AlphaException("error")
 
     return {
-        "user": user_data,
+        "id": user_data["id"],
         "token": encoded_jwt,
         "valid_until": datetime.datetime.now() + datetime.timedelta(**validity_config),
     }
@@ -217,14 +232,16 @@ def try_reset_password(password, password_confirmation):
 
 def logout():
     token = API.get_token()
-    if not DB.delete(defs.UserSession, filters={"token": token}):
+    if token is None:
+        raise AlphaException("token_not_specified")
+    if not DB.delete(UserSession, filters={"token": token}):
         raise AlphaException("fail")
 
 
 def get_user_dataFromToken(token):
     user_id = None
     results = DB.select(
-        defs.UserSession, filters=[defs.UserSession.token == token], json=True
+        UserSession, filters=[UserSession.token == token], json=True
     )
     if len(results) != 0:
         user_id = results[0]["user_id"]
@@ -235,7 +252,7 @@ def get_user_dataFromToken(token):
 
 
 def try_subscribe_user(mail, nb_days, target_role):
-    userByMail = user_lib.get_user_data_by_mail(DB, mail)
+    userByMail = user_lib.get_user_data_by_mail(mail)
     user_data = None
     if "id" in userByMail:
         if "id" in userByMail:

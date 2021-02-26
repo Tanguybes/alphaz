@@ -3,6 +3,12 @@ from ..models.watcher import ModuleWatcher
 
 myself = lambda: inspect.stack()[1][3]
 
+def myself(fct=None):
+    name = inspect.stack()[1][3]
+    if fct:
+        name = fct(name)
+    return name
+
 def reload_modules(root,log=None):
     root = root.replace("\\","\\\\")
 

@@ -4,6 +4,10 @@ import secrets
 
 def secure_password(password):
     password_hashed = hashpw(password.encode(), gensalt())
+    try: #todo: remove
+        password_hashed = password_hashed.decode()
+    except:
+        pass
     return password_hashed
 
 def compare_passwords(password,hash_saved):

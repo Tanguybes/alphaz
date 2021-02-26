@@ -63,7 +63,7 @@ class AlphaFlask(Flask, Requests):
 
         self.routes_objects = {} 
 
-    def get_parameters(self) -> Dict[str, object]:
+    def get_parameters(self, not_none=False) -> Dict[str, object]:
         """Get non private route parameters values as a dict.
 
         Returns:
@@ -71,7 +71,7 @@ class AlphaFlask(Flask, Requests):
         """
         route = self.get_current_route()
         parameters = route.parameters
-        parameters_values = {x: y.value for x, y in parameters.items() if not y.private}
+        parameters_values = {x: y.value for x, y in parameters.items() if not y.private and (not not_none or y.value is not None)}
         return parameters_values
 
     def set_data(self, data):

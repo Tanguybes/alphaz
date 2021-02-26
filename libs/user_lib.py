@@ -1,6 +1,7 @@
 from . import sql_lib, secure_lib
 
 from ..models.database import main_definitions as defs
+from ..models.database.users_definitions import User, UserSession
 
 from core import core
 
@@ -11,11 +12,11 @@ def __get_user_data_by_identifier_and_password(
     identifier, password_attempt, identifier_type="username"
 ):
     filters = (
-        [defs.User.username == identifier]
+        [User.username == identifier]
         if identifier_type.lower() == "username"
-        else [defs.User.mail == identifier]
+        else [User.mail == identifier]
     )
-    results = DB.select(defs.User, filters=filters, json=True)
+    results = DB.select(User, filters=filters, json=True)
 
     for user in results:
         user_id = user["id"]
@@ -25,7 +26,7 @@ def __get_user_data_by_identifier_and_password(
 
 
 def get_user_data_by_username_and_password(username, password_attempt):
-    """Get user data from database by username
+    """Get user data from database by username.
 
     Args:
         mail ([type]): [description]
@@ -42,7 +43,7 @@ def get_user_data_by_username_and_password(username, password_attempt):
 
 
 def get_user_data_by_mail_and_password(mail, password_attempt):
-    """Get user data from database by mail
+    """Get user data from database by mail.
 
     Args:
         mail ([type]): [description]
@@ -52,12 +53,12 @@ def get_user_data_by_mail_and_password(mail, password_attempt):
         [type]: [description]
     """
     return __get_user_data_by_identifier_and_password(
-        identifier=username, password_attempt=password_attempt, identifier_type="mail"
+        identifier=mail, password_attempt=password_attempt, identifier_type="mail"
     )
 
 
 def get_user_data_from_login(login, password):
-    """Get user data from database either by mail or username
+    """Get user data from database either by mail or username.
 
     Args:
         login ([type]): [description]
@@ -80,9 +81,9 @@ def get_user_data_from_login(login, password):
 
 
 def __get_user_data(value, column):
-    """ Get the user role associated with given column"""
+    """Get the user role associated with given column."""
     return DB.select(
-        defs.User, filters=[defs.User.__dict__[column] == value], first=True, json=True
+        User, filters=[User.__dict__[column] == value], first=True, json=True
     )
 
 
@@ -115,7 +116,7 @@ def get_user_data_by_telegram_id(telegram_id):
 
 
 def update_users():
-    """ Update all users """
+    """Update all users."""
 
     # Set expired states if needed
     query = "UPDATE user SET role = 0 WHERE expire <= UTC_TIMESTAMP();"
