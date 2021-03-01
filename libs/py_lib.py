@@ -23,7 +23,7 @@ def reload_modules(root,log=None):
             except:
                 pass
 
-def watch_modules(roots: [],log=None):
+def watch_modules(roots: list=[],log=None):
     mw      = ModuleWatcher()
     roots   = [root.replace("\\","\\\\") for root in roots]
 
