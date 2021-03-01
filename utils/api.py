@@ -166,7 +166,10 @@ def route(
                 key_parameters.append(parameter)
 
         if not "cat" in locals() or cat is None:
-            category = func.__module__.split(".")[-1]
+            groups = func.__module__.split(".")
+            category = groups[-1] 
+            if len(groups) >= 2 and groups[-2] != "routes":
+                category = "/".join(groups[-2:])
         else:
             category = cat.lower()
 
