@@ -411,14 +411,16 @@ class AlphaDatabase(AlphaDatabaseCore):
         rows = list(filter(None, (handle_foreignkeys_constraints(row) for row in rows)))
         self.session.execute(stmt, rows)
 
-    def commit(self, close=False):
+    def commit(self, close=False, session=None):
+        if session is None:
+            session = self.session
         valid = True
         try:
-            self.session.commit()
+            session.commit()
         except Exception as ex:
             raise ex
             self.log.error(ex=ex)
-            self.session.rollback()
+            session.rollback()
             valid = False
         finally:
             if close:
@@ -426,9 +428,10 @@ class AlphaDatabase(AlphaDatabaseCore):
         return valid
 
     def delete_obj(self, obj, commit: bool = True, close: bool = False) -> bool:
-        self.session.delete(obj)
+        session = self.object_session(obj)
+        session.delete(obj)
         if commit:
-            return self.commit(close=close)
+            return self.commit(close=close,session=session)
         return True
 
     def delete(
