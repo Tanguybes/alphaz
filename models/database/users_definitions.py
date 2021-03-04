@@ -63,6 +63,22 @@ class User(db.Model, AlphaTableId):
     registration_token = AlphaColumn(String(100))
     registration_code = AlphaColumn(String(255))
 
+class Notification(db.Model, AlphaTableIdUpdateDate):
+    __bind_key__ = BIND
+    __tablename__ = "notification"
+
+    user = AlphaColumn(Integer, ForeignKey("user.id"), nullable=False)
+    userObj = relationship(
+        "User",
+        backref=backref(__tablename__ + "s", lazy=True, cascade="all, delete-orphan"),
+    )
+
+    user_from = AlphaColumn(Integer, nullable=False)
+
+    element_type = AlphaColumn(String(30))
+    element_action = AlphaColumn(String(20))
+    element_id = AlphaColumn(Integer)
+
 class Permission(db.Model, AlphaTableUpdateDate):
     p_name =  AlphaColumn(String(30), primary_key=True)
     p_type =  AlphaColumn(String(20), primary_key=True)

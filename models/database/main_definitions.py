@@ -72,23 +72,6 @@ class Logs(db.Model, AlphaTableIdUpdateDate):
     stack = AlphaColumn(Text)
 
 
-class Notification(db.Model, AlphaTableIdUpdateDate):
-    __bind_key__ = "main"
-    __tablename__ = "notification"
-
-    user = AlphaColumn(Integer, ForeignKey("user.id"), nullable=False)
-    userObj = relationship(
-        "User",
-        backref=backref(__tablename__ + "s", lazy=True, cascade="all, delete-orphan"),
-    )
-
-    user_from = AlphaColumn(Integer, nullable=False)
-
-    element_type = AlphaColumn(String(30))
-    element_action = AlphaColumn(String(20))
-    element_id = AlphaColumn(Integer)
-
-
 class Tests(db.Model, AlphaTableIdUpdateDate):
     __bind_key__ = "main"
     __tablename__ = "tests"

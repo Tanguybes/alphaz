@@ -73,12 +73,15 @@ class AlphaTable(object):
     @classmethod
     def __declare_last__(cls):
         for column in cls.__table__.columns.values():
-            event.listen(
-                getattr(cls, column.key),
-                "set",
-                cls.set_attrib_listener,
-                retval=True,
-            )
+            try:
+                event.listen(
+                    getattr(cls, column.key),
+                    "set",
+                    cls.set_attrib_listener,
+                    retval=True,
+                )
+            except Exception as ex:
+                print(ex)
 
 class AlphaTableId(AlphaTable):
     id = AlphaColumn(Integer, primary_key=True, autoincrement=True)
