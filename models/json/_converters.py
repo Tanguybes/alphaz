@@ -1,8 +1,7 @@
-'''
-Created on 25 mars 2019
+"""Created on 25 mars 2019.
 
 @author: Aurele Durand
-'''
+"""
 import datetime 
 import pandas as pd
 import numpy as np
@@ -26,6 +25,7 @@ class AlphaJSONEncoder(JSONEncoder):
         self.rules[bytes] = lambda o: o.decode('utf-8')
         self.rules[dict_keys] = lambda o: list(o)
         self.rules[datetime.timedelta] = lambda o: str(o)
+        self.rules[decimal.Decimal] = lambda o: str(o)
         #self.rules[NameError] = lambda o:str(o)
         #self.rules[ValueError] = lambda o:str(o)
         #self.rules[TypeError] = lambda o:str(o)
