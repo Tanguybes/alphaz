@@ -2,7 +2,7 @@
 
 @author: Aurele Durand
 """
-import datetime 
+import datetime, decimal
 import pandas as pd
 import numpy as np
 
