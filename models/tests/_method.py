@@ -30,6 +30,7 @@ class TestMethod:
         log.info('Testing function <%s> of <%s> in category <%s>'%(self.name,type(self).__name__,self.category))
 
         result                  = classObject.test(self.name)
+        classObject.end()
         self.status             = result if type(result) == bool else False
 
         log.info('Function <%s> of <%s> in category <%s>: %s'%(

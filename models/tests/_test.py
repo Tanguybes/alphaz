@@ -16,12 +16,15 @@ class AlphaTest():
     def __init__(self):
         self.output: bool = None
 
+    def end(self):
+        pass
+
     def test(self,name):
         self.output = None
         status = False
         fct = getattr(self,name)
         if fct is None:
-            LOG.info('Failed to get testing function <%s> in category <%s>'%(name,category))
+            LOG.info('Failed to get testing function <%s> in category <%s>'%(name, category))
             return False
         try:
             status = fct()
@@ -41,6 +44,12 @@ class AlphaTest():
             object_to_save      = fct(get_return=True)
             object_name_to_save = fct(get_name=True)
             AlphaSave.save(object_to_save,object_name_to_save)
+
+    def reverse(self):
+        self.__reverse_output()
+
+    def __reverse_output(self):
+        self.output = not self.output
 
     def _set_output(self,status):
         if self.output is not None:
@@ -68,6 +77,10 @@ class AlphaTest():
         status = a is not None
         self._assert(status, conditions)
 
+    def assert_is_empty(self, a, conditions: List[bool]=[], attribute=None):
+        self.assert_is_not_empty(a, conditions = conditions, attribute=attribute)
+        self.__reverse_output()
+
     def assert_is_not_empty(self, a, conditions: List[bool]=[], attribute=None):
         if attribute is not None:
             if not hasattr(a,attribute):
@@ -78,6 +91,10 @@ class AlphaTest():
         else:
             status = a is not None and len(a) != 0
 
+        self._assert(status, conditions)
+
+    def assert_equal(self, a, b, conditions: List[bool]=[]):
+        status = a == b
         self._assert(status, conditions)
         
     def assert_length(self, a, length, conditions: List[bool]=[]):
