@@ -424,7 +424,7 @@ class AlphaDatabase(AlphaDatabaseCore):
             valid = False
         finally:
             if close:
-                self.close()
+                session.close()
         return valid
 
     def delete_obj(self, obj, commit: bool = True, close: bool = False) -> bool:
@@ -561,7 +561,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         except Exception as ex:
             self.query_str = get_compiled_query(query)
             self.log.error('non valid query "%s" \n%s' % (self.query_str, str(ex)))
-            self.session.close()
+            query.session.close()
             raise ex
             # raise AlphaException('non_valid_query',get_compiled_query(query),str(ex)))
         if close:
@@ -595,8 +595,6 @@ class AlphaDatabase(AlphaDatabaseCore):
                     None if len(results_json) == 0 else list(results_json.values())[0]
                 )
 
-        if close:
-            self.close()
         return results_json
 
     def update(
