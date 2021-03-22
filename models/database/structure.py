@@ -106,7 +106,8 @@ class AlphaDatabaseCore(SQLAlchemy):
         event.listen(engine, "before_cursor_execute", add_own_encoders)
         self._engine = engine
         
-        super().__init__(*args, engine_options={"max_identifier_length":128}, **kwargs)
+        engine_options = config["engine_options"] if 'engine_options' in config else {}
+        super().__init__(*args, engine_options=engine_options, **kwargs)
 
         """if not bind:
             session = scoped_session(sessionmaker(autocommit=False,

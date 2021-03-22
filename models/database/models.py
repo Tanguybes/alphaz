@@ -81,7 +81,7 @@ class AlphaTable(object):
                     retval=True,
                 )
             except Exception as ex:
-                print(ex)
+                continue #TODO: modify
 
 class AlphaTableId(AlphaTable):
     id = AlphaColumn(Integer, primary_key=True, autoincrement=True)
