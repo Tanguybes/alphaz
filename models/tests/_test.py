@@ -58,14 +58,11 @@ class AlphaTest():
             self.output = status
 
     def assert_array_equal(self,a,b, conditions: List[bool]=[]):
-        equal = len(a) == len(b)
-        if equal:
+        status = len(a) == len(b)
+        if status:
             for i in range(len(a)):
                 if a[i] != b[i]: 
-                    equal = False
-
-        if not equal:
-            LOG.debug("Arrays size are not equal: <%s> and <%s>"%(len(a),len(b)))
+                    status = False
         self._assert(status, conditions)
 
     def _assert(self,status, conditions: List[bool]=[]):
