@@ -3,15 +3,15 @@ from random import randint
 import secrets
 
 def secure_password(password):
-    password_hashed = hashpw(password.encode(), gensalt())
+    password_hashed = hashpw(password.encode('utf-8'), gensalt())
     try: #todo: remove
-        password_hashed = password_hashed.decode()
+        password_hashed = password_hashed.decode('utf-8')
     except:
         pass
     return password_hashed
 
 def compare_passwords(password,hash_saved):
-    valid = checkpw(str(password).encode(),str(hash_saved).encode())
+    valid = checkpw(str(password).encode('utf-8'),str(hash_saved).encode('utf-8'))
     return valid
 
 def get_token():

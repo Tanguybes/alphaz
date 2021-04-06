@@ -156,7 +156,7 @@ def check_credentials(username, password):
                 ldap_client.simple_bind_s(LDAP_USERNAME, LDAP_PASSWORD)
             except ldap.INVALID_CREDENTIALS:
                 ldap_client.unbind()
-                LOG.error('Wrong username ili password')
+                LOG.error('Wrong username or password')
                 return None
             except ldap.SERVER_DOWN:
                 LOG.error('AD server not awailable')

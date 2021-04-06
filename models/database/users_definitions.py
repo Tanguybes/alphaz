@@ -63,6 +63,57 @@ class User(db.Model, AlphaTableId):
     registration_token = AlphaColumn(String(100))
     registration_code = AlphaColumn(String(255))
 
+class UserRole(db.Model, AlphaTableIdUpdateDate):
+    __bind_key__ = BIND
+    __tablename__ = "user_role"
+
+    user = AlphaColumn(Integer, ForeignKey("user.id"), nullable=False)
+    userObj = relationship(
+        "User",
+        backref=backref(__tablename__ + "s", lazy=True, cascade="all, delete-orphan"),
+    )
+
+    role = AlphaColumn(Integer, ForeignKey("role.id"), nullable=False)
+    roleObj = relationship(
+        "Role",
+        backref=backref(__tablename__ + "s", lazy=True, cascade="all, delete-orphan"),
+    )
+
+    activated = AlphaColumn(Boolean, default=True)
+
+class Role(db.Model, AlphaTableIdUpdateDate):
+    __bind_key__ = BIND
+    __tablename__ = "role"
+
+    name = AlphaColumn(String(200))
+    description = AlphaColumn(Text)
+    activated = AlphaColumn(Boolean, default=True)
+
+class RolePermission(db.Model, AlphaTableIdUpdateDate):
+    __bind_key__ = BIND
+    __tablename__ = "role_permission"
+
+    role = AlphaColumn(Integer, ForeignKey("role.id"), nullable=False)
+    roleObj = relationship(
+        "Role",
+        backref=backref(__tablename__ + "s", lazy=True, cascade="all, delete-orphan"),
+    )
+
+    permission = AlphaColumn(Integer, ForeignKey("permission.id"), nullable=False)
+    roleObj = relationship(
+        "Permission",
+        backref=backref(__tablename__ + "s", lazy=True, cascade="all, delete-orphan"),
+    )
+
+    activated = AlphaColumn(Boolean, default=True)
+class Permission(db.Model, AlphaTableIdUpdateDate):
+    __bind_key__ = BIND
+    __tablename__ = "permission"
+
+    key = AlphaColumn(String(200))
+    description = AlphaColumn(Text)
+    activated = AlphaColumn(Boolean, default=True)
+
 class Notification(db.Model, AlphaTableIdUpdateDate):
     __bind_key__ = BIND
     __tablename__ = "notification"
@@ -78,11 +129,3 @@ class Notification(db.Model, AlphaTableIdUpdateDate):
     element_type = AlphaColumn(String(30))
     element_action = AlphaColumn(String(20))
     element_id = AlphaColumn(Integer)
-
-class Permission(db.Model, AlphaTableUpdateDate):
-    p_name =  AlphaColumn(String(30), primary_key=True)
-    p_type =  AlphaColumn(String(20), primary_key=True)
-    p_value =  AlphaColumn(String(254), primary_key=True)
-    p_value_type =  AlphaColumn(String(20), primary_key=True)
-    activated =  AlphaColumn(String(550))
-    description =  AlphaColumn(Boolean)
