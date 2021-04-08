@@ -607,20 +607,31 @@ class AlphaDatabase(AlphaDatabaseCore):
         commit: bool = True,
         close: bool = False,
     ) -> bool:
-        if hasattr(model, "metadata"): 
-            self.session.merge(model)
+        if type(model) != list:
+            models = [model]
+            values_list = [values]
         else:
-            query = self._get_filtered_query(model, filters=filters)
-            values_update = self.get_values(model, values, filters)
-
-            if fetch:
-                query.update(values_update, synchronize_session="fetch")
+            models = model 
+            values_list = values
+        size_values= len(values)
+        for i, model in enumerate(models):
+            if i < size_values:
+                values = values_list[i]
+            
+            if hasattr(model, "metadata"): 
+                self.session.merge(model)
             else:
-                try:
-                    query.update(values_update, synchronize_session="evaluate")
-                except:
+                query = self._get_filtered_query(model, filters=filters)
+                values_update = self.get_values(model, values, filters)
+ 
+                if fetch:
                     query.update(values_update, synchronize_session="fetch")
-
+                else:
+                    try:
+                        query.update(values_update, synchronize_session="evaluate")
+                    except:
+                        query.update(values_update, synchronize_session="fetch")
+ 
         if commit:
             return self.commit(close)
         return True
