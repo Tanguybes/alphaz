@@ -98,7 +98,7 @@ venv.bak/
 .ropeproject
 
 # mkdocs documentation
-/site
+documentations/site
 
 # mypy
 .mypy_cache/
@@ -107,3 +107,4 @@ venv.bak/
 .log.*
 logs
 .vs
+

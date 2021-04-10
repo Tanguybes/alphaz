@@ -12,12 +12,12 @@ class Parameter:
         name: str,
         default=None,
         options=None,
-        cacheable: bool = True,
-        required: bool = False,
-        ptype: type = str,
-        private: bool = False,
-        mode: str =  "like",
-        ovverride: bool = False
+        cacheable: bool=True,
+        required: bool=False,
+        ptype: type=str,
+        private: bool=False,
+        mode: str="like",
+        ovverride: bool=False
     ):
         """[summary]
 
@@ -72,12 +72,13 @@ class Parameter:
             )
 
         if self.ptype == str and self.mode == "like":
+            self.value = str(self.value)
             if (self.value is not None) and (self.value.startswith('*') or self.value.endswith('*')):
-                self.value   = self.value.replace('*','%')
+                self.value = self.value.replace('*', '%')
 
         if self.ptype == bool and not self.value is None:
             str_value = str(self.value).lower()
-            if str_value in ["y","true","t","1"]:
+            if str_value in ["y", "true", "t", "1"]:
                 value = True
             elif str_value in ["n", "false", "f", "0"]:
                 value = False
@@ -126,6 +127,6 @@ class Parameter:
                 )
 
         if hasattr(self.ptype, "metadata"):
-            r =  json.loads(self.value)
+            r = json.loads(self.value)
             self.value = self.ptype(**r)
 

@@ -1,0 +1,14 @@
+site_name: Alpha Documentation
+nav:
+  - Home: index.md
+  - Api: alpha_api.md
+  - Setup: alpha_setup.md
+  - Documentation: documentation.md
+markdown_extensions:
+  - admonition
+  - pymdownx.arithmatex
+  - pymdownx.details
+  - codehilite
+  - pymdownx.superfences
+theme:
+  name: material
