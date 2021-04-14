@@ -576,7 +576,7 @@ class AlphaConfig(AlphaClass):
 
         for path in self.required:
             if not self.is_path(path):
-                self.log.error("Missing '%s' key in config file"%(path))
+                self.log.error("Missing '%s' key in config file %s"%(path,self.filepath))
                 self.valid = False
                 exit()
         
