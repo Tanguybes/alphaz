@@ -94,8 +94,10 @@ class AlphaTest():
         status = a == b
         self._assert(status, conditions)
         
-    def assert_length(self, a, length, conditions: List[bool]=[]):
-        status = a is not None and len(a) != 0 and len(a) == length
+    def assert_length(self, a, length, conditions: List[bool]=[], strict:bool=False):
+        status = a is not None and len(a) == length
+        if strict:
+            status = status and len(a) != 0
         self._assert(status, conditions)
 
     def assert_transaction(self,tr, conditions: List[bool]=[]):
