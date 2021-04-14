@@ -4,9 +4,7 @@
 
 The api system is completely based on Flask and compatible. You could use Flask inside Alpha system without any issue.
 
-## Configuration
-
-The api is automatically configured from the `api.jon` file.
+## How to use
 
 Your could import it using simply from the **utils**:
 
@@ -22,6 +20,14 @@ api = core.api
 ```
 
 > **api** is the equivalent for **app** in **Flask** framework.
+
+## Configuration
+
+The api is automatically configured from the `api.jon` file.
+
+### Admin
+
+You could specify ip in the **admins** parameter. 
 
 ## Routes
 

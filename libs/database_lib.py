@@ -44,38 +44,46 @@ def process_entries(db, table, log, values: list, headers: list = None):
 
 
 def init_databases(core, database_name, table_name, drop=False, log=None):
-    if len(flask_lib) == 0:
+    if len(flask_lib.TABLES) == 0:
         core.load_models_sources()
     """if core.configuration != 'local':
         if log: log.error('Configuration must be <local>')
         return"""
 
-    if not database_name in flask_lib.TABLES:
+    database_names_in_lib = [x for x in flask_lib.TABLES if x.upper() == database_name.upper()]
+
+    if not len(database_names_in_lib):
         raise AlphaException("cannot_find_schema", parameters={"schema": database_name})
         return False
-    if not table_name in flask_lib.TABLES[database_name]["tables"]:
+    database_name_in_lib = database_names_in_lib[0]
+
+    tablenames_in_lib = [ x for x in flask_lib.TABLES[database_name_in_lib]["tables"] if x.upper() == table_name.upper()]
+    if not len(tablenames_in_lib):
         raise AlphaException("cannot_find_table", parameters={"table": table_name})
         return False
+    tablename_in_lib = tablenames_in_lib[0]
+    table = flask_lib.TABLES[database_name_in_lib]["tables"][tablename_in_lib]
 
-    init_database_config = core.config.get("databases")
 
-    if init_database_config is None:
+    init_databases_config = core.config.get("databases")
+    if init_databases_config is None:
         if log:
             log.error(
                 "No initialisation configuration has been set in <databases> entry"
             )
-        return
-    if not database_name in init_database_config:
+        return False
+
+    database_names_in_configs = [x for x in init_databases_config if x.upper() == database_name.upper()]
+    if not len(database_names_in_configs):
         if log:
             log.error(
                 "No initialisation configuration has been set in <databases> entry for database <%s>"
                 % database_name
             )
-        return
+        return False
+    database_name_in_configs = database_names_in_configs[0]
 
-    db = core.get_database(database_name)
-
-    table = flask_lib.TABLES[database_name]["tables"][table_name]
+    db = core.get_database(database_name_in_configs)
 
     if drop:
         if log:
@@ -83,11 +91,21 @@ def init_databases(core, database_name, table_name, drop=False, log=None):
         db.metadata.drop_all(db.engine, tables=[table.__table__])
 
     db.metadata.create_all(db.engine, tables=[table.__table__])
+    if log:
+        log.info("Create table <%s> on <%s> database" % (table, database_name))
     db.commit()
 
-    cf = init_database_config[database_name]
+    cf = init_databases_config[database_name_in_configs]
+    if not len(cf):
+        if log:
+            log.error(
+                "No initialisation configuration has been set in <databases> entry for database <%s>"
+                % database_name
+            )
+        return False
+        
     if type(cf) == str:
-        cf = init_database_config[cf]
+        cf = init_databases_config[cf]
 
     # json ini
     if "init_database_dir_json" in cf:
@@ -110,7 +128,6 @@ def init_databases(core, database_name, table_name, drop=False, log=None):
             __process_databases_init(
                 core, database_name, table_name, file_path, log=log
             )
-
 
 def __process_databases_init(
     core, database_name, table_name, file_path, file_type="py", log=None

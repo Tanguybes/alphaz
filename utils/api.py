@@ -72,8 +72,8 @@ def route(
         @api.route(path, methods=methods, endpoint=func.__name__)
         def api_wrapper(*args, **kwargs):
             if path not in ["/", "/status"]:
-                LOG.debug(
-                    "get api route {:10} with method <{}>".format(path, func.__name__)
+                LOG.info(
+                    "Get api route {:10} with method <{}>".format(path, func.__name__)
                 )
 
             # uuid_request = path + "&".join("%s=%s"%(x.name,x.value) for x in parameters if not x.private)
