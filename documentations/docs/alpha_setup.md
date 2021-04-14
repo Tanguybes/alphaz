@@ -4,6 +4,9 @@ Alpha is an **ecosystem** based on multiple **frameworks** and **libraries** for
 
 ## OS configuration
 
+!!! important 
+    make sure that **Git** is well configured.
+
 ### Python
 
 - Python 3.2 is required.
@@ -37,16 +40,16 @@ If you want to edit the sources you could use this procedure to clone the source
 
 1. Clone **alphaz** from the repository _https://github.com/ZAurele/alphaz.git_
 
-```sh
-cd <your_project_repository>
-git clone https://github.com/ZAurele/alphaz.git
-```
+    ```sh
+    cd <your_project_repository>
+    git clone https://github.com/ZAurele/alphaz.git
+    ```
 
 2. Launch the setup, it will install all the dependencies and other magical actions.
 
-```sh
-python setup.py
-```
+    ```sh
+    python setup.py
+    ```
 
 3. Define it as a submodule in your project
 
@@ -62,3 +65,7 @@ If you need to use LDAP connections you will need to install **python-ldap**:
 pip install python-ldap
 yum install python-devel openldap-devel
 ```
+
+### Oracle
+
+Oracle client 

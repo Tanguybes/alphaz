@@ -4,6 +4,8 @@ nav:
   - Api: alpha_api.md
   - Setup: alpha_setup.md
   - Documentation: documentation.md
+  - Screens: alpha_screens.md
+  - Configuration: alpha_configuration.md
 markdown_extensions:
   - admonition
   - pymdownx.arithmatex
