@@ -3,9 +3,10 @@ nav:
   - Home: index.md
   - Api: alpha_api.md
   - Setup: alpha_setup.md
-  - Documentation: documentation.md
+  - Core: alpha_core.md
   - Screens: alpha_screens.md
   - Configuration: alpha_configuration.md
+  - Documentation: documentation.md
 markdown_extensions:
   - admonition
   - pymdownx.arithmatex

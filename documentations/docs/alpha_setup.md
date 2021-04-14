@@ -1,7 +1,5 @@
 # Alpha system 
 
-Alpha is an **ecosystem** based on multiple **frameworks** and **libraries** for both **frontend** and **backend**.
-
 ## OS configuration
 
 !!! important 
