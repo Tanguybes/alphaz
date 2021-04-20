@@ -1,6 +1,13 @@
-from bs4 import BeautifulSoup
+try:
+    from bs4 import BeautifulSoup
+except:
+    pass
 
-from serpapi.google_search_results import GoogleSearchResults
+try:
+    from serpapi.google_search_results import GoogleSearchResults
+except:
+    pass
+
 #from googlesearch import search
 
 from itertools import cycle

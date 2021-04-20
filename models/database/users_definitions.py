@@ -17,6 +17,7 @@ from sqlalchemy.sql import func
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.sql.sqltypes import Boolean
+from marshmallow import Schema, fields
 
 from .models import (
     AlphaTable,
@@ -45,6 +46,13 @@ class UserSession(db.Model, AlphaTable):
     ip = AlphaColumn(String(50))
     expire = AlphaColumn(DateTime)
 
+class UserSchema(Schema):
+    id = fields.Integer()
+    username = fields.String()
+    mail = fields.String()
+
+    expire = fields.DateTime()
+    last_activity = fields.DateTime()
 
 class User(db.Model, AlphaTableId):
     __bind_key__ = BIND
@@ -67,14 +75,14 @@ class UserRole(db.Model, AlphaTableIdUpdateDate):
     __bind_key__ = BIND
     __tablename__ = "user_role"
 
-    user = AlphaColumn(Integer, ForeignKey("user.id"), nullable=False)
-    userObj = relationship(
+    user_id = AlphaColumn(Integer, ForeignKey("user.id"), nullable=False)
+    user = relationship(
         "User",
         backref=backref(__tablename__ + "s", lazy=True, cascade="all, delete-orphan"),
     )
 
-    role = AlphaColumn(Integer, ForeignKey("role.id"), nullable=False)
-    roleObj = relationship(
+    role_id = AlphaColumn(Integer, ForeignKey("role.id"), nullable=False)
+    role = relationship(
         "Role",
         backref=backref(__tablename__ + "s", lazy=True, cascade="all, delete-orphan"),
     )
@@ -93,14 +101,14 @@ class RolePermission(db.Model, AlphaTableIdUpdateDate):
     __bind_key__ = BIND
     __tablename__ = "role_permission"
 
-    role = AlphaColumn(Integer, ForeignKey("role.id"), nullable=False)
-    roleObj = relationship(
+    role_id = AlphaColumn(Integer, ForeignKey("role.id"), nullable=False)
+    role = relationship(
         "Role",
         backref=backref(__tablename__ + "s", lazy=True, cascade="all, delete-orphan"),
     )
 
-    permission = AlphaColumn(Integer, ForeignKey("permission.id"), nullable=False)
-    roleObj = relationship(
+    permission_id = AlphaColumn(Integer, ForeignKey("permission.id"), nullable=False)
+    permission = relationship(
         "Permission",
         backref=backref(__tablename__ + "s", lazy=True, cascade="all, delete-orphan"),
     )
@@ -118,8 +126,8 @@ class Notification(db.Model, AlphaTableIdUpdateDate):
     __bind_key__ = BIND
     __tablename__ = "notification"
 
-    user = AlphaColumn(Integer, ForeignKey("user.id"), nullable=False)
-    userObj = relationship(
+    user_id = AlphaColumn(Integer, ForeignKey("user.id"), nullable=False)
+    user = relationship(
         "User",
         backref=backref(__tablename__ + "s", lazy=True, cascade="all, delete-orphan"),
     )

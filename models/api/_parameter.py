@@ -12,12 +12,12 @@ class Parameter:
         name: str,
         default=None,
         options=None,
-        cacheable: bool = True,
-        required: bool = False,
-        ptype: type = str,
-        private: bool = False,
-        mode: str =  "like",
-        ovverride: bool = False
+        cacheable: bool=True,
+        required: bool=False,
+        ptype: type=str,
+        private: bool=False,
+        mode: str="like",
+        ovverride: bool=False
     ):
         """[summary]
 
@@ -44,6 +44,16 @@ class Parameter:
         self.ovverride = ovverride
 
     def set_value(self):
+        """ Set parameter value
+
+        Raises:
+            AlphaException: [description]
+            AlphaException: [description]
+            AlphaException: [description]
+            AlphaException: [description]
+            AlphaException: [description]
+            AlphaException: [description]
+        """
         dataPost = request.get_json()
 
         self.value = request.args.get(self.name, self.default)
@@ -70,14 +80,18 @@ class Parameter:
             raise AlphaException(
                 "api_missing_parameter", parameters={"parameter": self.name}
             )
+        
+        if self.value is None:
+            return
 
         if self.ptype == str and self.mode == "like":
+            self.value = str(self.value)
             if (self.value is not None) and (self.value.startswith('*') or self.value.endswith('*')):
-                self.value   = self.value.replace('*','%')
+                self.value = self.value.replace('*', '%')
 
-        if self.ptype == bool and not self.value is None:
+        if self.ptype == bool:
             str_value = str(self.value).lower()
-            if str_value in ["y","true","t","1"]:
+            if str_value in ["y", "true", "t", "1"]:
                 value = True
             elif str_value in ["n", "false", "f", "0"]:
                 value = False
@@ -88,7 +102,7 @@ class Parameter:
                 )
             self.value = value
 
-        if self.ptype == list and self.value is not None:
+        if self.ptype == list:
             if self.value.strip() == "":
                 self.value = []
             else:
@@ -107,7 +121,7 @@ class Parameter:
                         parameters={"parameter": self.name, "type": "list", "value":self.value},
                     )
 
-        if self.ptype == int and not self.value is None:
+        if self.ptype == int:
             try:
                 self.value = int(self.value)
             except:
@@ -116,7 +130,7 @@ class Parameter:
                     parameters={"parameter": self.name, "type": "int", "value":self.value},
                 )
 
-        if self.ptype == float and not self.value is None:
+        if self.ptype == float:
             try:
                 self.value = float(self.value)
             except:
@@ -126,6 +140,6 @@ class Parameter:
                 )
 
         if hasattr(self.ptype, "metadata"):
-            r =  json.loads(self.value)
+            r = json.loads(self.value)
             self.value = self.ptype(**r)
 

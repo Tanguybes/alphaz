@@ -49,6 +49,18 @@ class AlphaTable(object):
     def __repr__(self):
         return repr(self)
 
+    def to_json(self):
+        class_obj = self.__class__
+        results_json = {}
+        if hasattr(class_obj, "schema"):
+            schema = class_obj.get_schema()
+        else:
+            #self.log.error("Missing schema for model <%s>" % str(self.__name__))
+            schema = get_schema(class_obj)
+
+        results_json = schema().dump(self)
+        return results_json
+
     @classmethod
     def get_schema(class_obj):
         if hasattr(class_obj, "schema") and class_obj.schema is not None:
@@ -71,13 +83,13 @@ class AlphaTable(object):
             raise
 
     @classmethod
-    def __declare_last__(cls):
-        for column in cls.__table__.columns.values():
+    def __declare_last__(class_obj):
+        for column in class_obj.__table__.columns.values():
             try:
                 event.listen(
-                    getattr(cls, column.key),
+                    getattr(class_obj, column.key),
                     "set",
-                    cls.set_attrib_listener,
+                    class_obj.set_attrib_listener,
                     retval=True,
                 )
             except Exception as ex:
