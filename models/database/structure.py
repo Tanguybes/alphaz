@@ -107,7 +107,8 @@ class AlphaDatabaseCore(SQLAlchemy):
         self._engine = engine
         
         engine_options = config["engine_options"] if 'engine_options' in config else {}
-        super().__init__(*args, engine_options=engine_options, **kwargs)
+        session_options = config["session_options"] if 'session_options' in config else {}
+        super().__init__(*args, engine_options=engine_options, session_options=session_options, **kwargs)
 
         """if not bind:
             session = scoped_session(sessionmaker(autocommit=False,
