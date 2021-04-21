@@ -9,7 +9,6 @@ import requests
 
 LOG = None
 
-
 def error(message,quit=False):
     if message is None or message.strip() == "":
         if quit:
@@ -63,6 +62,44 @@ def log_config():
     log_handler = TimedRotatingFileHandler(log_file, when="midnight", backupCount=30)
     log_handler.setFormatter(formatter)
     LOG.addHandler(log_handler)
+    
+def check_screen(screen, single=False):
+    restarted = False
+    info(screen["check_message"])
+    info("Fetching %s"%screen["request"])
+    time.sleep(screen["sleep"])
+    
+    times = screen["retries"] if not single else 1
+    for i in range(times):
+        if restarted:
+            continue
+        try:
+            print('         ' + '.'*(times - i))
+            r = requests.get(screen["request"], timeout=screen["timeout"])
+            if "success" in str(r.content):
+                info(screen["success_message"])
+                restarted = True
+                continue
+        except Exception as ex:
+            time.sleep(screen["sleep"])
+    if not restarted:
+        error(screen["failed_message"])
+    return restarted
+
+def launch_cmd(screen, s=None):
+    if s is None:
+        s = Screen(screen["name"],True)
+    s.enable_logs()
+    s.send_commands("cd %s"%screen["dir"])
+    s.send_commands(screen["shell_cmd"])
+    s.detach()
+    
+    info("Screen %s restarted" % screen["name"])
+    if "request" in screen and screen["request"]:
+        restarted = check_screen(screen)
+
+    print(next(s.logs))
+    s.disable_logs()
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Ensure that a screen is running")
@@ -126,15 +163,20 @@ if __name__ == "__main__":
             error("Missing entry <screens> in configuration file %s"%file_path, quit=True)
         if type(screens) != dict:
             error("<screens> entry in configuration file %s is not valid"%file_path, quit=True)
+        if not "configurations" in screens:
+            error("No <configurations> entry <screens> entry in configuration file %s"%file_path, quit=True)
+        if type(screens["configurations"]) != dict:
+            error("<screens> entry in configuration file %s is not valid"%file_path, quit=True)
+        screens_dict = screens["configurations"]
     elif args.name and args.cmd:
-        screens = {args.name: defaults}
+        screens_dict = {args.name: defaults}
     else:
         error("You need to specify a configuration file or at least a screen name (--name) and a command (--cmd)")
         exit()
 
     screens_list = list_screens()
         
-    for name, screen in screens.items():
+    for name, screen in screens_dict.items():
         screen = {x:replace_envs(y) for x,y in screen.items()}
         active = screen["active"]
         screen_name = screen["name"]
@@ -158,37 +200,11 @@ if __name__ == "__main__":
                 if screen["restart"]:
                     screen_entity.kill()
                     info("Screen %s %s killed !" % (screen_entity.id, screen_entity.name))
-        
-        if len(screen_exist_list) == 0 or screen["restart"]:
-            s = Screen(screen_name,True)
-            s.enable_logs()
-            s.send_commands("cd %s"%screen["dir"])
-            s.send_commands(screen["shell_cmd"])
-            s.detach()
-            
-            info("Screen %s restarted" % screen_name)
-            
-            restarted = False
-            if "request" in screen and screen["request"]:
-                info(screen["check_message"])
-                info("Fetching %s"%screen["request"])
-                time.sleep(screen["sleep"])
                 
-                times = screen["retries"]
-                for i in range(times):
-                    if restarted:
-                        continue
-                    try:
-                        print('         ' + '.'*(times - i))
-                        r = requests.get(screen["request"], timeout=screen["timeout"])
-                        if "success" in str(r.content):
-                            info(screen["success_message"])
-                            restarted = True
-                            continue
-                    except Exception as ex:
-                        time.sleep(screen["sleep"])
-                if not restarted:
-                    error(screen["failed_message"])
-            print(next(s.logs))
-            s.disable_logs()
-
+                if "request" in screen and screen["request"]:
+                    restarted = check_screen(screen, single=True)
+                    if not restarted or screen["restart"]:
+                        launch_cmd(screen)
+        
+        elif len(screen_exist_list) == 0 or screen["restart"]:
+            launch_cmd(screen)
