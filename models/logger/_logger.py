@@ -59,6 +59,9 @@ class AlphaLogger:
         self.database = None
         self.excludes = excludes
 
+        if "ALPHA_LOG_CMD_OUTPUT" in os.environ:
+            cmd_output = "Y" in os.environ["ALPHA_LOG_CMD_OUTPUT"].upper()
+
         if filename is None:
             filename = name
         if root is None:

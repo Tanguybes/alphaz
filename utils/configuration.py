@@ -1,4 +1,6 @@
-import argparse
+import argparse, os
+os.environ["ALPHA_LOG_CMD_OUTPUT"] = "N"
+
 from ..models.config import AlphaConfig
 
 if __name__ == "__main__":
