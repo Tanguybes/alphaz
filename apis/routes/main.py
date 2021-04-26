@@ -93,3 +93,17 @@ def doc():
         content = f.read()
         html = markdown2.markdown(content)
         return html
+
+@route("loggers")
+def get_loggers():
+    return core.config.loggers
+
+@route("logger/level", parameters=[
+    Parameter("name",required=True),
+    Parameter("level", options=["info","warnings","error","debug"])
+])
+def set_logger_level():
+    logger = core.config.get_logger(api["name"])
+    if logger is None:
+        raise AlphaException("no_logger")
+    logger.set_level(api["level"])

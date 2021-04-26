@@ -39,6 +39,10 @@ class AlphaLogger:
 
     monitoring_logger = None
 
+    def to_json(self):
+        keys = ["level", "database_name", "excludes", "date_format","format_log", "date_str","root","pid","name","monitor"]
+        return {x:self.__dict__[x] for x in keys if x in self.__dict__}
+
     def __init__(
         self,
         name: str,
@@ -50,7 +54,6 @@ class AlphaLogger:
         database=None,
         excludes=None,
     ):
-        self.level: str = level.upper()
         self.date_str: str = ""
         self.database_name: str = database
         self.database = None
@@ -70,9 +73,7 @@ class AlphaLogger:
 
         # Create logger
         self.logger = logging.getLogger(name)
-
-        level_show = _utils.get_level(level if level is not None else "INFO")
-        self.logger.setLevel(level_show)
+        self.set_level(level)
 
         # File handler
         handler = TimedRotatingFileHandler(
@@ -162,6 +163,11 @@ class AlphaLogger:
 
         """if save: #TODO :activate
             self.__log_in_db(text, origin=origin, type="error")"""
+
+    def set_level(self,level):
+        self.level: str = level.upper()
+        level_show = _utils.get_level(level if level is not None else "INFO")
+        self.logger.setLevel(level_show)
 
     def get_formatted_message(self, message, stack, stack_level: int, level):
         msg = self.format_log
