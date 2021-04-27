@@ -30,7 +30,8 @@ class AlphaConfig(AlphaClass):
             core = None,
             core_configuration = None,
             reserved: List[str] = [],
-            required: List[str] = []
+            required: List[str] = [],
+            user:str=None
             ):
         if hasattr(self, 'tmp'): return
 
@@ -40,6 +41,7 @@ class AlphaConfig(AlphaClass):
         name, filepath, root, filename = ensure_filepath(name, filepath, root, filename)
 
         self.name = name
+        self.user = user
         self.filepath = filepath
         self.root = root
         self.filename = filename
@@ -603,7 +605,7 @@ class AlphaConfig(AlphaClass):
         self._add_tmp('project', os.getcwd())
 
         # USER
-        user = getpass.getuser()
+        user = getpass.getuser() if self.user is None else self.user
         self._add_tmp('user',user)
 
         current_ip = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
