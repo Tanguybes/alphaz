@@ -120,6 +120,7 @@ class AlphaConfig(AlphaClass):
         self._check_reserved()
         
         self._set_tmps()
+        self.__process_tmps()
 
         self._set_configuration()
 
@@ -129,7 +130,6 @@ class AlphaConfig(AlphaClass):
         if not CONFIGURATIONS.load_configuration(self) or not self.core_configuration:
             if self.core_configuration:
                 self.info('Reload configuration: %s'%self.filepath)
-            self._process_tmps()
             self._init_data()
             self._configure_sub_configurations()
             CONFIGURATIONS.save_configuration(self)
@@ -151,8 +151,17 @@ class AlphaConfig(AlphaClass):
             if "default_configuration" in self.data_origin:
                 default_configuration = self.data_origin['default_configuration']
 
+            tmp_configuration = None
+            for key, config in self.data_tmp.items():
+                if "configuration" in config:
+                    tmp_configuration = config["configuration"]
+                    self.info("Detected configuration <%s> in %s section"%(tmp_configuration, key))
+
             if self.configuration is not None and self.configuration in configurations:
                 self.data_tmp['configurations'] = configurations[self.configuration]
+            elif tmp_configuration is not None:
+                self.data_tmp['configurations'] = configurations[tmp_configuration]
+                self.configuration = tmp_configuration
             elif default_configuration is not None and default_configuration in configurations:
                 self.data_tmp['configurations'] = configurations[default_configuration]
                 self.configuration = default_configuration
@@ -617,7 +626,7 @@ class AlphaConfig(AlphaClass):
     def get_key(self,raw=False):
         return self.filepath + ": " + " - ".join("%s=%s"%(x,y) for x,y in self.tmp.items() if not raw or x != 'configuration')
 
-    def _process_tmps(self):
+    def __process_tmps(self):
         to_process = ["user","ip","platform"]
 
         for name in to_process:

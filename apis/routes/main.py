@@ -107,3 +107,8 @@ def set_logger_level():
     if logger is None:
         raise AlphaException("no_logger")
     logger.set_level(api["level"])
+
+@route("infos")
+def get_infos():
+    import getpass
+    return {"user":getpass.getuser()}
