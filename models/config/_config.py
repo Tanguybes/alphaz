@@ -321,6 +321,10 @@ class AlphaConfig(AlphaClass):
 
         parameters_value    = {}
         for parameter in parameters:
+            if parameter in self.tmp:
+                parameters_value[parameter] = self.tmp[parameter]
+                continue
+            
             # ([3306, 3308], [['variables'], []])
             if '/' in parameter:
                 parameter = parameter.split('/')
@@ -435,12 +439,12 @@ class AlphaConfig(AlphaClass):
             return None
 
         if len(parameters) == 1:
+            if parameters[0] in self.tmp:
+                return self.tmp[parameters[0]]
             if parameters[0] in data:
                 return data[parameters[0]]
             if parameters[0] in self.data_origin:
                 return self.data_origin[parameters[0]]
-            if parameters[0] in self.tmp:
-                return self.tmp[parameters[0]]
 
         return self._get_parameter_path(parameters[1:],data[parameters[0]],level = level + 1)
 

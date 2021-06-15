@@ -51,7 +51,11 @@ class AlphaJSONEncoder(JSONEncoder):
             print('Cannot convert %s: %s'%(o,ex))
         else:
             return list(iterable)
-        return JSONEncoder.default(self, o=o)
+        try:
+            return JSONEncoder.default(self, o=o)
+        except:
+            o = str(o)
+            return JSONEncoder.default(self, o=o)
 
         """results_json = {}
         if hasattr(model,"schema"):

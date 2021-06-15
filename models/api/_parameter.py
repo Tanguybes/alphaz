@@ -16,7 +16,7 @@ class Parameter:
         required: bool=False,
         ptype: type=str,
         private: bool=False,
-        mode: str="like",
+        mode: str="none",
         ovverride: bool=False
     ):
         """[summary]
@@ -29,7 +29,7 @@ class Parameter:
             required (bool, optional): [description]. Defaults to False.
             ptype (type, optional): [description]. Defaults to str.
             private (bool, optional): [description]. Defaults to False.
-            mode (str, optional): [description]. Defaults to "like".
+            mode (str, optional): [description]. Defaults to "none".
         """
         self.name = name
         self.default = default
