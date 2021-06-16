@@ -123,7 +123,7 @@ def get_infos():
 
 @route("modules", parameters=[Parameter("name")])
 def get_modules():
-    from importlib.metadata import version
+    from importlib_metadata import version
     import pkgutil
     data = {}
     for item in pkgutil.iter_modules():
