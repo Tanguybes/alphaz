@@ -217,10 +217,13 @@ class AlphaSsh():
         original_content = self.get_file_content(path, decode=True)
         return content in original_content
 
+    def restart_service(self, service:str):
+        self.execute_cmd("sudo systemctl restart %s"%service)
+
     def is_equal_to_file(self, content:str, path:str, mode:int=None):
         if not self.is_file(path):
             return False
-            
+
         if mode is not None:
             self.change_mode(mode, path)
 
@@ -334,7 +337,7 @@ class AlphaSsh():
         return output.startswith(package)
 
     def install_package(self, package:str):
-        cmd = "yum install " + package
+        cmd = "yum install -y " + package
         output = self.execute_cmd(cmd)
         return output.startswith(package)
 
@@ -349,7 +352,7 @@ class AlphaSsh():
     def install_python_module(self, module:str):
         cmd = "which pip"
         output = self.execute_cmd(cmd)
-        cmd = "pip install %s"%module
+        cmd = "yes | pip install %s"%module
         output = self.execute_cmd(cmd)
         return not "error" in output
 
@@ -367,18 +370,20 @@ class AlphaSsh():
             cmd = 'echo "%s" | sudo passwd --stdin %s'%(password,user)
             self.execute_cmd(cmd)
 
-    def execute_cmd(self,cmd,decode=True, lines=False):
+    def execute_cmd(self,cmd,decode=True, lines=False, timeout:int=600):
         inputs, output, err = '', '', ''
-        ssh_stdin, ssh_stdout, ssh_stderr = self.ssh.exec_command(cmd, get_pty=True)
+        ssh_stdin, ssh_stdout, ssh_stderr = self.ssh.exec_command(cmd, get_pty=True, timeout=timeout)
         output = ssh_stdout.read()
         if lines:
             decode = True
         if decode:
             try:
                 output = output.decode('utf-8')
+                print("   EXEC: %s"%(cmd))
+                print("       " +  output[:100])
                 #output = output.decode('utf-8').encode('ascii')
             except Exception as ex:
-                print(cmd,ex)
+                print("ERROR:",cmd,ex)
                 pass
             output = str(output)
             if output[:2] == "b'":
