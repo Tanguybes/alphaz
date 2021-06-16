@@ -110,5 +110,27 @@ def set_logger_level():
 
 @route("infos")
 def get_infos():
-    import getpass
-    return {"user":getpass.getuser()}
+    import getpass, platform
+    return {
+        "user":getpass.getuser(), 
+        "system":platform.uname().system,
+        "node":platform.uname().node,
+        "release":platform.uname().release,
+        "version":platform.uname().version,
+        "machine":platform.uname().machine,
+        "processor":platform.uname()[4]
+    }
+
+@route("modules", parameters=[Parameter("name")])
+def get_modules():
+    from importlib.metadata import version
+    import pkgutil
+    data = {}
+    for item in pkgutil.iter_modules():
+        if api["name"] is not None and api["name"].lower() != item.name.lower():
+            continue
+        try:
+            data[item.name] = version(item.name)
+        except:
+            continue
+    return data
