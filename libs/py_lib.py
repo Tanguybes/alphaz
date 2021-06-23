@@ -3,6 +3,19 @@ from ..models.watcher import ModuleWatcher
 
 myself = lambda: inspect.stack()[1][3]
 
+def get_modules_infos():
+    from importlib_metadata import version
+    import pkgutil
+    data = {}
+    for item in pkgutil.iter_modules():
+        if api["name"] is not None and api["name"].lower() != item.name.lower():
+            continue
+        try:
+            data[item.name] = version(item.name)
+        except:
+            continue
+    return data
+
 def myself(fct=None):
     name = inspect.stack()[1][3]
     if fct:

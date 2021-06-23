@@ -169,8 +169,11 @@ class AlphaSsh():
         mode = str(self.get_mode(path))
         return mode == str(mode)
 
-    def change_mode(self, mode:int, path:str):
-        self.execute_cmd("chmod %s %s"%(mode,path))
+    def change_mode(self, mode:int, path:str, recursively:bool=False):
+        mode_c = ''
+        if recursively:
+            mode_c = '-R'
+        self.execute_cmd("chmod %s %s %s"%(mode_c,mode,path))
         return str(mode) == self.get_mode(path)
 
     def change_group(self, group:int, path:str, recursively:bool=False):
@@ -349,10 +352,10 @@ class AlphaSsh():
         valid = not ("No module named " in output and module in output)
         return valid
 
-    def install_python_module(self, module:str):
+    def install_python_module(self, module:str, version:str=None):
         cmd = "which pip"
         output = self.execute_cmd(cmd)
-        cmd = "yes | pip install %s"%module
+        cmd = "yes | pip install %s%s"%(module, "==%s"%version if version is not None else "")
         output = self.execute_cmd(cmd)
         return not "error" in output
 
@@ -372,6 +375,7 @@ class AlphaSsh():
 
     def execute_cmd(self,cmd,decode=True, lines=False, timeout:int=600):
         inputs, output, err = '', '', ''
+        print("     EXEC: %s"%(cmd))
         ssh_stdin, ssh_stdout, ssh_stderr = self.ssh.exec_command(cmd, get_pty=True, timeout=timeout)
         output = ssh_stdout.read()
         if lines:
@@ -379,8 +383,7 @@ class AlphaSsh():
         if decode:
             try:
                 output = output.decode('utf-8')
-                print("   EXEC: %s"%(cmd))
-                print("       " +  output[:100])
+                print("   OUTPUT:" +  output[:100])
                 #output = output.decode('utf-8').encode('ascii')
             except Exception as ex:
                 print("ERROR:",cmd,ex)

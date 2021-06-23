@@ -1,4 +1,5 @@
 import datetime
+from libs import py_lib
 
 from alphaz.libs import dict_lib
 
@@ -123,14 +124,4 @@ def get_infos():
 
 @route("modules", parameters=[Parameter("name")])
 def get_modules():
-    from importlib_metadata import version
-    import pkgutil
-    data = {}
-    for item in pkgutil.iter_modules():
-        if api["name"] is not None and api["name"].lower() != item.name.lower():
-            continue
-        try:
-            data[item.name] = version(item.name)
-        except:
-            continue
-    return data
+    return py_lib.get_modules_infos()
