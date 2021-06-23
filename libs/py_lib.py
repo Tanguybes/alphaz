@@ -3,12 +3,12 @@ from ..models.watcher import ModuleWatcher
 
 myself = lambda: inspect.stack()[1][3]
 
-def get_modules_infos():
+def get_modules_infos(name:str=None):
     from importlib_metadata import version
     import pkgutil
     data = {}
     for item in pkgutil.iter_modules():
-        if api["name"] is not None and api["name"].lower() != item.name.lower():
+        if name is not None and name.lower() != item.name.lower():
             continue
         try:
             data[item.name] = version(item.name)

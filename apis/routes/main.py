@@ -124,4 +124,4 @@ def get_infos():
 
 @route("modules", parameters=[Parameter("name")])
 def get_modules():
-    return py_lib.get_modules_infos()
+    return py_lib.get_modules_infos(**api.get_parameters())
