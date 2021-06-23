@@ -267,7 +267,11 @@ class AlphaConfig(AlphaClass):
         colors = self.get("colors/loggers/rules") if self.get("colors/loggers/active") else None
         if self.log is None:
             log_filename        = "alpha" #type(self).__name__.lower()
-            self.log            = AlphaLogger(type(self).__name__,log_filename,root=self.logger_root,colors=colors)
+            self.log            = AlphaLogger(type(self).__name__,
+                log_filename,
+                root=self.logger_root,
+                colors=colors
+            )
 
         if self.is_path("loggers"):
             for logger_name in self.get("loggers").keys():
@@ -283,7 +287,8 @@ class AlphaConfig(AlphaClass):
                         level       = logger_config.get("level"),
                         colors      = colors,
                         database    = logger_config.get("database"),
-                        excludes    = logger_config.get('excludes')
+                        excludes    = logger_config.get('excludes'),
+                        config      = logger_config.get("config")
                     )
 
         main_logger_name = "main"

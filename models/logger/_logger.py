@@ -53,11 +53,13 @@ class AlphaLogger:
         colors=None,
         database=None,
         excludes=None,
+        config={}
     ):
         self.date_str: str = ""
         self.database_name: str = database
         self.database = None
         self.excludes = excludes
+        self.config = config
 
         if "ALPHA_LOG_CMD_OUTPUT" in os.environ:
             cmd_output = "Y" in os.environ["ALPHA_LOG_CMD_OUTPUT"].upper()
@@ -79,9 +81,14 @@ class AlphaLogger:
         self.set_level(level)
 
         # File handler
-        handler = TimedRotatingFileHandler(
-            log_path, when="midnight", interval=1, backupCount=7
-        )
+        if config is not None and len(config) != 0:
+            handler = TimedRotatingFileHandler(
+                log_path, **config
+            )
+        else:
+            handler = TimedRotatingFileHandler(
+                log_path, when="midnight", interval=1, backupCount=90
+            )
 
         if PLATFORM == "windows":
             handler = ConcurrentRotatingFileHandler(log_path, "a", 512 * 1024, 5)
