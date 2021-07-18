@@ -20,7 +20,7 @@ def __get_user_data_by_identifier_and_password(
 
     for user in results:
         user_id = user["id"]
-        if secure_lib.compare_passwords(password_attempt, user["password"]):
+        if password_attempt is None or secure_lib.compare_passwords(password_attempt, user["password"]):
             return get_user_data_by_id(user_id)
     return None
 
@@ -57,7 +57,7 @@ def get_user_data_by_mail_and_password(mail, password_attempt):
     )
 
 
-def get_user_data_from_login(login, password):
+def get_user_data_from_login(login, password=None):
     """Get user data from database either by mail or username.
 
     Args:

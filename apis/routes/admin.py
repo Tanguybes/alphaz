@@ -2,7 +2,7 @@ import inspect
 
 from ...utils.api import route, Parameter
 
-from ...libs import logs_lib, flask_lib
+from ...libs import logs_lib, flask_lib, secure_lib
 
 from ...models.main import AlphaException
 
@@ -12,6 +12,9 @@ api         = core.api
 db          = core.db
 log         = core.get_logger('api')
 
+@route('/admin/key', parameters=[Parameter('key')], methods=['POST'])
+def get_key():
+    return secure_lib.magic_code(api["key"])
 
 @route('/admin/logs/clear', methods = ['GET'], admin=True,
     parameters = [

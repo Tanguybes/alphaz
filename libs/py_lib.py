@@ -1,5 +1,6 @@
 import sys, imp, inspect, os, glob, copy
 from ..models.watcher import ModuleWatcher
+from typing import List, Dict
 
 myself = lambda: inspect.stack()[1][3]
 
@@ -86,3 +87,18 @@ def getsize(obj):
 def get_attributes(obj):
     attributes = inspect.getmembers(obj, lambda a:not(inspect.isroutine(a)))
     return [a for a in attributes if not(a[0].startswith('__') and a[0].endswith('__'))]
+
+def filter_kwargs(fct, args: list = [], kwargs: dict={}) -> dict:
+    """Remove kwargs that are not in function kwargs
+
+    Args:
+        fct ([type]): [description]
+        args (List): [description]
+        kwargs (Dict): [description]
+
+    Returns:
+        [type]: [description]
+    """
+    fargs = inspect.getfullargspec(fct)
+    kwargs = {x:y for x,y in kwargs.items() if x in fargs.args}
+    return kwargs

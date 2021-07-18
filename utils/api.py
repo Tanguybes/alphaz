@@ -115,7 +115,7 @@ def route(
                     __route.access_denied()
                     return __route.get_return()
                 elif logged and (user is None or len(user) == 0):
-                    LOG.warning("Wrong permission: wrong user", user)
+                    LOG.warning("Wrong permission: wrong user <%s>"%user)
                     __route.access_denied()
                     return __route.get_return()
 

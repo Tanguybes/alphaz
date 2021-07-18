@@ -330,6 +330,14 @@ class AlphaSsh():
         cmd = "sudo systemctl restart %s"%service
         return self.execute_cmd(cmd)
 
+    def service_start(self,service:str,start:bool=True):
+        cmd = "sudo systemctl %s %s"%("restart" if start else "stop", service)
+        return self.execute_cmd(cmd)
+
+    def service_enable(self,service:str, enable=True):
+        cmd = "sudo systemctl %s %s"%("enable" if enable else "disabled", service)
+        return self.execute_cmd(cmd)
+
     def reload_systemctl(self):
         cmd = "systemctl daemon-reload"
         return self.execute_cmd(cmd)

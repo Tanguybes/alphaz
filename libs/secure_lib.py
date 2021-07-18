@@ -30,7 +30,7 @@ def magic_code(key):
     
     completes       = []
     for value in values[1:]:
-        completes.append(int(''.join([str(9 - int(x)) for x in value]) ))
+        completes.append(''.join([str(9 - int(x)) for x in value]))
     values.extend(completes)
     return '-'.join([str(x) for x in values])
     

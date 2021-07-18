@@ -176,10 +176,10 @@ def try_login(username, password):
         valid_ldap = check_credentials(username, password)
         if valid_ldap is None:
             raise AlphaException("unknown_user")
-        user_data = user_lib.get_user_data_from_login(username, password)
+        user_data = user_lib.get_user_data_from_login(username)
         if user_data is None:
             try_register_user(mail=valid_ldap["mail"], username=username, password=password, password_confirmation=password, validation=False)
-            user_data = user_lib.get_user_data_from_login(username, password)
+            user_data = user_lib.get_user_data_from_login(username)
     else:
         user_data = user_lib.get_user_data_from_login(username, password)
         if user_data is None:

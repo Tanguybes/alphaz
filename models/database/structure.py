@@ -24,7 +24,7 @@ from .row import Row
 from .utils import get_schema
 
 from ...models.logger import AlphaLogger
-from ...libs import dict_lib
+from ...libs import dict_lib, py_lib
 from ...models.main import AlphaException
 
 def get_compiled_query(query):
@@ -102,6 +102,8 @@ class AlphaDatabaseCore(SQLAlchemy):
             self.user: str = config["user"]
         cnx = config["cnx"]
 
+        if type(cnx) == dict:
+            cnx = py_lib.filter_kwargs(create_engine, kwargs=cnx)
         engine = create_engine(cnx)
         event.listen(engine, "before_cursor_execute", add_own_encoders)
         self._engine = engine
