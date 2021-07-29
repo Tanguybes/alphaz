@@ -335,7 +335,7 @@ class AlphaSsh():
         return self.execute_cmd(cmd)
 
     def service_enable(self,service:str, enable=True):
-        cmd = "sudo systemctl %s %s"%("enable" if enable else "disabled", service)
+        cmd = "sudo systemctl %s %s"%("enable" if enable else "disable", service)
         return self.execute_cmd(cmd)
 
     def reload_systemctl(self):
