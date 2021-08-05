@@ -50,7 +50,7 @@ def status():
     return True
 
 
-@route("/")
+@route("/",route_log=False)
 def home():
     config = api.conf
 

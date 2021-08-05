@@ -44,7 +44,8 @@ def route(
     timeout=None,
     cat=None,
     description=None,
-    mode=None
+    mode=None,
+    route_log=True
 ):
     if path[0] != "/":
         path = "/" + path
@@ -71,7 +72,7 @@ def route(
     def api_in(func):
         @api.route(path, methods=methods, endpoint=func.__name__)
         def api_wrapper(*args, **kwargs):
-            if path not in ["/", "/status"]:
+            if route_log:
                 LOG.info(
                     "Get api route {:10} with method <{}>".format(path, func.__name__)
                 )

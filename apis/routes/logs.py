@@ -1,0 +1,110 @@
+
+import datetime, glob, os, re, platform, requests
+
+from flask import request, send_from_directory
+
+from ...libs import test_lib, database_lib, api_lib, transactions_lib, py_lib
+from ...utils.api import route, Parameter
+from ...utils.time import tic, tac
+from ...models.main import AlphaException
+
+from core import core
+
+api = core.api
+db = core.db
+LOG = core.get_logger("api")
+
+CLUSTERS = core.config.get('clusters')
+
+def escape_ansi(line):
+    ansi_escape = re.compile(r'(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]')
+    return ansi_escape.sub('', str(line))
+
+def get_logs_files_names():
+    log_directory = core.config.get('directories/logs')
+    files = glob.glob(log_directory + os.sep + '*.log')
+    return [os.path.basename(x) for x in files]
+
+def get_logs_content(name:str=None, content:bool=False): 
+    log_directory = core.config.get('directories/logs')
+
+    files = glob.glob(log_directory + os.sep + (name if name is not None else "") + '*.log')
+
+    logs_content = {}
+    for file_path in files:
+        modification_time = os.path.getmtime(file_path)
+        modification_date = datetime.datetime.fromtimestamp(int(modification_time))
+
+        name = os.path.basename(file_path)
+
+        log_content = ""
+        if content:
+            with open(file_path,'r') as f:
+                log_content = f.read()
+        #log_content = escape_ansi(log_content)
+
+        file_size = os.path.getsize(file_path)
+
+        logs_content[name.replace('.log','') + ' - ' + platform.uname().node] = {
+            "modification_time":modification_time,
+            "modification_date":modification_date,
+            "up_to_date": modification_date.date() == datetime.datetime.today().date(),
+            "size": file_size,
+            "size_s": "%s b"%file_size if file_size < 100 else "%s Kb"%int(file_size/1000),
+            "content": log_content
+        } 
+    logs_content = {k: v for k, v in sorted(logs_content.items(), key=lambda item: item[1]['modification_time'],reverse=True)}
+    return logs_content
+
+def get_log_content(name:str, content:bool=False):
+    return get_logs_content(name, content)[name]
+
+@route("/logs/filesnames", methods=['GET'], route_log=False, parameters=[])
+def get_logs():
+    return get_logs_files_names()
+
+@route("/logs/files", methods=['GET'], route_log=False, parameters=[
+    Parameter('name'),
+    Parameter('content', ptype=bool, default=False)
+])
+def get_logs_file_content():
+    os_logs_content = get_logs_content(api['name'], content=api['content'])
+
+    for clusters in CLUSTERS:
+        if platform.uname().node in clusters:
+            for cluster in clusters:
+                if platform.uname().node == cluster:
+                    continue
+            
+                url = 'http://%s:%s/logs/files'%(cluster, api.port)
+
+                params = api.get_parameters()
+
+                resp = requests.get(url=url, params=params)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    a = 1
+    return os_logs_content
+
+@route("/logs")
+def get_logs_page():
+    config = api.conf
+
+    parameters = {
+        "mode": core.config.configuration,
+        "mode_color": "#e74c3c"
+        if core.config.configuration == "prod"
+        else ("#0270D7" if core.config.configuration == "dev" else "#2ecc71"),
+        "title": config.get("templates/home/title"),
+        "description": config.get("templates/home/description"),
+        "year": datetime.datetime.now().year,
+        "users": 0,
+        "ip": request.environ["REMOTE_ADDR"],
+        "admin": config.get("admin_databases"),
+        "compagny": config.get("parameters/compagny"),
+        "compagny_website": config.get("parameters/compagny_website"),
+        "dashboard": config.get("dashboard/dashboard/active"),
+        "date": datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+        "logs_files": get_logs_content(content=False)
+    }
+    api.set_html("logs.html", parameters=parameters)

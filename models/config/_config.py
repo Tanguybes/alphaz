@@ -288,7 +288,8 @@ class AlphaConfig(AlphaClass):
                         colors      = colors,
                         database    = logger_config.get("database"),
                         excludes    = logger_config.get('excludes'),
-                        config      = logger_config.get("config")
+                        config      = logger_config.get("config"),
+                        replaces    = logger_config.get("replaces")
                     )
 
         main_logger_name = "main"

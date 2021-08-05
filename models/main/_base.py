@@ -10,6 +10,7 @@ class AlphaClass:
 
         self.log: AlphaLogger       = log
 
+        self._debugs = []
         self._infos = []
         self._errors = []
         self._warnings = []
@@ -28,6 +29,16 @@ class AlphaClass:
 
     def to_json(self):
         return self.get_attributes()
+
+    def debug(self,message,ex=None): 
+        if self.log is not None:
+            if len(self._debugs) != 0:
+                for deb in self._debugs:
+                    self.log.debug(info,ex=ex)
+                self._debugs = []
+            self.log.debug(message,ex=ex)
+        else:
+            self._debugs.append(message)
 
     def info(self,message,ex=None):
         if self.log is not None:

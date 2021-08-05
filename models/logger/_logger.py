@@ -3,6 +3,8 @@ from logging.handlers import TimedRotatingFileHandler
 
 import platform
 
+from numpy.core.numeric import full
+
 PLATFORM = platform.system().lower()
 
 from . import _colorations, _utils
@@ -53,12 +55,14 @@ class AlphaLogger:
         colors=None,
         database=None,
         excludes=None,
+        replaces=None,
         config={}
     ):
         self.date_str: str = ""
         self.database_name: str = database
         self.database = None
         self.excludes = excludes
+        self.replaces = replaces
         self.config = config
 
         if "ALPHA_LOG_CMD_OUTPUT" in os.environ:
@@ -149,6 +153,13 @@ class AlphaLogger:
         self.set_current_date()
 
         full_message = self.get_formatted_message(message, stack, stack_level, level)
+
+        if self.replaces is not None and type(self.replaces) == dict:
+            for regex, replacement in self.replaces.items():
+                matchs = re.findall(regex,full_message)
+                if len(matchs) != 0:
+                    for match in matchs:
+                        full_message = full_message.replace(match, replacement)
 
         if ex is not None:
             full_message += "/n" + traceback.format_exc()

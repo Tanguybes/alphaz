@@ -48,6 +48,7 @@ class AlphaFlask(Flask, Requests):
         self.pid = None
         self.conf = None
         self.config_path = ""
+        self.port = None
 
         self.log = None
         self.log_requests = None
@@ -213,7 +214,7 @@ class AlphaFlask(Flask, Requests):
             ssl_context = (self.conf.get("ssl_cert"), self.conf.get("ssl_key"))
 
         host = self.conf.get("host")
-        port = self.conf.get("port")
+        self.port = self.conf.get("port")
         threaded = self.conf.get("threaded")
         
         self.debug = self.conf.get("debug") if not "ALPHA_DEBUG" in os.environ else ("y" in os.environ["ALPHA_DEBUG"].lower() or "t" in os.environ["ALPHA_DEBUG"].lower())
@@ -222,7 +223,7 @@ class AlphaFlask(Flask, Requests):
 
         self.log.info(
             "Run api on host %s port %s %s"
-            % (host, port, "DEBUG MODE" if self.debug else "")
+            % (host, self.port, "DEBUG MODE" if self.debug else "")
         )
 
         mode = self.conf.get("mode")
@@ -237,10 +238,10 @@ class AlphaFlask(Flask, Requests):
                 host = ""
             self.log.info(
                 "Running %sWSGI mode on host <%s> and port %s"
-                % ("debug " if self.debug else "", host, port)
+                % ("debug " if self.debug else "", host, self.port)
             )
 
-            server = WSGIServer((host, port), application, log=self.log_requests.logger)
+            server = WSGIServer((host, self.port), application, log=self.log_requests.logger)
             server.serve_forever()
         else:
             # Get werkzueg logger
@@ -252,7 +253,7 @@ class AlphaFlask(Flask, Requests):
 
             self.run(
                 host=host,
-                port=port,
+                port=self.port,
                 debug=self.debug,
                 threaded=threaded,
                 ssl_context=ssl_context,
@@ -283,7 +284,7 @@ class AlphaFlask(Flask, Requests):
 
     def get_url(self, local=False):
         if local:
-            return "http://localhost:%s"%self.conf.get("port")
+            return "http://localhost:%s"%self.port
         ssl = self.get_config("ssl")
         pref = "https://" if ssl else "http://"
         return pref + self.get_config("host_public")
