@@ -16,12 +16,12 @@ LOG = core.get_logger("api")
 
 @api.route("/assets/<path:path>")
 def send_js(path):
-    return send_from_directory("assets", filename=path)
+    return send_from_directory("assets", path)
 
 
 @api.route("/images/<path:path>")
 def send_images(path):
-    return send_from_directory("images", filename=path)
+    return send_from_directory("images", path)
 
 
 @route("/page", parameters=[Parameter("page", required=True, ptype=str)])

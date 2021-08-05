@@ -239,7 +239,7 @@ class Route(Requests):
                 try:
                     return send_from_directory(
                         file_path,
-                        filename=filename,
+                        filename,
                         as_attachment="attached" in self.mode,
                     )
                 except FileNotFoundError:
