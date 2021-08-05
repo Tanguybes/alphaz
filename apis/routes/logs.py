@@ -81,19 +81,24 @@ def get_logs_content_cluster(name:str=None, node:str=None, content:bool=False):
 
     if CLUSTERS is not None and type(CLUSTERS) is list and node is None:
         for clusters in CLUSTERS:
-            if type(clusters) is not list or not platform.uname().node in clusters:
+            if type(clusters) is not list or not platform.uname().node.lower() in [x.lower() for x in clusters]:
                 continue
 
             for cluster in clusters:
-                if platform.uname().node == cluster:
+                if platform.uname().node.lower() == cluster.lower():
                     continue
                 
-                url = 'http://%s:%s/logs/files'%(cluster, api.port)
+                url = 'http://%s:%s/logs/files'%(cluster.lower(), api.port)
 
                 params = api.get_parameters()
                 params['cluster'] = False
 
-                resp = requests.get(url=url, params=params)
+                try:
+                    resp = requests.get(url=url, params=params)
+                except:
+                    LOG.error('Fail to contact %s'%url)
+                    continue
+                
                 if resp.status_code == 200:
                     data = resp.json()
                     if data['error'] == 0:
