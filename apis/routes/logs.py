@@ -70,12 +70,15 @@ def get_logs():
 def get_logs_file_content():
     os_logs_content = get_logs_content(api['name'], content=api['content'])
 
-    for clusters in CLUSTERS:
-        if platform.uname().node in clusters:
+    if CLUSTERS is not None and type(CLUSTERS) is list:
+        for clusters in CLUSTERS:
+            if type(clusters) is not list or not platform.uname().node in clusters:
+                continue
+
             for cluster in clusters:
                 if platform.uname().node == cluster:
                     continue
-            
+                
                 url = 'http://%s:%s/logs/files'%(cluster, api.port)
 
                 params = api.get_parameters()
