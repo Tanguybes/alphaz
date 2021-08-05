@@ -93,22 +93,149 @@
     .size {
         color: #8e44ad;
     }
+
+    /* switchs */
+    .switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+    }
+
+    /* Hide default HTML checkbox */
+    .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    }
+
+    /* The slider */
+    .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: .4s;
+    transition: .4s;
+    }
+
+    .slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+    }
+
+    input:checked + .slider {
+    background-color: #2196F3;
+    }
+
+    input:focus + .slider {
+    box-shadow: 0 0 1px #2196F3;
+    }
+
+    input:checked + .slider:before {
+    -webkit-transform: translateX(26px);
+    -ms-transform: translateX(26px);
+    transform: translateX(26px);
+    }
+
+    /* Rounded sliders */
+    .slider.round {
+    border-radius: 34px;
+    }
+
+    .slider.round:before {
+    border-radius: 50%;
+    }
+
+    .filters {
+        display:flex;
+        flex-direction:row;
+        width: 80%;
+        margin-left: auto;
+        margin-right: auto;
+        justify-content: space-around
+    }
   </style>
 
   <body>
     <div style="flex-direction: row;">
+        <div class="filters">
+            <div>
+                <label for="search">Research:</label>
+
+                <input type="text" id="search" name="trip-start" value ="">
+            </div>
+            <div>
+                <label for="start">Start date:</label>
+
+                <input type="datetime-local" id="start" name="trip-start"
+                    value="2018-07-22"
+                    min="2018-01-01" max="2018-12-31">
+            </div>
+            <div>
+                <label for="end">End date:</label>
+
+                <input type="datetime-local" id="end" name="trip-end"
+                        value="2018-07-22"
+                        min="2018-01-01" max="2018-12-31">
+            </div>
+        </div>
+
+        <div class="filters">
+            <div><label class="switch">
+                <input type="checkbox" onclick="onClickHandler('debug')" id="debug" checked>
+                <span class="slider round"></span>
+              </label>
+              <span class="ttl">Debug</span>
+            </div>
+            <div><label class="switch">
+                <input type="checkbox" onclick="onClickHandler('info')" id="info" checked>
+                <span class="slider round"></span>
+              </label>
+              <span class="ttl">Info</span>
+            </div>
+            <div><label class="switch">
+                <input type="checkbox" onclick="onClickHandler('warning')" id="warning" checked>
+                <span class="slider round"></span>
+              </label>
+              <span class="ttl">Warning</span>
+            </div>
+            <div><label class="switch">
+                <input type="checkbox" onclick="onClickHandler('error')" id="error" checked>
+                <span class="slider round"></span>
+              </label>
+              <span class="ttl">Error</span>
+            </div>
+            <div><label class="switch">
+                <input type="checkbox" onclick="onClickHandler('critical')" id="critical" checked>
+                <span class="slider round"></span>
+              </label>
+              <span class="ttl">Critical</span>
+            </div>
+        </div>
+
         {% for name, cf in logs_files.items() %}
         <div style="margin-top:10px; width:80%;margin-left: auto;margin-right: auto;">
-            <button type="button" class="collapsible" onclick="getLogFileContent('{{name}}')">
-                {% if cf['up_to_date'] %} 
-                    <div class="log_name">{{name}}</div>
+            <button type="button" class="collapsible" onclick="getLogFileContent('{{name}}','{{cf.name}}','{{cf.node}}',true)">
+                {% if cf.up_to_date %} 
+                    <div class="log_name">{{cf.name}} - {{cf.node}}</div>
                 {% else %}
-                    <div>{{name}}</div>
+                    <div>{{cf.name}} - {{cf.node}}</div>
                 {% endif %}
-                <div><span class="size">{{cf['size_s']}}</span> - {{cf['modification_date']}}</div>
+                <div><span class="size">{{cf.size_s}}</span> - {{cf['modification_date']}}</div>
             </button>
             
-            <div class="content" id="{{name}}">
+            <div class="content {{cf.name}} {{cf.node}}" id="{{name}}">
                 <p></p>
             </div>
         </div>
@@ -135,37 +262,74 @@
         document.querySelector(selector).style.display = visible ? 'block' : 'none';
     }
 
-      function getLogFileContent(name) {
+function getLogFileContent(id, name, node, opened) {
     //$(window).scrollTop(0);
     setVisible('#loading', true);
             
-    //if (!test || test == 'null') localStorage.removeItem('test');
-    //else localStorage.setItem('test', test);
-
-    $.ajax({
+    if(name != undefined && node != undefined) {
+        $.ajax({
             type: "GET",
             url: "/logs/file",
-            data: "name=" + name,
+            data: "name=" + name + "&node=" + node + "&content=Y",
             success: function(data, status) {
               //location.reload();
-
               var ansi_up = new AnsiUp;
 
-              var html = ansi_up.ansi_to_html(data.data['content']);
-              html = html.replace(/(?:\r\n|\r|\n)/g, '<br><hr>');
+              var content = data.data['content']
+              var html_raw = ansi_up.ansi_to_html(content);
+
+              html_raw = html_raw.replace(/(?:\r\n|\r|\n)/g, '<br>');
+
+              var html = "";
+              html_split = html_raw.split('<br>');
+              var blocks = [];
+              var block = undefined;
+
+             var regex_start = RegExp("[0-9]{4}-[0-9]{2}-[0-9]{2}\\s[0-9]{2}:[0-9]{2}:[0-9]{2}\\s-", )
+              for(var i in html_split) {
+                var line = html_split[i];
+                var new_line = regex_start.test(line);
+
+                if (new_line && block == undefined)
+                    block = line
+                else if (new_line && block != undefined) {
+                    blocks.push(block);
+                    block = undefined;
+                } else if (block != undefined) 
+                    block += '<br>' + line
+              }
+              if (block != undefined) blocks.push(block);
+
+              if (!document.getElementById('debug').checked)
+                blocks = blocks.filter(line => line.indexOf('- DEBUG ') === -1);
+              if (!document.getElementById('info').checked)
+                blocks = blocks.filter(line => line.indexOf('- INFO ') === -1);
+              
+
+
+              var search = document.getElementById('search').value;
+              var regex_search = RegExp(search, )
+              if (search != undefined && search != "")
+                blocks = blocks.filter(line => regex_search.test(line));
+
+              html = blocks.join('<br><hr>')
 
               html = html.replaceAll('- DEBUG ', '- <span class="debug">DEBUG</span> ');
               html = html.replaceAll('- INFO ', '- <span class="info">INFO</span> ');
               html = html.replaceAll('- WARNING ', '- <span class="warning">WARNING</span> ');
               html = html.replaceAll('- ERROR ', '- <span class="error">ERROR</span> ');
 
-              $("#" + name).html(html);
-              $("#" + name).scrollTop($("#" + name)[0].scrollHeight);
+              $("#" + id).html(html);
+              if (opened != undefined && opened)
+                $("#" + id).scrollTop($("#" + id)[0].scrollHeight);
 
               setVisible('#loading', false);
             },
             error: function (err) { console.log(err); setVisible('#loading', false); }
          });
+    } else {
+        setVisible('#loading', false);
+    }
   }
 
   onReady(function() {
@@ -192,9 +356,21 @@ setInterval(function(){
     $(".content").map(x=> {
         var name = $(".content")[x].id;
 
-        if ($("#"+name)[0].style.display == "block") {
-            getLogFileContent(name);
+        if ($("#"+name)[0] && $("#"+name)[0].style.display == "block") {
+            getLogFileContent(name, $("#"+name)[0].classList[1], $("#"+name)[0].classList[2]);
         }
     })
 }, 10000);
+
+function onClickHandler(name){    
+    if(!document.getElementById(name).checked) localStorage.setItem(name, true);
+    else localStorage.removeItem(name);
+}
+
+var levels = ['debug','info','warning','error','critical'];
+for(var i in levels)
+{
+    var stor = localStorage.getItem(levels[i]);
+    if(stor != undefined && stor) document.getElementById(levels[i]).checked = false;
+}
 </script>

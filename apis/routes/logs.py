@@ -25,7 +25,21 @@ def get_logs_files_names():
     files = glob.glob(log_directory + os.sep + '*.log')
     return [os.path.basename(x) for x in files]
 
-def get_logs_content(name:str=None, content:bool=False): 
+def get_logs_content(name:str=None, node:str=None, content:bool=False): 
+    current_node = platform.uname().node
+    if node is not None and node.lower() != current_node.lower():
+        url = 'http://%s:%s/logs/files'%(node, api.port)
+
+        params = api.get_parameters()
+        params['cluster'] = False
+
+        resp = requests.get(url=url, params=params)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data['error'] == 0:
+                return data['data']
+        return {}
+
     log_directory = core.config.get('directories/logs')
 
     files = glob.glob(log_directory + os.sep + (name if name is not None else "") + '*.log')
@@ -44,8 +58,11 @@ def get_logs_content(name:str=None, content:bool=False):
         #log_content = escape_ansi(log_content)
 
         file_size = os.path.getsize(file_path)
+        name = name.replace('.log','')
 
-        logs_content[name.replace('.log','') + ' - ' + platform.uname().node] = {
+        logs_content[name + '_' + platform.uname().node] = {
+            "name": name,
+            "node": platform.uname().node,
             "modification_time":modification_time,
             "modification_date":modification_date,
             "up_to_date": modification_date.date() == datetime.datetime.today().date(),
@@ -59,18 +76,10 @@ def get_logs_content(name:str=None, content:bool=False):
 def get_log_content(name:str, content:bool=False):
     return get_logs_content(name, content)[name]
 
-@route("/logs/filesnames", methods=['GET'], route_log=False, parameters=[])
-def get_logs():
-    return get_logs_files_names()
+def get_logs_content_cluster(name:str=None, node:str=None, content:bool=False):
+    os_logs_content = get_logs_content(api['name'], node=node, content=api['content'])
 
-@route("/logs/files", methods=['GET'], route_log=False, parameters=[
-    Parameter('name'),
-    Parameter('content', ptype=bool, default=False)
-])
-def get_logs_file_content():
-    os_logs_content = get_logs_content(api['name'], content=api['content'])
-
-    if CLUSTERS is not None and type(CLUSTERS) is list:
+    if CLUSTERS is not None and type(CLUSTERS) is list and node is None:
         for clusters in CLUSTERS:
             if type(clusters) is not list or not platform.uname().node in clusters:
                 continue
@@ -82,12 +91,42 @@ def get_logs_file_content():
                 url = 'http://%s:%s/logs/files'%(cluster, api.port)
 
                 params = api.get_parameters()
+                params['cluster'] = False
 
                 resp = requests.get(url=url, params=params)
                 if resp.status_code == 200:
                     data = resp.json()
-                    a = 1
+                    if data['error'] == 0:
+                        for key, cf in data['data'].items():
+                            os_logs_content[key] = cf
+    os_logs_content = {k: v for k, v in sorted(os_logs_content.items(), key=lambda item: item[1]['modification_time'],reverse=True)}
     return os_logs_content
+
+@route("/logs/filesnames", methods=['GET'], route_log=False, parameters=[])
+def get_logs():
+    return get_logs_files_names()
+
+@route("/logs/files", methods=['GET'], route_log=False, parameters=[
+    Parameter('name'),
+    Parameter('node'),
+    Parameter('content', ptype=bool, default=False),
+    Parameter('cluster', ptype=bool, default=True),
+])
+def get_logs_file_content():
+    if api['cluster']:
+        return get_logs_content_cluster(api['name'], node=api['node'], content=api['content'])
+    return get_logs_content(api['name'], node=api['node'], content=api['content'])
+
+@route("/logs/file", methods=['GET'], route_log=False, parameters=[
+    Parameter('name'),
+    Parameter('node'),
+    Parameter('content', ptype=bool, default=False)
+])
+def get_log_file_content():
+    logs_dict = get_logs_content(api['name'], node=api['node'], content=api['content'])
+    if len(logs_dict) == 0:
+        return logs_dict
+    return logs_dict[list(logs_dict.keys())[0]]
 
 @route("/logs")
 def get_logs_page():
@@ -108,6 +147,6 @@ def get_logs_page():
         "compagny_website": config.get("parameters/compagny_website"),
         "dashboard": config.get("dashboard/dashboard/active"),
         "date": datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
-        "logs_files": get_logs_content(content=False)
+        "logs_files": get_logs_content_cluster(content=False)
     }
     api.set_html("logs.html", parameters=parameters)
