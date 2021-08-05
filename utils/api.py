@@ -89,6 +89,7 @@ def route(
                 logged=logged,
                 cache_dir=api.cache_dir,
                 log=api.log,
+                description=description,
                 jwt_secret_key=""
                 if not "JWT_SECRET_KEY" in api.config
                 else api.config["JWT_SECRET_KEY"],

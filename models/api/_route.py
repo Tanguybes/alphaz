@@ -47,6 +47,7 @@ class Route(Requests):
         logged: bool = False,
         admin: bool = False,
         timeout=None,
+        description: str= "",
         cache_dir=None,
         log=None,
         jwt_secret_key=None,
@@ -58,6 +59,7 @@ class Route(Requests):
         self.cache: bool = cache
         self.logged: bool = logged
         self.admin: bool = admin
+        self.description = description
 
         self.parameters: Dict[Parameter] = {y.name: y for y in parameters}
 

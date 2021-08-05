@@ -11,7 +11,7 @@
     <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.no-icons.min.css" rel="stylesheet">
     <link href="//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css" rel="stylesheet">
 
-    <link rel="stylesheet" href="/assets/home.css">
+    <link rel="stylesheet" href="/assets/home.css?{{date}}">
     <link rel="icon" type="image/png" href="/assets/alpha.png" />
     <script src="/assets/jquery.min.js"></script>
   </head>
@@ -92,6 +92,11 @@
 
                     <div class="feature-routes">
                       {% for path in routes.categories_routes[category] %}
+
+                        {% if routes.routes[path].arguments.description %}
+                          <p class="info">{{routes.routes[path].arguments.description}}</p>
+                        {% endif %}
+
                         <div class="feature-route">
                           <a href="{{path}}" target="_blank">{{path}}</a>&nbsp;
 
@@ -110,7 +115,7 @@
                             {% endif %}
                           {% endif %}
 
-                          <sup class="methods">{% for method in routes.routes[path].arguments.methods %} {{method}} {% endfor %}</sup>
+                          <sup class="methods" style="color:white">{% for method in routes.routes[path].arguments.methods %} {{method}} {% endfor %}</sup>
                         </div>
 
                         <div class="parameters">

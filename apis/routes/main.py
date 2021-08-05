@@ -77,6 +77,7 @@ def home():
         "dashboard": config.get("dashboard/dashboard/active"),
         "tests": tests,
         "databases": database_lib.get_databases_tables_dict(core),
+        "date": datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     }
     api.set_html("home.html", parameters=parameters)
 
