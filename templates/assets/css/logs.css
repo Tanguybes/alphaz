@@ -1,0 +1,147 @@
+.collapsible {
+    border-radius: 10px;
+    background-color: #eee;
+    color: #444;
+    cursor: pointer;
+    padding: 18px;
+    width: 100%;
+    border: none;
+    text-align: left;
+    outline: none;
+    font-size: 15px;
+    flex-direction: row;
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
+.active, .collapsible:hover {
+background-color: #ccc;
+}
+
+/* Style the collapsible content. Note: hidden by default */
+.content {
+padding: 0 18px;
+display: none;
+overflow: hidden;
+background-color: #f1f1f1;
+font-size: 12px;
+line-height: 1.4em;
+overflow:scroll; 
+height:400px;
+}
+
+.content hr {
+    margin-top:4px;
+    margin-bottom: 4px;
+}
+
+#loading {
+display: block;
+position: absolute;
+top: 0;
+left: 0;
+z-index: 100;
+width: 100vw;
+height: 100vh;
+background-color: rgba(192, 192, 192, 0.18);
+background-image: url("https://i.stack.imgur.com/MnyxU.gif");
+background-repeat: no-repeat;
+background-position: center;
+}
+
+.debug {
+    color: #3498db !important;
+}
+
+.info {
+    color: #2ecc71  !important;
+}
+
+.warning {
+    color: #e67e22  !important;
+}
+
+.error {
+    color: #c0392b  !important;
+}
+
+.log_name {
+    color: #3498db;
+}
+
+.size {
+    color: #8e44ad;
+}
+
+/* switchs */
+.switch {
+position: relative;
+display: inline-block;
+width: 60px;
+height: 17px;
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+opacity: 0;
+width: 0;
+height: 0;
+}
+
+/* The slider */
+.slider {
+position: absolute;
+cursor: pointer;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+background-color: #ccc;
+-webkit-transition: .4s;
+transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 12px;
+    width: 18px;
+    left: 2px;
+    bottom: 2px;
+background-color: white;
+-webkit-transition: .4s;
+transition: .4s;
+}
+
+input:checked + .slider {
+background-color: #2196F3;
+}
+
+input:focus + .slider {
+box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+-webkit-transform: translateX(38px);
+-ms-transform: translateX(38px);
+transform: translateX(38px);
+}
+
+/* Rounded sliders */
+.slider.round {
+border-radius: 34px;
+}
+
+.slider.round:before {
+border-radius: 50%;
+}
+
+.filters {
+    display:flex;
+    flex-direction:row;
+    width: 80%;
+    margin-left: auto;
+    margin-right: auto;
+    justify-content: space-around
+}

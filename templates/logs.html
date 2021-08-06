@@ -11,161 +11,14 @@
     <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.no-icons.min.css" rel="stylesheet">
     <link href="//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css" rel="stylesheet">
 
-    <link rel="stylesheet" href="/assets/home.css?{{date}}">
-    <link rel="icon" type="image/png" href="/assets/alpha.png" />
+    <link rel="stylesheet" href="/assets/css/logs.css?{{date}}">
+
+    <link rel="icon" type="image/png" href="/assets/images/icons/alpha.png" />
     
-    <script src="/assets/jquery.min.js"></script>
-    <script src="/assets/ansi_up.js" type="text/javascript"></script>
+    <script src="/assets/js/libs/jquery.min.js"></script>
+    <script src="/assets/js/libs/ansi_up.js" type="text/javascript"></script>
+    
   </head>
-
-  <style>
-      .collapsible {
-    background-color: #eee;
-    color: #444;
-    cursor: pointer;
-    padding: 18px;
-    width: 100%;
-    border: none;
-    text-align: left;
-    outline: none;
-    font-size: 15px;
-    flex-direction: row;
-    display: flex;
-    justify-content: space-between;
-    }
-
-    /* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
-    .active, .collapsible:hover {
-    background-color: #ccc;
-    }
-
-    /* Style the collapsible content. Note: hidden by default */
-    .content {
-    padding: 0 18px;
-    display: none;
-    overflow: hidden;
-    background-color: #f1f1f1;
-    font-size: 12px;
-    line-height: 1.4em;
-    overflow:scroll; 
-    height:400px;
-    }
-
-    .content hr {
-        margin-top:4px;
-        margin-bottom: 4px;
-    }
-
-    #loading {
-	display: block;
-	position: absolute;
-	top: 0;
-	left: 0;
-	z-index: 100;
-	width: 100vw;
-	height: 100vh;
-	background-color: rgba(192, 192, 192, 0.18);
-	background-image: url("https://i.stack.imgur.com/MnyxU.gif");
-	background-repeat: no-repeat;
-	background-position: center;
-  }
-
-    .debug {
-        color: #3498db !important;
-    }
-
-    .info {
-        color: #2ecc71  !important;
-    }
-
-    .warning {
-        color: #e67e22  !important;
-    }
-
-    .error {
-        color: #c0392b  !important;
-    }
-
-    .log_name {
-        color: #3498db;
-    }
-
-    .size {
-        color: #8e44ad;
-    }
-
-    /* switchs */
-    .switch {
-    position: relative;
-    display: inline-block;
-    width: 60px;
-    height: 34px;
-    }
-
-    /* Hide default HTML checkbox */
-    .switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-    }
-
-    /* The slider */
-    .slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #ccc;
-    -webkit-transition: .4s;
-    transition: .4s;
-    }
-
-    .slider:before {
-    position: absolute;
-    content: "";
-    height: 26px;
-    width: 26px;
-    left: 4px;
-    bottom: 4px;
-    background-color: white;
-    -webkit-transition: .4s;
-    transition: .4s;
-    }
-
-    input:checked + .slider {
-    background-color: #2196F3;
-    }
-
-    input:focus + .slider {
-    box-shadow: 0 0 1px #2196F3;
-    }
-
-    input:checked + .slider:before {
-    -webkit-transform: translateX(26px);
-    -ms-transform: translateX(26px);
-    transform: translateX(26px);
-    }
-
-    /* Rounded sliders */
-    .slider.round {
-    border-radius: 34px;
-    }
-
-    .slider.round:before {
-    border-radius: 50%;
-    }
-
-    .filters {
-        display:flex;
-        flex-direction:row;
-        width: 80%;
-        margin-left: auto;
-        margin-right: auto;
-        justify-content: space-around
-    }
-  </style>
 
   <body>
     <div style="flex-direction: row;">
@@ -178,16 +31,12 @@
             <div>
                 <label for="start">Start date:</label>
 
-                <input type="datetime-local" id="start" name="trip-start"
-                    value="2018-07-22"
-                    min="2018-01-01" max="2018-12-31">
+                <input type="datetime-local" id="start-date" name="trip-start" value="" onchange="dateChange()">
             </div>
             <div>
                 <label for="end">End date:</label>
 
-                <input type="datetime-local" id="end" name="trip-end"
-                        value="2018-07-22"
-                        min="2018-01-01" max="2018-12-31">
+                <input type="datetime-local" id="end-date" name="trip-end" value="" onchange="dateChange()">
             </div>
         </div>
 
@@ -226,7 +75,7 @@
 
         {% for name, cf in logs_files.items() %}
         <div style="margin-top:10px; width:80%;margin-left: auto;margin-right: auto;">
-            <button type="button" class="collapsible" onclick="getLogFileContent('{{name}}','{{cf.name}}','{{cf.node}}',true)">
+            <button type="button" class="collapsible" onclick="getLogFileContent('{{name}}','{{cf.name}}','{{cf.node}}',true, false)">
                 {% if cf.up_to_date %} 
                     <div class="log_name">{{cf.name}} - {{cf.node}}</div>
                 {% else %}
@@ -246,131 +95,6 @@
     <div id="loading"></div>
   </body>
 
+  <script src="/assets/js/logs.js?{{date}}" type="text/javascript"></script>
+
 </html>
-
-<script>
-      function onReady(callback) {
-  var intervalId = window.setInterval(function() {
-    if (document.getElementsByTagName('body')[0] !== undefined) {
-      window.clearInterval(intervalId);
-      callback.call(this);
-    }
-  }, 1000);
-}
-
-    function setVisible(selector, visible) {
-        document.querySelector(selector).style.display = visible ? 'block' : 'none';
-    }
-
-function getLogFileContent(id, name, node, opened) {
-    //$(window).scrollTop(0);
-    setVisible('#loading', true);
-            
-    if(name != undefined && node != undefined) {
-        $.ajax({
-            type: "GET",
-            url: "/logs/file",
-            data: "name=" + name + "&node=" + node + "&content=Y",
-            success: function(data, status) {
-              //location.reload();
-              var ansi_up = new AnsiUp;
-
-              var content = data.data['content']
-              var html_raw = ansi_up.ansi_to_html(content);
-
-              html_raw = html_raw.replace(/(?:\r\n|\r|\n)/g, '<br>');
-
-              var html = "";
-              html_split = html_raw.split('<br>');
-              var blocks = [];
-              var block = undefined;
-
-             var regex_start = RegExp("[0-9]{4}-[0-9]{2}-[0-9]{2}\\s[0-9]{2}:[0-9]{2}:[0-9]{2}\\s-", )
-              for(var i in html_split) {
-                var line = html_split[i];
-                var new_line = regex_start.test(line);
-
-                if (new_line && block == undefined)
-                    block = line
-                else if (new_line && block != undefined) {
-                    blocks.push(block);
-                    block = undefined;
-                } else if (block != undefined) 
-                    block += '<br>' + line
-              }
-              if (block != undefined) blocks.push(block);
-
-              if (!document.getElementById('debug').checked)
-                blocks = blocks.filter(line => line.indexOf('- DEBUG ') === -1);
-              if (!document.getElementById('info').checked)
-                blocks = blocks.filter(line => line.indexOf('- INFO ') === -1);
-              
-
-
-              var search = document.getElementById('search').value;
-              var regex_search = RegExp(search, )
-              if (search != undefined && search != "")
-                blocks = blocks.filter(line => regex_search.test(line));
-
-              html = blocks.join('<br><hr>')
-
-              html = html.replaceAll('- DEBUG ', '- <span class="debug">DEBUG</span> ');
-              html = html.replaceAll('- INFO ', '- <span class="info">INFO</span> ');
-              html = html.replaceAll('- WARNING ', '- <span class="warning">WARNING</span> ');
-              html = html.replaceAll('- ERROR ', '- <span class="error">ERROR</span> ');
-
-              $("#" + id).html(html);
-              if (opened != undefined && opened)
-                $("#" + id).scrollTop($("#" + id)[0].scrollHeight);
-
-              setVisible('#loading', false);
-            },
-            error: function (err) { console.log(err); setVisible('#loading', false); }
-         });
-    } else {
-        setVisible('#loading', false);
-    }
-  }
-
-  onReady(function() {
-  setVisible('#loading', false);
-});
-
-var coll = document.getElementsByClassName("collapsible");
-var i;
-
-for (i = 0; i < coll.length; i++) {
-  coll[i].addEventListener("click", function() {
-    this.classList.toggle("active");
-    var content = this.nextElementSibling;
-    if (content.style.display === "block") {
-      content.style.display = "none";
-    } else {
-      content.style.display = "block";
-    }
-  });
-}
-
-setInterval(function(){ 
-    //this code runs every second 
-    $(".content").map(x=> {
-        var name = $(".content")[x].id;
-
-        if ($("#"+name)[0] && $("#"+name)[0].style.display == "block") {
-            getLogFileContent(name, $("#"+name)[0].classList[1], $("#"+name)[0].classList[2]);
-        }
-    })
-}, 10000);
-
-function onClickHandler(name){    
-    if(!document.getElementById(name).checked) localStorage.setItem(name, true);
-    else localStorage.removeItem(name);
-}
-
-var levels = ['debug','info','warning','error','critical'];
-for(var i in levels)
-{
-    var stor = localStorage.getItem(levels[i]);
-    if(stor != undefined && stor) document.getElementById(levels[i]).checked = false;
-}
-</script>

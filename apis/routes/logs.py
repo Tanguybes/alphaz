@@ -25,7 +25,7 @@ def get_logs_files_names():
     files = glob.glob(log_directory + os.sep + '*.log')
     return [os.path.basename(x) for x in files]
 
-def get_logs_content(name:str=None, node:str=None, content:bool=False): 
+def get_logs_content(name:str=None, node:str=None, content:bool=False, single:bool=False): 
     current_node = platform.uname().node
     if node is not None and node.lower() != current_node.lower():
         url = 'http://%s:%s/logs/files'%(node, api.port)
@@ -42,7 +42,11 @@ def get_logs_content(name:str=None, node:str=None, content:bool=False):
 
     log_directory = core.config.get('directories/logs')
 
-    files = glob.glob(log_directory + os.sep + (name if name is not None else "") + '*.log')
+    if not single:
+        path_pattern = log_directory + os.sep + (name if name is not None else "") + '*.log*'
+    else:
+        path_pattern = log_directory + os.sep + (name.replace('_','.log.') if '_' in name else name+ ".log")
+    files = glob.glob(path_pattern)
 
     logs_content = {}
     for file_path in files:
@@ -59,6 +63,7 @@ def get_logs_content(name:str=None, node:str=None, content:bool=False):
 
         file_size = os.path.getsize(file_path)
         name = name.replace('.log','')
+        name = name.replace('.','_')
 
         logs_content[name + '_' + platform.uname().node] = {
             "name": name,
@@ -98,7 +103,7 @@ def get_logs_content_cluster(name:str=None, node:str=None, content:bool=False):
                 except:
                     LOG.error('Fail to contact %s'%url)
                     continue
-                
+
                 if resp.status_code == 200:
                     data = resp.json()
                     if data['error'] == 0:
@@ -128,7 +133,7 @@ def get_logs_file_content():
     Parameter('content', ptype=bool, default=False)
 ])
 def get_log_file_content():
-    logs_dict = get_logs_content(api['name'], node=api['node'], content=api['content'])
+    logs_dict = get_logs_content(api['name'], node=api['node'], content=api['content'], single=True)
     if len(logs_dict) == 0:
         return logs_dict
     return logs_dict[list(logs_dict.keys())[0]]

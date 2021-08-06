@@ -11,9 +11,9 @@
     <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.no-icons.min.css" rel="stylesheet">
     <link href="//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css" rel="stylesheet">
 
-    <link rel="stylesheet" href="/assets/home.css?{{date}}">
-    <link rel="icon" type="image/png" href="/assets/alpha.png" />
-    <script src="/assets/jquery.min.js"></script>
+    <link rel="stylesheet" href="/assets/css/home.css?{{date}}">
+    <link rel="icon" type="image/png" href="/assets/images/icons/alpha.png" />
+    <script src="/assets/js/libs/jquery.min.js"></script>
   </head>
 
   <body class="is-boxed has-animations" style=height:100%>
@@ -101,15 +101,15 @@
                           <a href="{{path}}" target="_blank">{{path}}</a>&nbsp;
 
                           {% if routes.routes[path].arguments.admin %}
-                            <sub><img src="/assets/admin.png" class="route-property"/></sub>
+                            <sub><img src="/assets/images/icons/admin.png" class="route-property"/></sub>
                           {% endif %}
 
                           {% if routes.routes[path].arguments.logged %}
-                            <sub><img src="/assets/user.png" class="route-property"/></sub>
+                            <sub><img src="/assets/images/icons/user.png" class="route-property"/></sub>
                           {% endif %}
                           
                           {% if routes.routes[path].arguments.cache %}
-                            <sub><img src="/assets/save.png" class="route-property"/></sub>
+                            <sub><img src="/assets/images/icons/save.png" class="route-property"/></sub>
                             {% if routes.routes[path].arguments.timeout %}
                               <sub class="timeout">{{routes.routes[path].arguments.timeout}}s</sub>
                             {% endif %}
@@ -126,7 +126,7 @@
                                 <sub style="color:green">{{parameter.type}}</sub>
 
                                 {% if (routes.routes[path].arguments.cache) and (parameter.cacheable) %}
-                                  <sub><img src="/assets/save.png" class="route-property"/></sub>
+                                  <sub><img src="/assets/images/icons/save.png" class="route-property"/></sub>
                                 {% endif %}                          
                               </div>
 
@@ -165,7 +165,7 @@
                       <div class="test-category">
                         <div>
                         <i class="icon-play run" onclick="executeTest('{{category}}','','')"></i>
-                        <img src='/assets/loading.gif' id="loading_{{category}}" class="hide"/>
+                        <img src='/assets/images/loading.gif' id="loading_{{category}}" class="hide"/>
                         </div>
                         <h3 class="feature-title mt-24">{{category}}</h3>
                       </div>
