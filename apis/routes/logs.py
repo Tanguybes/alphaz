@@ -12,7 +12,8 @@ from core import core
 
 api = core.api
 db = core.db
-LOG = core.get_logger("api")
+
+LOG = core.get_logger("logs")
 
 CLUSTERS = core.config.get('clusters')
 
@@ -84,6 +85,7 @@ def get_log_content(name:str, content:bool=False):
 def get_logs_content_cluster(name:str=None, node:str=None, content:bool=False):
     os_logs_content = get_logs_content(api['name'], node=node, content=api['content'])
 
+    in_cluster = []
     if CLUSTERS is not None and type(CLUSTERS) is list and node is None:
         for clusters in CLUSTERS:
             if type(clusters) is not list or not platform.uname().node.lower() in [x.lower() for x in clusters]:
@@ -92,7 +94,7 @@ def get_logs_content_cluster(name:str=None, node:str=None, content:bool=False):
             for cluster in clusters:
                 if platform.uname().node.lower() == cluster.lower():
                     continue
-                
+                in_cluster.append(cluster.lower())
                 url = 'http://%s:%s/logs/files'%(cluster.lower(), api.port)
 
                 params = api.get_parameters()
@@ -109,6 +111,7 @@ def get_logs_content_cluster(name:str=None, node:str=None, content:bool=False):
                     if data['error'] == 0:
                         for key, cf in data['data'].items():
                             os_logs_content[key] = cf
+    LOG.info("%s logs files found in cluster: %s, %s"%(len(os_logs_content),platform.uname().node.lower(), ", ".join(in_cluster)))
     os_logs_content = {k: v for k, v in sorted(os_logs_content.items(), key=lambda item: item[1]['modification_time'],reverse=True)}
     return os_logs_content
 
