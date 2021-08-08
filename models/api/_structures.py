@@ -106,12 +106,18 @@ class AlphaFlask(Flask, Requests):
         # self.api.config["EXPLAIN_TEMPLATE_LOADING"]         = True
         self.config["UPLOAD_FOLDER"] = self.root_path
 
+    def run(self, *args, **kwargs):
+        self.init_run()
+        super().run(*args, **kwargs)
+
     def init(self, encode_rules={}):
         routes = self.conf.get("routes")
         if routes is not None:
             for route in routes:
                 module = importlib.import_module(route)
         self.cache_dir = self.conf.get("directories/cache")
+
+        self.info("Init api with routes: %s"%", ".join(routes))
 
         # check request
         # ! freeze - dont know why
@@ -205,6 +211,17 @@ class AlphaFlask(Flask, Requests):
         )
         self.admin_db.add_views(*views)
 
+    def init_run(self):
+        host = self.conf.get("host")
+        self.port = self.conf.get("port")
+        self.debug = self.conf.get("debug") if not "ALPHA_DEBUG" in os.environ else ("y" in os.environ["ALPHA_DEBUG"].lower() or "t" in os.environ["ALPHA_DEBUG"].lower())
+        if self.debug:
+            sys.dont_write_bytecode = True
+        self.log.info(
+            "Run api on host %s port %s %s"
+            % (host, self.port, "DEBUG MODE" if self.debug else "")
+        )
+
     def start(self):
         if self.pid is not None:
             return
@@ -214,23 +231,14 @@ class AlphaFlask(Flask, Requests):
             ssl_context = (self.conf.get("ssl_cert"), self.conf.get("ssl_key"))
 
         host = self.conf.get("host")
-        self.port = self.conf.get("port")
         threaded = self.conf.get("threaded")
         
-        self.debug = self.conf.get("debug") if not "ALPHA_DEBUG" in os.environ else ("y" in os.environ["ALPHA_DEBUG"].lower() or "t" in os.environ["ALPHA_DEBUG"].lower())
-        if self.debug:
-            sys.dont_write_bytecode = True
-
-        self.log.info(
-            "Run api on host %s port %s %s"
-            % (host, self.port, "DEBUG MODE" if self.debug else "")
-        )
-
         mode = self.conf.get("mode")
         if 'ALPHA_API' in os.environ:
             mode = os.environ['ALPHA_API']
 
-        # try:
+        self.init_run()
+
         if mode == "wsgi":
             application = DebuggedApplication(self, True) if self.debug else self
 

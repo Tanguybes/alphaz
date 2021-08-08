@@ -26,8 +26,6 @@ function getLogFileContent(id, name, node, opened, force) {
 
     var request = "name=" + name + "&node=" + node + "&content=Y";
     
-
-    console.log('name',name,'node',node,'state',element_state,'force',force)
     if(name != undefined && node != undefined && (element_state == '' || force)) {
         console.log('request',request);
         $.ajax({
