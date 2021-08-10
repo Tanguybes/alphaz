@@ -39,7 +39,7 @@ class AlphaCore(AlphaClass):
         self.root: str = _get_relative_path(file, level=level)
         self.config: AlphaConfig = None
 
-        self.loggers: {AlphaLogger} = {}
+        self.loggers: Dict[str, AlphaLogger] = {}
         self.initiated: bool = False
         self.databases: dict = {}
 
@@ -118,8 +118,8 @@ class AlphaCore(AlphaClass):
         self.db = self.databases["main"]
 
         # configuration
-        self.api.log: AlphaLogger = self.get_logger("api")
-        self.api.log_requests: AlphaLogger = self.get_logger("http")
+        self.api.log = self.get_logger("api")
+        self.api.log_requests = self.get_logger("http")
 
         api_root = self.config.get("api_root")
         self.api.set_config(

@@ -78,14 +78,14 @@ class AlphaConfig(AlphaClass):
         self.core_configuration = core_configuration
 
         if data is None:
-            self._load_raw()
+            self.__load_raw()
 
         if data is None and configuration is not None:
             self.set_configuration(configuration)
         else:
-            self._load()
+            self.__load()
 
-    def _load_raw(self):
+    def __load_raw(self):
         if not self.loaded:
             with open(self.filepath, encoding='utf-8') as json_data_file:
                 try:
@@ -105,21 +105,21 @@ class AlphaConfig(AlphaClass):
         elif configuration is None and self.configuration is not None:
             configuration = self.configuration
             
-        self._clean()
+        self.__clean()
 
         self.configuration = configuration
 
-        self._load()
+        self.__load()
 
-    def _clean(self):
+    def __clean(self):
         # remove tmp from data_origin
         if len(self.tmp) != 0:
             self.data_origin = {x:y for x, y in self.data_origin.items() if x not in self.tmp}
 
-    def _load(self):
-        self._check_reserved()
+    def __load(self):
+        self.__check_reserved()
         
-        self._set_tmps()
+        self.__set_tmps()
         self.__process_tmps()
 
         self._set_configuration()
@@ -130,15 +130,15 @@ class AlphaConfig(AlphaClass):
         if not CONFIGURATIONS.load_configuration(self) or not self.core_configuration:
             if self.core_configuration:
                 self.info('Reload configuration: %s'%self.filepath)
-            self._init_data()
-            self._configure_sub_configurations()
+            self.__init_data()
+            self.__configure_sub_configurations()
             CONFIGURATIONS.save_configuration(self)
         else:
-            self._configure_sub_configurations()
+            self.__configure_sub_configurations()
 
         if self.core_configuration:
-            self._check_required()
-            self._configure()
+            self.__check_required()
+            self.__configure()
 
     """def set_data(self,value,paths=[]):
         ensure_path(self.data_origin,paths,value=value)"""
@@ -165,9 +165,9 @@ class AlphaConfig(AlphaClass):
             elif default_configuration is not None and default_configuration in configurations:
                 self.data_tmp['configurations'] = configurations[default_configuration]
                 self.configuration = default_configuration
-        self._add_tmp('configuration', self.configuration)
+        self.__add_tmp('configuration', self.configuration)
 
-    def _init_data(self):
+    def __init_data(self):
         config          = copy.deepcopy(self.data_origin)
         for key, values in self.data_tmp.items():
             merge_configuration(config, values, replace=True)
@@ -175,7 +175,7 @@ class AlphaConfig(AlphaClass):
 
         self.data = self._replace_parameters(config)
 
-    def _configure(self):
+    def __configure(self):
         # Paths
         if self.is_path("paths"):
             for path in self.get("paths"):
@@ -185,8 +185,8 @@ class AlphaConfig(AlphaClass):
             for env, value in self.get("envs").items():
                 os.environ[env] = value
 
-        self._set_loggers()
-        self._configure_databases()
+        self.__set_loggers()
+        self.__configure_databases()
 
         if self.core_configuration: 
             sequence = ', '.join(["%s=<%s>%s"%(tmp, tmp_value, '*' if tmp+'s' in self.data_tmp else '') for tmp, tmp_value in self.tmp.items() ])
@@ -210,7 +210,7 @@ class AlphaConfig(AlphaClass):
                         else:
                             self.log.error('Duplicate exception name for %s'%exception_name)
 
-    def _configure_sub_configurations(self):
+    def __configure_sub_configurations(self):
         if not self.core_configuration:
             return 
 
@@ -252,7 +252,7 @@ class AlphaConfig(AlphaClass):
         )
         return config
 
-    def _set_loggers(self):
+    def __set_loggers(self):
         if not self.core_configuration:
             return
 
@@ -274,33 +274,37 @@ class AlphaConfig(AlphaClass):
             )
 
         if self.is_path("loggers"):
-            for logger_name in self.get("loggers").keys():
+            loggers_names = list(self.get("loggers").keys())
+            self.log.debug(f"Initiate loggers: {loggers_names}")
+            for logger_name in loggers_names:
                 logger_config   = self.get_config(["loggers",logger_name])
                 root            = logger_config.get("root")
 
-                if not logger_name in self.loggers:
-                    self.loggers[logger_name] = AlphaLogger(
-                        logger_name,
-                        filename    = logger_config.get("filename"),
-                        root        = root if root is not None else self.logger_root,
-                        cmd_output  = logger_config.get("cmd_output", default=True),
-                        level       = logger_config.get("level"),
-                        colors      = colors,
-                        database    = logger_config.get("database"),
-                        excludes    = logger_config.get('excludes'),
-                        config      = logger_config.get("config"),
-                        replaces    = logger_config.get("replaces")
-                    )
+                if logger_name in self.loggers:
+                    continue
 
-        main_logger_name = "main"
-        if not main_logger_name in self.loggers:
-            self.log = AlphaLogger(
-                main_logger_name,
-                root        = self.logger_root,
-                cmd_output  = True,
-                colors=colors
-            )
-            self.loggers[main_logger_name] = self.log
+                self.loggers[logger_name] = AlphaLogger(
+                    logger_name,
+                    filename    = logger_config.get("filename"),
+                    root        = root if root is not None else self.logger_root,
+                    cmd_output  = logger_config.get("cmd_output", default=True),
+                    level       = logger_config.get("level"),
+                    colors      = colors,
+                    database    = logger_config.get("database"),
+                    excludes    = logger_config.get('excludes'),
+                    config      = logger_config.get("config"),
+                    replaces    = logger_config.get("replaces")
+                )
+
+            main_logger_name = "main"
+            if not main_logger_name in self.loggers:
+                self.log = AlphaLogger(
+                    main_logger_name,
+                    root        = self.logger_root,
+                    cmd_output  = True,
+                    colors=colors
+                )
+                self.loggers[main_logger_name] = self.log
 
     def _replace_parameters(self,config):
         """Replace parameters formatted has {{<parameter>}} by their values in
@@ -389,16 +393,9 @@ class AlphaConfig(AlphaClass):
                 colors      = colors
             )
         if name not in self.loggers:
-            self.warning('%s is not configured as a logger in %s'%(name,self.filepath))
-            """log = AlphaLogger(
-                name,
-                filename    = name,
-                root        = self.logger_root,
-                level       = default_level,
-                colors      = self.get("colors/loggers")
-            )"""
+            self.warning(f'{name} is not configured as a logger in {self.filepath}')
             return self.loggers['main']
-        return  self.loggers[name] 
+        return self.loggers[name] 
 
     def _get_value_from_main_config(self,parameter,force_exit=False):
         value = None
@@ -461,7 +458,7 @@ class AlphaConfig(AlphaClass):
             parameters = [parameters]
         return parameters
 
-    def _configure_databases(self):
+    def __configure_databases(self):
         if not self.is_path('databases'): return
 
         config = self.get("databases")
@@ -583,7 +580,7 @@ class AlphaConfig(AlphaClass):
     def save(self):
         self.info('Save configuration file at %s'%self.filepath)
 
-        self._clean()
+        self.__clean()
 
         with open(self.filepath,'w', encoding='utf-8') as json_data_file:
             json.dump(self.data_origin,json_data_file, sort_keys=True, indent=4, ensure_ascii = False)
@@ -591,7 +588,7 @@ class AlphaConfig(AlphaClass):
     def show(self):
         show(self.data)
 
-    def _check_required(self):
+    def __check_required(self):
         if 'required' in self.data:
             self.required = list(set(self.data['required']).union(set(self.required)))
 
@@ -601,13 +598,13 @@ class AlphaConfig(AlphaClass):
                 self.valid = False
                 exit()
         
-    def _check_reserved(self):
+    def __check_reserved(self):
         for reserved_name in self.reserved:
             if reserved_name in self.data_origin:
                 self.error("<%s> entry in configuration %s is reserved"%(reserved_name,self.filepath))
                 exit()
 
-    def _add_tmp(self,name,value):
+    def __add_tmp(self,name,value):
         if name in self.data_origin:
             self.error('<%s> entry in configuration %s is reserved'%(name,self.filepath))
             exit()
@@ -619,19 +616,19 @@ class AlphaConfig(AlphaClass):
         if not name in self.tmp: return None
         return self.tmp[name]
 
-    def _set_tmps(self):
+    def __set_tmps(self):
         # tmps
-        self._add_tmp('project', os.getcwd())
+        self.__add_tmp('project', os.getcwd())
 
         # USER
         user = getpass.getuser() if self.user is None else self.user
-        self._add_tmp('user',user)
+        self.__add_tmp('user',user)
 
         current_ip = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
-        self._add_tmp('ip',current_ip)
+        self.__add_tmp('ip',current_ip)
 
         system_platform    = platform.system().lower()
-        self._add_tmp('platform',system_platform)
+        self.__add_tmp('platform',system_platform)
 
     def get_key(self,raw=False):
         return self.filepath + ": " + " - ".join("%s=%s"%(x,y) for x,y in self.tmp.items() if not raw or x != 'configuration')

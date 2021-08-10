@@ -145,7 +145,6 @@ def load_views(log) -> List[ModelView]:
     Returns:
         List[ModelView]: [description]
     """
-    log.info("START Loading views models")
     views = []
 
     for schema, cf in TABLES.items():
@@ -173,5 +172,6 @@ def load_views(log) -> List[ModelView]:
 
             view.column_list = attributes
             views.append(view)
-    log.info("END Loading views models")
+    if len(views) != 0:
+        log.info(f"Loaded {len(views)} views models")
     return views

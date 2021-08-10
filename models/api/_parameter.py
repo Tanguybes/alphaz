@@ -3,6 +3,8 @@ from flask import request
 from sqlalchemy.orm.base import object_mapper
 from sqlalchemy.orm.exc import UnmappedInstanceError
 
+from collections.abc import Callable
+
 from ..main import AlphaException
 
 from ...libs import date_lib
@@ -18,7 +20,8 @@ class Parameter:
         ptype: type=str,
         private: bool=False,
         mode: str="none",
-        ovverride: bool=False
+        override: bool=False,
+        function: Callable=None
     ):
         """[summary]
 
@@ -38,11 +41,12 @@ class Parameter:
         self.options = options
         self.required = required
         self.ptype: type = ptype
+        self.function: Callable = function
         self.type = str(ptype).replace("<class '", "").replace("'>", "")
         self.value = None
         self.private = private
         self.mode = mode
-        self.ovverride = ovverride
+        self.override = override
 
     def set_value(self):
         """ Set parameter value
@@ -149,4 +153,7 @@ class Parameter:
         if hasattr(self.ptype, "metadata"):
             r = json.loads(self.value)
             self.value = self.ptype(**r)
+
+        if self.function is not None:
+            self.value = self.function(self.value)
 

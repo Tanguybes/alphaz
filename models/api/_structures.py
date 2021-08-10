@@ -45,12 +45,13 @@ class AlphaFlask(Flask, Requests):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.__initiated:bool = False
         self.pid = None
         self.conf = None
         self.config_path = ""
         self.port = None
 
-        self.log = None
+        self.log: AlphaLogger = None
         self.log_requests = None
         self.db = None
         self.admin_db = None
@@ -117,7 +118,7 @@ class AlphaFlask(Flask, Requests):
                 module = importlib.import_module(route)
         self.cache_dir = self.conf.get("directories/cache")
 
-        self.info("Init api with routes: %s"%", ".join(routes))
+        self.log.debug("Init api with routes: %s"%", ".join(routes))
 
         # check request
         # ! freeze - dont know why
@@ -162,11 +163,11 @@ class AlphaFlask(Flask, Requests):
             )
 
         if self.conf.get("toolbar"):
-            self.log("Loading debug toolbar")
+            self.log.info("Loaded debug toolbar")
             toolbar = DebugToolbarExtension(self)
 
         if self.conf.get("dashboard/dashboard/active"):
-            self.log.info("Loading dashboard")
+            self.log.info("Loaded dashboard")
             filepath = config_lib.write_flask_dashboard_configuration()
             if filepath is not None:
                 self.log.info("Dashboard configured from %s" % filepath)
@@ -174,7 +175,7 @@ class AlphaFlask(Flask, Requests):
                 flask_monitoringdashboard.bind(self)
 
         if self.conf.get("admin_databases"):
-            self.log.info("Loading admin databases interface")
+            self.log.info("Loaded admin databases interface")
             self.init_admin_view()
 
         # Base.prepare(self.db.engine, reflect=True)
@@ -212,6 +213,8 @@ class AlphaFlask(Flask, Requests):
         self.admin_db.add_views(*views)
 
     def init_run(self):
+        if self.__initiated:
+            return
         host = self.conf.get("host")
         self.port = self.conf.get("port")
         self.debug = self.conf.get("debug") if not "ALPHA_DEBUG" in os.environ else ("y" in os.environ["ALPHA_DEBUG"].lower() or "t" in os.environ["ALPHA_DEBUG"].lower())
@@ -221,6 +224,7 @@ class AlphaFlask(Flask, Requests):
             "Run api on host %s port %s %s"
             % (host, self.port, "DEBUG MODE" if self.debug else "")
         )
+        self.__initiated = True
 
     def start(self):
         if self.pid is not None:

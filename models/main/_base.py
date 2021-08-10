@@ -1,3 +1,4 @@
+from typing import Dict, List
 from ..logger import AlphaLogger
 import inspect
 
@@ -5,15 +6,12 @@ from ...libs import py_lib
 
 class AlphaClass:
     def __init__(self, *args, log:AlphaLogger = None, **kwargs):
-        self.init_args = {'args':args, 'kwargs':kwargs}
-        self.children = list()
+        self.init_args: dict = {'args':args, 'kwargs':kwargs}
+        self.children: list = []
 
         self.log: AlphaLogger       = log
 
-        self._debugs = []
-        self._infos = []
-        self._errors = []
-        self._warnings = []
+        self.__piles: Dict[str, List[str]] = {}
 
     def make_child(self, child_cls, *args, **kwargs):
         if args is None:
@@ -30,41 +28,30 @@ class AlphaClass:
     def to_json(self):
         return self.get_attributes()
 
-    def debug(self,message,ex=None): 
+    def __log(self, stack, message, ex=None):
+        if not stack in self.__piles:
+            self.__piles[stack] = []
+        pile = self.__piles[stack]
+
         if self.log is not None:
-            if len(self._debugs) != 0:
-                for deb in self._debugs:
-                    self.log.debug(info,ex=ex)
-                self._debugs = []
-            self.log.debug(message,ex=ex)
+            method = getattr(self.log, stack)
+            if len(pile) != 0:
+                for deb in pile:
+                    method(deb,ex=ex)
+                stack = []
+            method(message,ex=ex)
         else:
-            self._debugs.append(message)
+            pile.append(message)
+
+    def debug(self,message,ex=None): 
+        self.__log(inspect.stack()[0][3], message=message, ex=ex)
 
     def info(self,message,ex=None):
-        if self.log is not None:
-            if len(self._infos) != 0:
-                for info in self._infos:
-                    self.log.info(info,ex=ex)
-                self._infos = []
-            self.log.info(message,ex=ex)
-        else:
-            self._infos.append(message)
+        self.__log(inspect.stack()[0][3], message=message, ex=ex)
 
     def warning(self,message,ex=None):
-        if self.log is not None:
-            if len(self._warnings) != 0:
-                for msg in self._warnings:
-                    self.log.warning(msg,ex=ex)
-                self._warnings = []
-            self.log.warning(message,ex=ex)
-        else:
-            self._warnings.append(message)
+        self.__log(inspect.stack()[0][3], message=message, ex=ex)
 
     def error(self,message,out=False,ex=None):
-        for info in self._infos:
-            print('   INFO: %s'%info)
-        if self.log is not None:
-            self.log.error(message,ex=ex)
-        else:
-            print('   ERROR: %s'%message)
+        self.__log(inspect.stack()[0][3], message=message, ex=ex)
         if out: exit()
