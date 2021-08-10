@@ -23,7 +23,8 @@ def str_to_datetime(date_string):
 
     if len(date_string) == 10:
         format_date_selected = format_date_selected.split()[0]
-    return datetime.datetime.strptime(date_string, format_date_selected)
+    output = datetime.datetime.strptime(date_string, format_date_selected)
+    return output
 
 def datetime_to_str(o=None,micro=False):
     if o is None:

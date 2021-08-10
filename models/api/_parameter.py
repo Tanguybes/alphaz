@@ -1,10 +1,11 @@
-import json
+import json, datetime
 from flask import request
 from sqlalchemy.orm.base import object_mapper
 from sqlalchemy.orm.exc import UnmappedInstanceError
 
 from ..main import AlphaException
 
+from ...libs import date_lib
 
 class Parameter:
     def __init__(
@@ -54,12 +55,15 @@ class Parameter:
             AlphaException: [description]
             AlphaException: [description]
         """
+        
         dataPost = request.get_json()
 
         self.value = request.args.get(self.name, self.default)
 
         if self.value is None and dataPost is not None and self.name in dataPost:
             self.value = dataPost[self.name]
+        if self.value is None and request.form is not None and self.name in request.form:
+            self.value = request.form[self.name]
 
         if (
             self.options is not None
@@ -138,6 +142,9 @@ class Parameter:
                     "api_wrong_parameter_value",
                     parameters={"parameter": self.name, "type": "float", "value":self.value},
                 )
+
+        if self.ptype == datetime.datetime:
+            self.value = date_lib.str_to_datetime(self.value)
 
         if hasattr(self.ptype, "metadata"):
             r = json.loads(self.value)

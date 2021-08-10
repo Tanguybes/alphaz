@@ -166,8 +166,10 @@ class AlphaDatabaseCore(SQLAlchemy):
         if filters is not None:
             if type(filters) == list:
                 query = get_filter_conditions(query, filters)
-            else:
+            elif type(filters) == dict:
                 query = get_filter(query, filters, model)
+            else:
+                query = get_filter_conditions(query, [filters])
         return query
 
 
