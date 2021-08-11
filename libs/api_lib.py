@@ -1,5 +1,5 @@
 
-import sys, os, inspect, copy
+import sys, os, inspect, copy, requests
 
 from ..libs import dict_lib
 from ..utils.api import ROUTES
@@ -9,6 +9,32 @@ from ..models.logger import AlphaLogger
 from ..libs.json_lib import jsonify_database_models, jsonify_data
 
 MODULES = {}
+
+def get_api_data(url:str, params: dict={}, log: AlphaLogger=None):
+    """ Get data from api
+
+    Args:
+        url (str): [description]
+        params (dict, optional): [description]. Defaults to {}.
+        log (AlphaLogger, optional): [description]. Defaults to None.
+
+    Returns:
+        [type]: [description]
+    """
+    try:
+        resp = requests.get(url=url, params=params)
+    except Exception as ex:
+        if log is not None:
+            log.error(f'Fail to contact {url}', ex)
+        return None
+
+    if resp.status_code != 200:
+        if log is not None:
+            log.error(f'Fail to get data from {url}: {resp.status_code}')
+        return None
+
+    data = resp.json()
+    return data['data']
 
 def get_columns_values_output(objects:list,columns:list=None) -> dict:
     """Get output with columns / values format.
