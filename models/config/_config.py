@@ -157,14 +157,19 @@ class AlphaConfig(AlphaClass):
                     tmp_configuration = config["configuration"]
                     self.info("Detected configuration <%s> in %s section"%(tmp_configuration, key))
 
-            if self.configuration is not None and self.configuration.lower() in [x.lower() for x in configurations]:
-                self.data_tmp['configurations'] = configurations[self.configuration]
-            elif tmp_configuration is not None:
-                self.data_tmp['configurations'] = configurations[tmp_configuration]
-                self.configuration = tmp_configuration
-            elif default_configuration is not None and default_configuration.lower() in [x.lower() for x in configurations]:
-                self.data_tmp['configurations'] = configurations[default_configuration]
-                self.configuration = default_configuration
+            self.configuration = self.configuration if self.configuration else (tmp_configuration if tmp_configuration else default_configuration)
+
+            tmp_config = {}
+            for conf, cf in self.data_origin["configurations"].items():
+                matchs = re.findall(conf.lower(), self.configuration.lower())
+                if len(matchs) != 0:
+                    
+                    try:
+                        merge_configuration(tmp_config, cf, replace=False, raise_duplicate=True)
+                    except ValueError as ex:
+                        self.log.error(ex)
+            self.data_tmp['configurations'] = tmp_config
+
         self.__add_tmp('configuration', self.configuration)
 
     def __init_data(self):

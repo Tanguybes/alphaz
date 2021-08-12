@@ -12,7 +12,7 @@ def set_environment_variables(environs:dict):
         for key, value in environs.items():
             os.environ[key] = convert_value_for_environment(value)
 
-def merge_configuration(configuration, source_configuration,replace=False,path=[]):
+def merge_configuration(configuration, source_configuration,replace=False,path=[],raise_duplicate:bool=False):
     for key2, value2 in source_configuration.items():
         if not key2 in configuration:
             configuration[key2] = value2
@@ -23,6 +23,8 @@ def merge_configuration(configuration, source_configuration,replace=False,path=[
             #elif type(value2) == list:
             else:
                 configuration[key2] = value2
+        elif raise_duplicate:
+            raise ValueError(f'Duplicate key {key2} in configuration')
 
 
 def get_parameters(content):
