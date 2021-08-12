@@ -10,7 +10,7 @@ from flask import (
 )
 
 from ..models.main import AlphaException
-from ..models.api import Parameter
+from ..models.api import Parameter, ParameterMode
 from ..models.api._route import Route
 
 from core import core

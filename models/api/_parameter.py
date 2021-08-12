@@ -9,6 +9,15 @@ from ..main import AlphaException
 
 from ...libs import date_lib
 
+from enum import Enum
+
+class ParameterMode(Enum):
+    NONE = 0
+    LIKE = 1
+    IN_LIKE = 2
+    START_LIKE = 3
+    END_LIKE = 4
+
 class Parameter:
     def __init__(
         self,
@@ -19,7 +28,7 @@ class Parameter:
         required: bool=False,
         ptype: type=str,
         private: bool=False,
-        mode: str="none",
+        mode: ParameterMode = ParameterMode.NONE,
         override: bool=False,
         function: Callable=None
     ):
@@ -92,10 +101,14 @@ class Parameter:
         if self.value is None:
             return
 
-        if self.ptype == str and self.mode == "like":
-            self.value = str(self.value)
-            if (self.value is not None) and (self.value.startswith('*') or self.value.endswith('*')):
-                self.value = self.value.replace('*', '%')
+        if self.ptype == str and (self.mode in [ParameterMode.LIKE,  ParameterMode.IN_LIKE, ParameterMode.START_LIKE, ParameterMode.END_LIKE]):
+            self.value = str(self.value).replace('*', '%')
+
+            if not "%" in self.value:
+                if self.mode in [ParameterMode.IN_LIKE,ParameterMode.START_LIKE] and not self.value.startswith('%'):
+                    self.value = f"%{self.value}"
+                if self.mode in [ParameterMode.IN_LIKE, ParameterMode.END_LIKE] and not self.value.endswith('%'):
+                    self.value = f"{self.value}%"
 
         if self.ptype == bool:
             str_value = str(self.value).lower()

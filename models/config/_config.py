@@ -145,7 +145,7 @@ class AlphaConfig(AlphaClass):
 
     def _set_configuration(self):
         if "configurations" in self.data_origin:
-            configurations = self.data_origin["configurations"]
+            configurations = {x.lower():y for x,y in self.data_origin["configurations"].items()}
             
             default_configuration = None
             if "default_configuration" in self.data_origin:
@@ -157,12 +157,12 @@ class AlphaConfig(AlphaClass):
                     tmp_configuration = config["configuration"]
                     self.info("Detected configuration <%s> in %s section"%(tmp_configuration, key))
 
-            if self.configuration is not None and self.configuration in configurations:
+            if self.configuration is not None and self.configuration.lower() in [x.lower() for x in configurations]:
                 self.data_tmp['configurations'] = configurations[self.configuration]
             elif tmp_configuration is not None:
                 self.data_tmp['configurations'] = configurations[tmp_configuration]
                 self.configuration = tmp_configuration
-            elif default_configuration is not None and default_configuration in configurations:
+            elif default_configuration is not None and default_configuration.lower() in [x.lower() for x in configurations]:
                 self.data_tmp['configurations'] = configurations[default_configuration]
                 self.configuration = default_configuration
         self.__add_tmp('configuration', self.configuration)

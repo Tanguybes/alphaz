@@ -45,7 +45,7 @@ def upload_file():
     api.set_file(file_path, filename)
 
 
-@route("status")
+@route("status", route_log=False)
 def status():
     return True
 

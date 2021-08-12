@@ -103,8 +103,8 @@ Or you could use the `Parameter` class to specify properties such as:
 @route("/logs",
     parameters = [
         Parameter('page',required=True,ptype=int),
-        Parameter('startDate',required=True),
-        Parameter('endDate',default=None),
+        Parameter('start_date',required=True),
+        Parameter('end_date',default=None),
         Parameter('error', options=["Y","N"])
     ])
 def admin_logs():
