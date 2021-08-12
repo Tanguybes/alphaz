@@ -383,7 +383,8 @@ class AlphaSsh():
 
     def execute_cmd(self,cmd,decode=True, lines=False, timeout:int=600):
         inputs, output, err = '', '', ''
-        print("     EXEC: %s"%(cmd))
+        if self.log:
+            self.log.info(f"EXEC: {cmd}")
         ssh_stdin, ssh_stdout, ssh_stderr = self.ssh.exec_command(cmd, get_pty=True, timeout=timeout)
         output = ssh_stdout.read()
         if lines:
@@ -391,10 +392,12 @@ class AlphaSsh():
         if decode:
             try:
                 output = output.decode('utf-8')
-                print("   OUTPUT:" +  output[:100])
+                if self.log:
+                    self.log.info(f"OUTPUT: {output[:100]} ...")
                 #output = output.decode('utf-8').encode('ascii')
             except Exception as ex:
-                print("ERROR:",cmd,ex)
+                if self.log:
+                    self.log.error(f"", ex=ex)
                 pass
             output = str(output)
             if output[:2] == "b'":

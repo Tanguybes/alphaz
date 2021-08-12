@@ -163,7 +163,6 @@ class AlphaConfig(AlphaClass):
             for conf, cf in self.data_origin["configurations"].items():
                 matchs = re.findall(conf.lower(), self.configuration.lower())
                 if len(matchs) != 0:
-                    
                     try:
                         merge_configuration(tmp_config, cf, replace=False, raise_duplicate=True)
                     except ValueError as ex:
