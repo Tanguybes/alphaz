@@ -110,6 +110,7 @@ class AlphaDatabaseCore(SQLAlchemy):
         
         engine_options = config["engine_options"] if 'engine_options' in config else {}
         session_options = config["session_options"] if 'session_options' in config else {}
+        self.autocommit = "autocommit" in session_options and session_options["autocommit"]
         super().__init__(*args, engine_options=engine_options, session_options=session_options, **kwargs)
 
         """if not bind:
@@ -150,11 +151,13 @@ class AlphaDatabaseCore(SQLAlchemy):
             query = "SELECT 1;"
         try:
             self._engine.execute(query)
-            self.session.commit()
+            if not self.self.autocommit:
+                self.session.commit()
             output = True
         except Exception as ex:
             # if self.log: self.log.error('ex:',ex)
-            self.session.rollback()
+            if not self.self.autocommit:
+                self.session.rollback()
         finally:
             if close:
                 self.session.close()
@@ -212,7 +215,7 @@ class AlphaDatabase(AlphaDatabaseCore):
             else:
                 self._engine.execute(query, values)
             self.query_str = get_compiled_query(query)
-            if commit:
+            if commit and not self.autocommit:
                 self.commit()
             if close:
                 self.session.close()
@@ -365,7 +368,7 @@ class AlphaDatabase(AlphaDatabaseCore):
             else:
                 obj_ = self.session.merge(obj)
 
-        if commit:
+        if commit and not self.autocommit:
             self.commit()
             """except Exception as ex:
                 primaryKeyColName = inspect_sqlalchemy(obj)
@@ -418,6 +421,8 @@ class AlphaDatabase(AlphaDatabaseCore):
         self.session.execute(stmt, rows)
 
     def commit(self, close=False, session=None):
+        if self.autocommit:
+            return True
         if session is None:
             session = self.session
         valid = True
