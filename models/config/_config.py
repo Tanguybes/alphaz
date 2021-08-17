@@ -160,13 +160,16 @@ class AlphaConfig(AlphaClass):
             self.configuration = self.configuration if self.configuration else (tmp_configuration if tmp_configuration else default_configuration)
 
             tmp_config = {}
-            for conf, cf in self.data_origin["configurations"].items():
-                matchs = re.findall(conf.lower(), self.configuration.lower())
-                if len(matchs) != 0:
-                    try:
-                        merge_configuration(tmp_config, cf, replace=False, raise_duplicate=True)
-                    except ValueError as ex:
-                        self.log.error(ex)
+            configuration_names = list(self.data_origin["configurations"].keys())
+            configuration_names.sort(key=len)
+            for configuration_name in configuration_names:
+                for conf, cf in self.data_origin["configurations"].items():
+                    matchs = re.findall(conf.lower(), self.configuration.lower())
+                    if len(matchs) != 0:
+                        try:
+                            merge_configuration(tmp_config, cf, replace=True)
+                        except ValueError as ex:
+                            self.log.error(ex)
             self.data_tmp['configurations'] = tmp_config
 
         self.__add_tmp('configuration', self.configuration)
@@ -634,17 +637,24 @@ class AlphaConfig(AlphaClass):
         system_platform    = platform.system().lower()
         self.__add_tmp('platform',system_platform)
 
+        machine = platform.uname().node.lower()
+        self.__add_tmp('machine',machine)
+
     def get_key(self,raw=False):
         return self.filepath + ": " + " - ".join("%s=%s"%(x,y) for x,y in self.tmp.items() if not raw or x != 'configuration')
 
     def __process_tmps(self):
-        to_process = ["user","ip","platform"]
+        to_process = ["user","ip","platform","machine"]
 
         for name in to_process:
-            if name + 's' in self.data_origin:
-                users = self.data_origin[name + 's']
-                if self.get_tmp(name) in users:
-                    self.data_tmp[name + 's'] = self.data_origin[name + 's'][self.get_tmp(name)]
+            if not name + 's' in self.data_origin:
+                continue
+            if type(self.data_origin[name + 's']) != dict: 
+                self.error(f"In configuration file entry <{name + 's'}> if not a dict type")
+                continue
+            values = {x.lower():y for x,y in self.data_origin[name + 's'].items() if x.lower() == self.get_tmp(name).lower()}
+            if len(values) != 0:
+                self.data_tmp[name + 's'] = values[self.get_tmp(name).lower()]
 
 
 def load_raw_sub_configurations(data):

@@ -48,11 +48,9 @@ class AlphaCore(AlphaClass):
         self.api: AlphaFlask = None
 
         self.models_sources: List[str] = []
-        self.models_source_loaded: bool = False
+        self.__models_source_loaded: bool = False
 
-        configuration = None
-        if "ALPHA_CONF" in os.environ:
-            configuration = os.environ["ALPHA_CONF"].lower()
+        configuration = None if not "ALPHA_CONF" in os.environ else os.environ["ALPHA_CONF"].lower()
         self.configuration: str = configuration
         self.configuration_name: str = configuration
 
@@ -204,18 +202,20 @@ class AlphaCore(AlphaClass):
         table_object.__table__.drop(table_object.bind._engine)
 
     def load_models_sources(self):
-        if not self.models_source_loaded:
-            self.models_sources = self.config.get("directories/database_models")
-            if not self.models_sources:
-                self.log.error(
-                    "Missing <directories/database_models> entry in configuration %s"
-                    % self.conf.filepath
-                )
-                exit()
+        if self.__models_source_loaded:
+            return
 
-            self.models_sources.append("alphaz.models.database.main_definitions")
-            self.models_sources.append("alphaz.models.database.users_definitions")
-            modules = flask_lib.get_definitions_modules(
-                self.models_sources, log=self.log
+        self.models_sources = self.config.get("directories/database_models")
+        if not self.models_sources:
+            self.log.error(
+                "Missing <directories/database_models> entry in configuration %s"
+                % self.conf.filepath
             )
+            exit()
+
+        self.models_sources.append("alphaz.models.database.main_definitions")
+        self.models_sources.append("alphaz.models.database.users_definitions")
+        modules = flask_lib.get_definitions_modules(
+            self.models_sources, log=self.log
+        )
 
