@@ -169,7 +169,7 @@ class AlphaConfig(AlphaClass):
                         try:
                             merge_configuration(tmp_config, cf, replace=True)
                         except ValueError as ex:
-                            self.log.error(ex)
+                            self.error(ex)
             self.data_tmp['configurations'] = tmp_config
 
         self.__add_tmp('configuration', self.configuration)
