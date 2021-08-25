@@ -57,6 +57,21 @@ class Parameter:
         self.mode = mode
         self.override = override
 
+    def __check_options(self, value):
+        if (
+            self.options is not None
+            and value not in self.options
+            and not (not self.required and value is None)
+        ):
+            raise AlphaException(
+                "api_wrong_parameter_option",
+                parameters={
+                    "parameter": self.name,
+                    "options": str(self.options),
+                    "value": value,
+                },
+            )
+
     def set_value(self):
         """ Set parameter value
 
@@ -78,19 +93,6 @@ class Parameter:
         if self.value is None and request.form is not None and self.name in request.form:
             self.value = request.form[self.name]
 
-        if (
-            self.options is not None
-            and self.value not in self.options
-            and not (not self.required and self.value is None)
-        ):
-            raise AlphaException(
-                "api_wrong_parameter_option",
-                parameters={
-                    "parameter": self.name,
-                    "options": str(self.options),
-                    "value": self.value,
-                },
-            )
 
         if self.required and self.value is None:
             missing = True
@@ -99,6 +101,7 @@ class Parameter:
             )
         
         if self.value is None:
+            self.__check_options(self.value)
             return
 
         if self.ptype == str and (self.mode in [ParameterMode.LIKE,  ParameterMode.IN_LIKE, ParameterMode.START_LIKE, ParameterMode.END_LIKE]):
@@ -112,6 +115,8 @@ class Parameter:
 
         if self.ptype == bool:
             str_value = str(self.value).lower()
+            self.__check_options(str(self.value))
+
             if str_value in ["y", "true", "t", "1"]:
                 value = True
             elif str_value in ["n", "false", "f", "0"]:
@@ -141,6 +146,8 @@ class Parameter:
                         "api_wrong_parameter_value",
                         parameters={"parameter": self.name, "type": "list", "value":self.value},
                     )
+                for val in self.value:
+                    self.__check_options(val)
 
         if self.ptype == int:
             try:
@@ -150,6 +157,7 @@ class Parameter:
                     "api_wrong_parameter_value",
                     parameters={"parameter": self.name, "type": "int", "value":self.value},
                 )
+            self.__check_options(self.value)
 
         if self.ptype == float:
             try:
@@ -159,8 +167,10 @@ class Parameter:
                     "api_wrong_parameter_value",
                     parameters={"parameter": self.name, "type": "float", "value":self.value},
                 )
+            self.__check_options(self.value)
 
         if self.ptype == datetime.datetime:
+            self.__check_options(self.value)
             self.value = date_lib.str_to_datetime(self.value)
 
         if hasattr(self.ptype, "metadata"):
