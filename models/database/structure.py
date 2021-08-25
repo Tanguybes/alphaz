@@ -1,5 +1,6 @@
 # import mysql.connector
-import inspect, os, re
+import inspect, os, re, itertools
+
 import numpy as np
 
 # from ...libs.oracle_lib import Connection
@@ -27,6 +28,53 @@ from .utils import get_schema
 from ...models.logger import AlphaLogger
 from ...libs import dict_lib, py_lib
 from ...models.main import AlphaException
+from .operators import Operators
+
+def get_filters(filters, model, optional=False):
+    conditions = []
+
+    equals, ins, likes, sups, infs, sups_st, infs_st = {}, {}, {}, {}, {}, {}, {}
+
+    for key, value in filters.items():
+        if type(key) == str:
+            key = getattr(model, key)
+        if type(value) == set:
+            value = list(value)
+        elif type(value) == dict:
+            for k, v in value.items():
+                if optional and v is None:
+                    continue
+                if k == Operators.EQUAL or k == Operators.ASIGN:
+                    conditions.append(key == v)
+                if k == Operators.DIFFERENT or k == Operators.NOT:
+                    conditions.append(key != v)
+                if k == Operators.LIKE:
+                    conditions.append(key.like(v))
+                if k == Operators.NOT_LIKE:
+                    conditions.append(~key.like(v))
+                if k == Operators.SUPERIOR:
+                    conditions.append(key > v)
+                if k == Operators.INFERIOR:
+                    conditions.append(key < v)
+                if k == Operators.SUPERIOR_OR_EQUAL:
+                    conditions.append(key >= v)
+                if k == Operators.INFERIOR_OR_EQUAL:
+                    conditions.append(key <= v)
+                if k == Operators.NOT_IN:
+                    conditions.append(key.notin_(v))
+                if k == Operators.IN:
+                    conditions.append(key.in_(v))
+        elif type(value) != list and not (optional and value is None):
+            equals[key] = value
+        elif not (optional and value is None):
+            ins[key] = value
+
+    for key, value in equals.items():
+        conditions.append(key == value)
+
+    for key, value in ins.items():
+        conditions.append(key.in_(value))
+    return conditions
 
 def get_compiled_query(query):
     if hasattr(query, "statement"):
@@ -42,15 +90,12 @@ def get_compiled_query(query):
         if not hasattr(full_query_str, "string")
         else full_query_str.string
     )
-
     return full_query_str
-
 
 def add_own_encoders(conn, cursor, query, *args):
     if hasattr(cursor.connection, "encoders"):
         cursor.connection.encoders[np.float64] = lambda value, encoders: float(value)
         cursor.connection.encoders[np.int64] = lambda value, encoders: int(value)
-
 
 class RetryingQuery(BaseQuery):
 
@@ -169,13 +214,17 @@ class AlphaDatabaseCore(SQLAlchemy):
 
         if filters is not None:
             if type(filters) == dict:
-                filters = __get_filters(query, filters, model)
+                filters = get_filters(filters, model)
+            if type(filters) == list and type(filters[0]) == dict:
+                filters = list(itertools.chain(*[get_filters(x, model) for x in filters]))
             elif type(filters) != list:
                 filters = [filters]
 
         if optional_filters is not None:
             if type(optional_filters) == dict:
-                optional_filters = __get_filters(query, optional_filters, model)
+                optional_filters = get_filters(optional_filters, model)
+            if type(optional_filters == list) and type(optional_filters[0]) == dict:
+                optional_filters = list(itertools.chain(*[get_filters(x, model, optional=True) for x in optional_filters]))
             elif type(optional_filters) != list:
                 optional_filters = [optional_filters]
             
@@ -666,50 +715,3 @@ class AlphaDatabase(AlphaDatabaseCore):
             elif type(key) == str and hasattr(model, key) and not key in filters:
                 values_update[model.__dict__[key]] = value
         return values_update
-
-def __get_filters(query, filters, model):
-    conditions = []
-
-    equals, ins, likes, sups, infs, sups_st, infs_st = {}, {}, {}, {}, {}, {}, {}
-
-    for key, value in filters.items():
-        if type(key) == str:
-            key = getattr(model, key)
-        if type(value) == set:
-            value = list(value)
-        elif type(value) == dict:
-            for k, v in value.items():
-                if k == "==" or k == "=":
-                    conditions.append(key == v)
-                if k == "!=" or k == "!":
-                    conditions.append(key != v)
-                if k == "%":
-                    conditions.append(key.like(v))
-                if k == "!%":
-                    conditions.append(~key.like(v))
-                if k == ">":
-                    conditions.append(key > v)
-                if k == "<":
-                    conditions.append(key < v)
-                if k == ">=":
-                    conditions.append(key >= v)
-                if k == "<=":
-                    conditions.append(key <= v)
-                if k == "!":
-                    conditions.append(key != v)
-                if k == "notin":
-                    conditions.append(key.notin_(v))
-                if k == "in":
-                    conditions.append(key.in_(v))
-
-        elif type(value) != list:
-            equals[key] = value
-        else:
-            ins[key] = value
-
-    for key, value in equals.items():
-        conditions.append(key == value)
-
-    for key, value in ins.items():
-        conditions.append(key.in_(value))
-    return query
