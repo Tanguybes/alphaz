@@ -52,6 +52,10 @@ def get_filters(filters, model, optional=False):
                     conditions.append(key.like(v))
                 if k == Operators.NOT_LIKE:
                     conditions.append(~key.like(v))
+                if k == Operators.ILIKE:
+                    conditions.append(key.ilike(v))
+                if k == Operators.NOT_ILIKE:
+                    conditions.append(~key.ilike(v))
                 if k == Operators.SUPERIOR:
                     conditions.append(key > v)
                 if k == Operators.INFERIOR:
@@ -215,7 +219,7 @@ class AlphaDatabaseCore(SQLAlchemy):
         if filters is not None:
             if type(filters) == dict:
                 filters = get_filters(filters, model)
-            if type(filters) == list and type(filters[0]) == dict:
+            if type(filters) == list and len(filters) >= 1 and type(filters[0]) == dict:
                 filters = list(itertools.chain(*[get_filters(x, model) for x in filters]))
             elif type(filters) != list:
                 filters = [filters]
@@ -223,7 +227,7 @@ class AlphaDatabaseCore(SQLAlchemy):
         if optional_filters is not None:
             if type(optional_filters) == dict:
                 optional_filters = get_filters(optional_filters, model)
-            if type(optional_filters == list) and type(optional_filters[0]) == dict:
+            if type(optional_filters == list) and len(optional_filters) >= 1 and type(optional_filters[0]) == dict:
                 optional_filters = list(itertools.chain(*[get_filters(x, model, optional=True) for x in optional_filters]))
             elif type(optional_filters) != list:
                 optional_filters = [optional_filters]
