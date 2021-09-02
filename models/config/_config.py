@@ -160,16 +160,17 @@ class AlphaConfig(AlphaClass):
             self.configuration = self.configuration if self.configuration else (tmp_configuration if tmp_configuration else default_configuration)
 
             tmp_config = {}
-            configuration_names = list(self.data_origin["configurations"].keys())
+            configuration_names = [x.lower() for x in self.data_origin["configurations"].keys()]
             configuration_names.sort(key=len)
+
             for configuration_name in configuration_names:
-                for conf, cf in self.data_origin["configurations"].items():
-                    matchs = re.findall(conf.lower(), self.configuration.lower())
-                    if len(matchs) != 0:
-                        try:
-                            merge_configuration(tmp_config, cf, replace=True)
-                        except ValueError as ex:
-                            self.error(ex)
+                matchs = re.findall(configuration_name, self.configuration.lower())
+                if len(matchs) == 0:
+                    continue
+                try:
+                    merge_configuration(tmp_config, configurations[configuration_name], replace=True)
+                except ValueError as ex:
+                    self.error(ex)
             self.data_tmp['configurations'] = tmp_config
 
         self.__add_tmp('configuration', self.configuration)
@@ -435,7 +436,7 @@ class AlphaConfig(AlphaClass):
             return default
         return value
 
-    def _get_parameter_path(self,parameters,data=None,level=1):
+    """def _get_parameter_path(self,parameters,data=None,level=1):
         parameters = self._get_path(parameters)
         if parameters == '':
             return self.data
@@ -456,7 +457,34 @@ class AlphaConfig(AlphaClass):
             if parameters[0] in self.data_origin:
                 return self.data_origin[parameters[0]]
 
-        return self._get_parameter_path(parameters[1:],data[parameters[0]],level = level + 1)
+        return self._get_parameter_path(parameters[1:],data[parameters[0]],level = level + 1)"""
+
+    def _get_parameter_path(self,parameters,data=None,data_origin=None,tmp=None,level=1):
+        parameters = self._get_path(parameters)
+        if parameters == '':
+            return self.data
+
+        data = self.data if data is None else data
+        data_origin = self.data_origin if data_origin is None else data_origin
+        tmp = self.tmp if tmp is None else tmp
+
+        is_in = any([parameters[0] in y for y in [data, data_origin,tmp]])
+        if not is_in:
+            return None
+
+        if len(parameters) == 1:
+            if parameters[0] in tmp:
+                return tmp[parameters[0]]
+            if parameters[0] in data:
+                return data[parameters[0]]
+            if parameters[0] in data_origin:
+                return data_origin[parameters[0]]
+
+        data = data[parameters[0]] if parameters[0] in data else []
+        data_origin = data_origin[parameters[0]] if parameters[0] in data_origin else []
+        tmp = tmp[parameters[0]] if parameters[0] in tmp else []
+
+        return self._get_parameter_path(parameters[1:],data,data_origin,tmp,level = level + 1)
 
     def _get_path(self,parameters):
         if type(parameters) == str and '/' in parameters:

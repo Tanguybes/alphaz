@@ -1,4 +1,5 @@
 from marshmallow import Schema, fields
+from marshmallow_sqlalchemy import ModelConverter
 
 def __get_nested_schema(mapper):
     from core import core
@@ -20,30 +21,23 @@ def __get_nested_schema(mapper):
     return schema
 
 def get_schema(class_obj):
-    from core import core
-    mapper_name = str(class_obj.__mapper__).split('class ')[1].split('->')[0]
-    #schema_name = type(class_obj).__name__ + 'Schema'
-    schema_name = mapper_name + 'Schema'
-
-    #instance    = class_obj.__dict__['_sa_instance_state'].__dict__['class_']
-    columns, nested = [], {}
+    columns, nested, = [], {}
     for key, value in class_obj.__dict__.items():
         if key.startswith('__'): continue
-        if not hasattr(value,"is_attribute") or not value.is_attribute: continue
-        if hasattr(value, 'show'):
+        if not hasattr(value, "is_attribute") or not value.is_attribute: continue
+        
+        if hasattr(value, 'visible') and getattr(value, 'visible'):
             columns.append(key)
-
         elif hasattr(value,"entity"):
             nested[key] = __get_nested_schema(value.entity) 
 
-    # Dynamic schema class creation
-    properties = {
-        'Meta':type('Meta', (object,), {'fields':columns})
-    }
-    for key, value in nested.items():
-        properties[key] = fields.Nested(value)
+    g_s = ModelConverter()
+    flds = {x:y for x,y in g_s.fields_for_model(class_obj).items() if x in columns}
 
-    class_obj.schema = type(schema_name, (core.ma.Schema,),
-        properties
-    )
+    for key, value in nested.items():
+        flds[key] = fields.Nested(value)
+
+    generated_schema = Schema.from_dict(flds)
+    class_obj.schema = generated_schema
+
     return class_obj.schema

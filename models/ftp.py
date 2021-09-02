@@ -55,6 +55,7 @@ class AlphaFtp():
             if self.key is None:
                 cnx = pysftp.Connection(self.host, port=self.port, username=self.user, password=self.password, cnopts=self.cnopts)
             else:
+                self.log.info(f"Connecting at {self.user}@{self.host}:{self.port} using key {self.key}")
                 cnx = pysftp.Connection(self.host, port=self.port, username=self.user, password=self.password, cnopts=self.cnopts, private_key=self.key,private_key_pass=self.key_pass)
         else:
             cnx = ftplib.FTP(host=self.host,user=self.user,passwd=self.password)

@@ -28,8 +28,11 @@ def repr(instance):
 
 
 class AlphaColumn(Column):
-    show = True
+    visible = True
 
+    def __init__(self, *args, visible:bool=True, **kwargs):
+        self.visible = visible
+        super().__init__(*args, **kwargs)
 
 class AlphaTable(object):
     # def __new__(class_, *args, **kwargs):
