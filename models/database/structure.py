@@ -710,6 +710,16 @@ class AlphaDatabase(AlphaDatabaseCore):
                 values = values_list[i]
             
             if hasattr(model, "metadata"): 
+                attributes = model._sa_class_manager.local_attrs
+                filters, filters_values = [], {}
+                for column_name, column in attributes.items():
+                    if column.expression.primary_key:
+                        filters.append(column.expression==getattr(model,column.key))
+                        filters_values[column.key] = getattr(model,column.key)
+                rows = self.select(model._sa_class_manager.class_,filters=filters)
+                if len(rows) == 0:
+                    self.log.error(f"Cannot find any entry for model {model._sa_class_manager.class_.__tablename__} and values: {','.join([f'{x}={y}' for x,y in filters_values.items()])}")
+                    return False
                 self.session.merge(model)
             else:
                 query = self._get_filtered_query(model, filters=filters)
