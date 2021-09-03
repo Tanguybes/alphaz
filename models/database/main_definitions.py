@@ -53,8 +53,8 @@ class Processes(db.Model, AlphaTableIdUpdateDate):
     __tablename__ = "processes"
 
     uuid = AlphaColumn(String(36))
-    name = AlphaColumn(String(20))
-    parameters = AlphaColumn(String(20))
+    name = AlphaColumn(String(20), primary_key=True)
+    parameters = AlphaColumn(String(20), primary_key=True)
     status = AlphaColumn(String(5))
 
     __table_args__ = (
@@ -66,9 +66,9 @@ class Logs(db.Model, AlphaTableIdUpdateDate):
     __bind_key__ = "main"
     __tablename__ = "logs"
 
-    type_ = AlphaColumn(String(30))
-    origin = AlphaColumn(String(30))
-    message = AlphaColumn(Text)
+    type_ = AlphaColumn(String(30), primary_key=True)
+    origin = AlphaColumn(String(30), primary_key=True)
+    message = AlphaColumn(Text, primary_key=True)
     stack = AlphaColumn(Text)
 
 
@@ -76,9 +76,9 @@ class Tests(db.Model, AlphaTableIdUpdateDate):
     __bind_key__ = "main"
     __tablename__ = "tests"
 
-    category = AlphaColumn(String(50))
-    tests_group = AlphaColumn(String(50))
-    name = AlphaColumn(String(50))
+    category = AlphaColumn(String(50), primary_key=True)
+    tests_group = AlphaColumn(String(50), primary_key=True)
+    name = AlphaColumn(String(50), primary_key=True)
 
     status = AlphaColumn(Integer)
     start_time = AlphaColumn(DateTime)
@@ -109,25 +109,34 @@ class Request(db.Model, AlphaTable):
 class NewsLetter(db.Model, AlphaTableIdUpdateDate):
     __bind_key__ = "main"
     __tablename__ = "newsletter"
-    name = AlphaColumn(String(100))
-    mail = AlphaColumn(String(50))
+    name = AlphaColumn(String(100), primary_key=True)
+    mail = AlphaColumn(String(50), primary_key=True)
 
 
 class Test(db.Model, AlphaTableIdUpdateDate):
     __bind_key__ = "main"
     __tablename__ = "test"
 
-    name_ = AlphaColumn(String(30))
+    id = AlphaColumn(Integer, autoincrement=True)
+    update_date = AlphaColumn(
+        DateTime, default=datetime.datetime.now, onupdate=datetime.datetime.now
+    )
+
+    name_ = AlphaColumn(String(30),primary_key=True)
     text_ = AlphaColumn(String(300))
     number_ = AlphaColumn(Integer)
     date_ = AlphaColumn(DateTime)
+
+    __table_args__ = (
+        db.UniqueConstraint('name_', name='test_name'),
+    )
 class Log(db.Model, AlphaTableIdUpdateDate):
     __bind_key__ = "main"
     __tablename__ = "log"
 
-    type = AlphaColumn(String(30))
-    origin = AlphaColumn(String(30))
-    message = AlphaColumn(Text)
+    type = AlphaColumn(String(30), primary_key=True)
+    origin = AlphaColumn(String(30), primary_key=True)
+    message = AlphaColumn(Text, primary_key=True)
     stack = AlphaColumn(Text)
 
 
@@ -136,8 +145,8 @@ class ProcesseLog(db.Model, AlphaTableIdUpdateDate):
     __tablename__ = "process_log"
 
     uuid = AlphaColumn(String(36))
-    name = AlphaColumn(String(20))
-    parameters = AlphaColumn(String(100))
+    name = AlphaColumn(String(20), primary_key=True)
+    parameters = AlphaColumn(String(100), primary_key=True)
     status = AlphaColumn(String(5))
 
 class MailHistory(db.Model, AlphaTableIdUpdateDate):
@@ -145,9 +154,9 @@ class MailHistory(db.Model, AlphaTableIdUpdateDate):
     __tablename__ = "mail_history"
 
     uuid = AlphaColumn(String(50))
-    mail_type = AlphaColumn(String(250))
-    parameters = AlphaColumn(String(200))
-    parameters_full = AlphaColumn(String(500))
+    mail_type = AlphaColumn(String(250), primary_key=True)
+    parameters = AlphaColumn(String(200), primary_key=True)
+    parameters_full = AlphaColumn(String(500), primary_key=True)
     date = AlphaColumn(DateTime)
 
 
@@ -158,8 +167,8 @@ class MailBlacklist(db.Model, AlphaTableId):
         UniqueConstraint("mail", "mail_type", name="unique_component_commit"),
     )
 
-    mail = AlphaColumn(String(50))
-    mail_type = AlphaColumn(String(20))
+    mail = AlphaColumn(String(50), primary_key=True)
+    mail_type = AlphaColumn(String(20), primary_key=True)
 
 
 class Requests(db.Model, AlphaTableIdUpdateDate):
@@ -167,8 +176,8 @@ class Requests(db.Model, AlphaTableIdUpdateDate):
     __tablename__ = "requests"
 
     uuid = AlphaColumn(String(100))
-    process = AlphaColumn(Integer)
-    message = AlphaColumn(Text)
+    process = AlphaColumn(Integer, primary_key=True)
+    message = AlphaColumn(Text, primary_key=True)
     message_type = AlphaColumn(String(20))
     lifetime = AlphaColumn(Integer)
     creation_date = AlphaColumn(DateTime, default=datetime.datetime.now)
@@ -179,8 +188,8 @@ class Answers(db.Model, AlphaTableIdUpdateDate):
     __tablename__ = "answers"
 
     uuid = AlphaColumn(String(100))
-    process = AlphaColumn(Integer)
-    message = AlphaColumn(Text)
+    process = AlphaColumn(Integer, primary_key=True)
+    message = AlphaColumn(Text, primary_key=True)
     message_type = AlphaColumn(String(20))
     lifetime = AlphaColumn(Integer)
     creation_date = AlphaColumn(DateTime, default=datetime.datetime.now)

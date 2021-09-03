@@ -9,7 +9,7 @@ from pymysql.err import IntegrityError
 
 from sqlalchemy import inspect as inspect_sqlalchemy
 from sqlalchemy import update, create_engine, event
-from sqlalchemy.orm import scoped_session, sessionmaker, Session
+from sqlalchemy.orm import scoped_session, sessionmaker, Session, load_only
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql.expression import or_, and_, all_
@@ -197,16 +197,16 @@ class AlphaDatabaseCore(SQLAlchemy):
         output = False
         query = "SELECT 1"
         if self.db_type == "oracle":
-            # query = "SELECT 1 FROM DUAL"
-            query = "SELECT 1;"
+            query = "SELECT 1 from dual"
+        
         try:
             self._engine.execute(query)
-            if not self.self.autocommit:
+            if not self.autocommit:
                 self.session.commit()
             output = True
         except Exception as ex:
-            # if self.log: self.log.error('ex:',ex)
-            if not self.self.autocommit:
+            if self.log: self.log.error('ex:',ex=ex)
+            if not self.autocommit:
                 self.session.rollback()
         finally:
             if close:
@@ -247,6 +247,9 @@ class AlphaDatabase(AlphaDatabaseCore):
     def drop(self, table_model):
         table_model.__table__.drop(self.get_engine())
 
+    def truncate(self, table_model):
+        self.execute(f"truncate table {table_model.__tablename__}")
+
     def execute(self, query, values=None, commit=True, close=False):
         return self.execute_query(query, values, commit=commit, close=close)
 
@@ -275,9 +278,14 @@ class AlphaDatabase(AlphaDatabaseCore):
         try:
             if multi:
                 for value in values:
-                    self._engine.execute(query, value)
+                    if value is not None:
+                        self._engine.execute(query, value)
+                    self._engine.execute(query)
             else:
-                self._engine.execute(query, values)
+                if values is not None:
+                    self._engine.execute(query, values)
+                else:
+                    self._engine.execute(query)
             self.query_str = get_compiled_query(query)
             if commit and not self.autocommit:
                 self.commit()
@@ -416,6 +424,9 @@ class AlphaDatabase(AlphaDatabaseCore):
             return None
 
         if parameters is not None:
+            if type(parameters) != dict:
+                self.log.error("<parameters must be of type <dict>")
+                return None
             parameters = {
                 x if not "." in str(x) else str(x).split(".")[-1]: y
                 for x, y in parameters.items()
@@ -443,6 +454,8 @@ class AlphaDatabase(AlphaDatabaseCore):
         return obj
 
     def upsert(self, model, rows):
+        if type(rows) != list:
+            rows = [rows]
         from sqlalchemy.dialects import postgresql
         from sqlalchemy import UniqueConstraint
 
@@ -474,7 +487,7 @@ class AlphaDatabase(AlphaDatabaseCore):
                 )
 
             for const in unique_constraints:
-                unique = tuple([const,] + [row[col.name] for col in const.columns])
+                unique = tuple([const,] + [getattr(row,col.name) for col in const.columns])
                 if unique in seen:
                     return None
                 seen.add(unique)
@@ -629,7 +642,9 @@ class AlphaDatabase(AlphaDatabaseCore):
                 "Parameter or <unique> must be of type <InstrumentedAttribute> or <str>"
             )
         if columns is not None:
-            query = query.with_entities(*columns)
+            query = query.options(load_only(*columns))
+        """elif columns is not None:
+            query = query.with_entities(*columns)"""
             # TODO: get column if string
 
         try:
@@ -664,13 +679,14 @@ class AlphaDatabase(AlphaDatabaseCore):
         self.log.debug(self.query_str, level=2)
 
         if unique:
-            if type(results_json) == list:
-                return [list(x.values())[0] for x in results_json]
+            if type(unique) == str:
+                return (
+                    None if len(results_json) == 0 else [x[unique] for x in results_json]
+                )
             else:
                 return (
-                    None if len(results_json) == 0 else list(results_json.values())[0]
+                    None if len(results_json) == 0 else [x[unique.key] for x in results_json]
                 )
-
         return results_json
 
     def update(

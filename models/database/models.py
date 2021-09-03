@@ -99,7 +99,7 @@ class AlphaTable(object):
                 continue #TODO: modify
 
 class AlphaTableId(AlphaTable):
-    id = AlphaColumn(Integer, primary_key=True, autoincrement=True)
+    id = AlphaColumn(Integer, autoincrement=True)
 
 
 class AlphaTableUpdateDate(AlphaTable):
