@@ -6,6 +6,7 @@ from ..utils.api import ROUTES
 
 from ..models.logger import AlphaLogger
 from ..models.api import ApiMethods
+from ..models.main import AlphaException
 
 from ..libs.json_lib import jsonify_database_models, jsonify_data
 
@@ -31,20 +32,14 @@ def get_api_data(url:str, params: dict={}, log: AlphaLogger=None, method:ApiMeth
     try:
         resp = fct(url=url, params=params)
     except Exception as ex:
-        if log is not None:
-            log.error(f'Fail to contact {url}', ex)
-        return None
+        raise AlphaException(f'Fail to contact {url}', ex=ex)
 
     if resp.status_code != 200:
-        if log is not None:
-            log.error(f'Fail to get data from {url}: {resp.status_code}')
-        return None
+        raise AlphaException(f'Fail to get data from {url}: {resp.status_code}')
 
     data = resp.json()
     if data["error"]:
-        if log is not None:
-            log.error(f'Fail to get data from {url}: {data["status"]} - {data["status_description"]}')
-        return None
+        raise AlphaException(f'Fail to get data from {url}: {data["status"]} - {data["status_description"]}')
 
     return data['data'] if data_only else data
 

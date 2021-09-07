@@ -597,6 +597,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         columns: list = None,
         close=False,
         flush=False,
+        schema=None
     ):
         # model_name = inspect.getmro(model)[0].__name__
         """if self.db_type == "mysql": self.test(close=False)"""
@@ -660,17 +661,20 @@ class AlphaDatabase(AlphaDatabaseCore):
         if flush:
             query.session.flush()
 
+        if schema is not None:
+            model.schema = schema
         if not json:
             self.query_str = get_compiled_query(query)
             self.log.debug(self.query_str, level=2)
             return results
 
         results_json = {}
-        if hasattr(model, "schema"):
-            schema = model.get_schema()
-        else:
-            self.log.error("Missing schema for model <%s>" % str(model.__name__))
-            schema = get_schema(model)
+        if schema is None:
+            if hasattr(model, "schema"):
+                schema = model.get_schema()
+            else:
+                self.log.error("Missing schema for model <%s>" % str(model.__name__))
+                schema = get_schema(model)
 
         structures = schema(many=True) if not first else schema()
         results_json = structures.dump(results)

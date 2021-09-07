@@ -1,5 +1,5 @@
 
-from sqlalchemy.ext.automap import automap_base
+
 from sqlalchemy import (
     Table,
     Column,
