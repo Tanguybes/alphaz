@@ -15,3 +15,6 @@ class Operators(Enum):
     INFERIOR_OR_EQUAL = "<="
     IN = "in"
     NOT_IN = "notin"
+
+    def equals(self, string):
+       return self.value == string

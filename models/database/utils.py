@@ -71,7 +71,7 @@ def get_schema(class_obj, parent=None):
         elif type(value) == fields.RelatedList:
             related_list[key] = value
         else:
-            cols[key] = cols
+            cols[key] = value
 
     columns, nesteds, list_nesteds = [], {}, {}
     for key, value in class_obj.__dict__.items():
@@ -102,6 +102,7 @@ def get_schema(class_obj, parent=None):
         cols[key] = cfields.List(fields.Nested(value))
 
     generated_schema = Schema.from_dict(cols)
-    class_obj.schema = generated_schema
     SCHEMAS[class_obj] = generated_schema
+    #return generated_schema
+    class_obj.schema = generated_schema
     return class_obj.schema

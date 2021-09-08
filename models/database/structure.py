@@ -30,54 +30,69 @@ from ...libs import dict_lib, py_lib
 from ...models.main import AlphaException
 from .operators import Operators
 
-def get_filters(filters, model, optional=False):
+def get_conditions_from_dict(values:dict, model, optional:bool=False):
     conditions = []
-
-    equals, ins, likes, sups, infs, sups_st, infs_st = {}, {}, {}, {}, {}, {}, {}
-
-    for key, value in filters.items():
+    for key, value in values.items():
         if type(key) == str:
             key = getattr(model, key)
+
         if type(value) == set:
             value = list(value)
         elif type(value) == dict:
             for k, v in value.items():
                 if optional and v is None:
                     continue
-                if k == Operators.EQUAL or k == Operators.ASIGN:
+                if Operators.EQUAL.equals(k) or Operators.ASIGN.equals(k):
                     conditions.append(key == v)
-                if k == Operators.DIFFERENT or k == Operators.NOT:
+                elif Operators.DIFFERENT.equals(k) or Operators.NOT.equals(k):
                     conditions.append(key != v)
-                if k == Operators.LIKE:
+                elif Operators.LIKE.equals(k):
                     conditions.append(key.like(v))
-                if k == Operators.NOT_LIKE:
+                elif Operators.NOT_LIKE.equals(k):
                     conditions.append(~key.like(v))
-                if k == Operators.ILIKE:
+                elif Operators.ILIKE.equals(k):
                     conditions.append(key.ilike(v))
-                if k == Operators.NOT_ILIKE:
+                elif Operators.NOT_ILIKE.equals(k):
                     conditions.append(~key.ilike(v))
-                if k == Operators.SUPERIOR:
+                elif Operators.SUPERIOR.equals(k):
                     conditions.append(key > v)
-                if k == Operators.INFERIOR:
+                elif Operators.INFERIOR.equals(k):
                     conditions.append(key < v)
-                if k == Operators.SUPERIOR_OR_EQUAL:
+                elif Operators.SUPERIOR_OR_EQUAL.equals(k):
                     conditions.append(key >= v)
-                if k == Operators.INFERIOR_OR_EQUAL:
+                elif Operators.INFERIOR_OR_EQUAL.equals(k):
                     conditions.append(key <= v)
-                if k == Operators.NOT_IN:
+                elif Operators.NOT_IN.equals(k):
                     conditions.append(key.notin_(v))
-                if k == Operators.IN:
+                elif Operators.IN.equals(k):
                     conditions.append(key.in_(v))
-        elif type(value) != list and not (optional and value is None):
-            equals[key] = value
+        elif type(value) == list and value is not None:
+            conditions.append(key.in_(value))
         elif not (optional and value is None):
-            ins[key] = value
+            conditions.append(key == value)
+    return conditions
 
-    for key, value in equals.items():
-        conditions.append(key == value)
+def get_filters(filters, model, optional:bool=False):
+    if filters is None:
+        return []
+    if type(filters) == set:
+        filters = list(filters)
+    elif type(filters) == dict:
+        filters = [{x:y} for x,y in filters.items()]
 
-    for key, value in ins.items():
-        conditions.append(key.in_(value))
+    if type(filters) == dict:
+        filters = get_conditions_from_dict(filters, model, optional=optional)
+    elif type(filters) != list:
+        filters = [filters]
+
+    conditions = []
+    for filter_c in filters:
+        if type(filter_c) == dict:
+            for cc in get_conditions_from_dict(filter_c, model, optional=optional):
+                conditions.append(cc)
+        elif not optional or (optional and _not_null_sqlaclhemy(filter_c.right) and _not_null_sqlaclhemy(filter_c.left)):
+            conditions.append(filter_c)
+
     return conditions
 
 def get_compiled_query(query):
@@ -135,6 +150,8 @@ class RetryingQuery(BaseQuery):
 class BaseModel:
     query_class = RetryingQuery
 
+def _not_null_sqlaclhemy(element):
+    return str(element).upper() != "NULL"
 
 class AlphaDatabaseCore(SQLAlchemy):
     def __init__(
@@ -216,26 +233,11 @@ class AlphaDatabaseCore(SQLAlchemy):
     def _get_filtered_query(self, model, filters=None, optional_filters=None, likes=None, sup=None):
         query = model.query
 
-        if filters is not None:
-            if type(filters) == dict:
-                filters = get_filters(filters, model)
-            if type(filters) == list and len(filters) >= 1 and type(filters[0]) == dict:
-                filters = list(itertools.chain(*[get_filters(x, model) for x in filters]))
-            elif type(filters) != list:
-                filters = [filters]
+        filters = get_filters(filters, model)
+        optional_filters = get_filters(optional_filters,model,optional=True)
+        filters = filters + optional_filters
 
-        if optional_filters is not None:
-            if type(optional_filters) == dict:
-                optional_filters = get_filters(optional_filters, model)
-            if type(optional_filters == list) and len(optional_filters) >= 1 and type(optional_filters[0]) == dict:
-                optional_filters = list(itertools.chain(*[get_filters(x, model, optional=True) for x in optional_filters]))
-            elif type(optional_filters) != list:
-                optional_filters = [optional_filters]
-            
-            optional_filters = [x for x in optional_filters if str(x.right).upper() != "NULL" and str(x.left).upper() != "NULL"]
-            filters = filters + optional_filters
-
-        if filters is not None:
+        if filters is not None and len(filters) != 0:
             query = query.filter(and_(*filters))
         return query
 
