@@ -98,7 +98,7 @@
                         {% endif %}
 
                         <div class="feature-route">
-                          <a href="{{path}}" target="_blank">{{path}}</a>&nbsp;
+                          <a href="{{path.split(':')[1]}}" target="_blank">{{path.split(':')[1]}}</a>&nbsp;
 
                           {% if routes.routes[path].arguments.admin %}
                             <sub><img src="/assets/images/icons/admin.png" class="route-property"/></sub>

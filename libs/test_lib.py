@@ -19,7 +19,7 @@ def get_tests_auto(
         category:str=None,
         run:bool=False
     ) -> TestCategories:
-    """Get the TestCategories class, containings all required tests.
+    """ Get the TestCategories class, containings all required tests.
 
     Args:
         tests_modules (List[str]): list of test modules path

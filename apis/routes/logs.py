@@ -42,11 +42,11 @@ def get_logs_content(name:str=None, node:str=None, content:bool=False, single:bo
         return {}
 
     log_directory = core.config.get('directories/logs')
-
+    separator = "__s__"
     if not single:
         path_pattern = log_directory + os.sep + (name if name is not None else "") + '*.log*'
     else:
-        path_pattern = log_directory + os.sep + (name.replace('_','.log.') if '_' in name else name+ ".log")
+        path_pattern = log_directory + os.sep + (name.replace(separator,'.log.') if separator in name else name+ ".log")
     files = glob.glob(path_pattern)
 
     logs_content = {}
@@ -64,9 +64,9 @@ def get_logs_content(name:str=None, node:str=None, content:bool=False, single:bo
 
         file_size = os.path.getsize(file_path)
         name = name.replace('.log','')
-        name = name.replace('.','_')
+        name = name.replace('.',separator)
 
-        logs_content[name + '_' + platform.uname().node] = {
+        logs_content[name + separator + platform.uname().node] = {
             "name": name,
             "node": platform.uname().node,
             "modification_time":modification_time,
