@@ -20,6 +20,8 @@ class TestMethod:
         self.end_time:datetime.datetime     = None
         self.elapsed:int                    = None
         self.last_run_elapsed               = None
+
+        self.ex: Exception = None
         
     def test(self,classObject=None):
         if classObject is None:
@@ -29,10 +31,14 @@ class TestMethod:
         
         log.info('Testing function <%s> of <%s> in category <%s>'%(self.name,type(self).__name__,self.category))
 
-        result                  = classObject.test(self.name)
+        self.status = False
+        try:
+            result                  = classObject.test(self.name)
+            self.status             = result if type(result) == bool else False
+        except Exception as ex:
+            self.ex = ex
         classObject.end()
-        self.status             = result if type(result) == bool else False
-
+        
         log.info('Function <%s> of <%s> in category <%s>: %s'%(
             self.name,type(self).__name__,self.category,'X' if not self.status else 'O'))
 

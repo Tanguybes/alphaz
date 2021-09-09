@@ -24,7 +24,7 @@ class AlphaTest():
         status = False
         fct = getattr(self,name)
         if fct is None:
-            LOG.info('Failed to get testing function <%s> in category <%s>'%(name, category))
+            LOG.info(f'Failed to get testing function <{name}> in category <{self.category}>')
             return False
         try:
             status = fct()

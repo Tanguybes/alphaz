@@ -15,8 +15,12 @@ CATEGORIES = {}
 def get_tests_auto(
         tests_modules:List[str],
         name:str=None,
+        names:List[str]=[],
         group:str=None,
+        groups:List[str]=[],
         category:str=None,
+        categories:List[str]=[],
+        file_path:str=None,
         run:bool=False
     ) -> TestCategories:
     """ Get the TestCategories class, containings all required tests.
@@ -32,18 +36,34 @@ def get_tests_auto(
         TestCategories: [description]
     """
     global CATEGORIES
+    
+    categories = categories if categories is not None else []
+    groups = groups if groups is not None else []
+    names = names if names is not None else []
+
+    if category is not None:
+        categories.append(category)
+    if group is not None:
+        groups.append(group)
+    if name is not None:
+        names.append(name)
+    categories = [x.strip() for x in categories]
+    groups = [x.strip() for x in groups]
+    names = [x.strip() for x in names]
+
+    if len(categories) == 0 and len(groups) == 0 and len(names) == 0:
+        LOG.info("Requested execution of all tests")
+    else:
+        LOG.info(f"Requested execution of tests:\n - categories: {', '.join(categories)}\n - groups: {', '.join(groups)}\n - names: {', '.join(names)}")
 
     test_categories = TestCategories()
 
     for tests_module in tests_modules:
         try:
-            LOG.debug('Loading test module <%s>'%tests_module)
             module              = importlib.import_module(tests_module)
         except Exception as ex:
-            LOG.error('Cannot load test module <%s>'%tests_module,ex=ex)
+            LOG.error(f'Cannot load test module <{tests_module}>', ex=ex)
             continue
-
-        #importlib.reload(module)
 
         class_list = []
         for o in getmembers(module):
@@ -53,24 +73,26 @@ def get_tests_auto(
             if not is_test: continue
             class_list.append(o)
 
+        LOG.info(f'Loaded test module <{tests_module}> with test groups: {", ".join([x[0] for x in class_list])}')
+
         for el in class_list:
             test_group = TestGroup(el[0],el[1])
 
-            if category is not None and category != test_group.category: continue
-
-            if group is not None and group != test_group.name: continue
+            if len(categories) != 0 and test_group.category not in categories: continue
+            if len(groups) != 0 and test_group.name not in groups: continue
 
             if LOG is not None: 
-                LOG.debug('Found function group <%s>'%test_group.name)
+                LOG.debug(f'Found function group <{test_group.name}>')
 
-            if run and name is None:
+            test_group.get_from_database()
+            if run and len(names) == 0:
                 test_group.test_all()
             elif run:
-                test_group.test(name)
-            else:
-                test_group.get_from_database()
+                test_group.test_all(names)
 
             test_categories.add_test_group(test_group)
+    if file_path is not None:
+        test_categories.to_junit(file_path)
     return test_categories
 
 

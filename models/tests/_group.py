@@ -3,13 +3,13 @@ import inspect
 from ._method import TestMethod
 from ._wrappers import TEST_METHOD_NAME
 
-from typing import Dict
+from typing import Dict, List
 
 from collections import OrderedDict
 
 class TestGroup():
     def __init__(self,name,classObject):
-        self.name           = name.replace('_Tests','').replace('_tests','')
+        self.name           = name
         self.classObject    = classObject
         self.tests: OrderedDict[str,TestMethod] = OrderedDict()
         self.category       = classObject.category
@@ -31,14 +31,19 @@ class TestGroup():
         for test in self.tests.values():
             test.get_from_database()
 
-    def test(self,name):
+    def test(self,name:str):
         if name in self.tests:
             self.tests[name].test()
 
-    def test_all(self):
-        classObject = self.classObject()
-        for method in self.tests.values():
-            method.test(classObject=classObject)
+    def test_all(self, names:List[str]=[]):
+        if len(names) == 0:
+            classObject = self.classObject()
+            for method in self.tests.values():
+                method.test(classObject=classObject)
+        else:
+            for name in names:
+                if name in self.tests:
+                    self.tests[name].test()
 
     def save_all(self):
         for method in self.tests.values():

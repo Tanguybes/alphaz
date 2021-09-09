@@ -54,3 +54,26 @@ class TestCategories():
     def to_json(self):
         return self.categories
 
+    def to_junit(self, file_path):
+        if not '.' in file_path:
+            file_path += '.xml'
+        from junit_xml import TestSuite, TestCase
+
+        suites = []
+        for category_name, category in self.categories.items():
+            test_cases = []
+            for group_name, group in category.groups.items():
+                for test_name, test in group.tests.items():
+                    stdout = test.last_run_elapsed
+                    stderr = str(test.ex) if test.ex is not None else None
+                    test_case = TestCase(test_name, group_name, test.elapsed, stdout, stderr, timestamp=test.end_time, status=test.status)
+                    if not test.ex:
+                        test_case.add_error_info(message=test.ex, error_type=type(test.ex))
+                    if not test.status:
+                        test_case.add_failure_info(message="failed")
+                    test_cases.append(test_case)
+            suites.append(TestSuite(category_name, test_cases))
+        
+        with open(file_path, 'w') as f:
+            f.write(TestSuite.to_xml_string(suites))
+

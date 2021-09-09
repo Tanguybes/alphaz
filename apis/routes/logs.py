@@ -42,7 +42,7 @@ def get_logs_content(name:str=None, node:str=None, content:bool=False, single:bo
         return {}
 
     log_directory = core.config.get('directories/logs')
-    separator = "__s__"
+    separator = "#"
     if not single:
         path_pattern = log_directory + os.sep + (name if name is not None else "") + '*.log*'
     else:
