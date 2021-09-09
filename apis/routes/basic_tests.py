@@ -8,7 +8,7 @@ from core import core
 
 api         = core.api
 
-@route('/test/parameters',cache=True,timeout=100,
+@route('/test/parameters',cache=True, timeout=100,
     parameters=[Parameter('value'), Parameter('options',options=['Y','N'])]
 )
 def api_test():

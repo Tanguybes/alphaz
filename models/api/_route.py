@@ -112,7 +112,7 @@ class Route(Requests):
         if not self.cache:
             return False
         reset_cache = self.get("reset_cache") or self.is_time(self.__timeout)
-        if not reset_cache:
+        if reset_cache:
             return False
         return self.is_cache()
 

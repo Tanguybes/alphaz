@@ -230,8 +230,23 @@ class AlphaDatabaseCore(SQLAlchemy):
                 self.session.close()
         return output
 
-    def _get_filtered_query(self, model, filters=None, optional_filters=None, likes=None, sup=None):
+    def _get_filtered_query(self, model, filters=None, optional_filters=None, columns=None, likes=None, sup=None):
         query = model.query
+
+        if columns is not None:
+            ccs = []
+            for column in columns:
+                """if type(column) != str:
+                    ccs.append(column.key)
+                else:
+                    ccs.append(column)"""
+                if type(column) == str and hasattr(model, column):
+                    ccs.append(getattr(model, column))
+                else:
+                    ccs.append(column)
+            query = query.with_entities(*ccs)
+            #query = query.options(load_only(*columns))
+            #query = query.add_columns(*ccs)
 
         filters = get_filters(filters, model)
         optional_filters = get_filters(optional_filters,model,optional=True)
@@ -604,7 +619,13 @@ class AlphaDatabase(AlphaDatabaseCore):
         # model_name = inspect.getmro(model)[0].__name__
         """if self.db_type == "mysql": self.test(close=False)"""
 
-        query = self._get_filtered_query(model, filters=filters, optional_filters=optional_filters)
+        if unique and (type(unique) == InstrumentedAttribute or type(unique) == str):  # TODO: upgrade
+            columns = [unique]
+            json = True
+        elif unique:
+            raise AlphaException("Parameter or <unique> must be of type <InstrumentedAttribute> or <str>")
+
+        query = self._get_filtered_query(model, filters=filters, optional_filters=optional_filters, columns=columns)
         if distinct is not None:
             query = (
                 query.distinct(distinct)
@@ -635,25 +656,10 @@ class AlphaDatabase(AlphaDatabaseCore):
             self.log.debug(self.query_str)
             return results
 
-        if unique and (
-            type(unique) == InstrumentedAttribute or type(unique) == str
-        ):  # TODO: upgrade
-            columns = [unique]
-            json = True
-        elif unique:
-            self.log.error(
-                "Parameter or <unique> must be of type <InstrumentedAttribute> or <str>"
-            )
-        if columns is not None:
-            query = query.options(load_only(*columns))
-        """elif columns is not None:
-            query = query.with_entities(*columns)"""
-            # TODO: get column if string
-
         try:
             results = query.all() if not first else query.first()
         except Exception as ex:
-            self.query_str = get_compiled_query(query)
+            self.query_str = get_compiled_query(query).replace('\n','')
             self.log.error('non valid query "%s" \n%s' % (self.query_str, str(ex)))
             query.session.close()
             raise ex
@@ -681,17 +687,17 @@ class AlphaDatabase(AlphaDatabaseCore):
         structures = schema(many=True) if not first else schema()
         results_json = structures.dump(results)
 
-        self.query_str = get_compiled_query(query)
+        self.query_str = get_compiled_query(query).replace('\n','')
         self.log.debug(self.query_str, level=2)
 
         if unique:
             if type(unique) == str:
                 return (
-                    None if len(results_json) == 0 else [x[unique] for x in results_json]
+                    [] if len(results_json) == 0 else [x[unique] for x in results_json]
                 )
             else:
                 return (
-                    None if len(results_json) == 0 else [x[unique.key] for x in results_json]
+                    [] if len(results_json) == 0 else [x[unique.key] for x in results_json]
                 )
         return results_json
 

@@ -18,7 +18,7 @@ class TestMethod:
         self.status:bool                     = None
         self.start_time:datetime.datetime   = None
         self.end_time:datetime.datetime     = None
-        self.elapsed:int                    = None
+        self.elapsed:int                    = 0
         self.last_run_elapsed               = None
 
         self.ex: Exception = None

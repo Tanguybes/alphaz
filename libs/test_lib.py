@@ -21,7 +21,8 @@ def get_tests_auto(
         category:str=None,
         categories:List[str]=[],
         file_path:str=None,
-        run:bool=False
+        run:bool=False,
+        resume:bool=False
     ) -> TestCategories:
     """ Get the TestCategories class, containings all required tests.
 
@@ -93,6 +94,9 @@ def get_tests_auto(
             test_categories.add_test_group(test_group)
     if file_path is not None:
         test_categories.to_junit(file_path)
+
+    if resume:
+        test_categories.resume()
     return test_categories
 
 

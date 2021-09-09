@@ -1,4 +1,4 @@
-import requests, operator
+import requests, operator, time
 from requests import Session, get
 import os
 from zeep import Client
@@ -53,6 +53,13 @@ def get_wsdl_response(base,wsdl,method,parameters,use_cert=False,use_proxy=False
     for parameter in [x['name'] for x in methods[method]]:
         if parameter in parameters:
             values.append(parameters[parameter])
-
-    r = client.service._operations[method](*values)
+    
+    for i in range(4):
+        try:
+            r = client.service._operations[method](*values)
+            break
+        except Exception as ex:
+            log.error(ex=ex)
+            time.sleep(10)
+            r = None
     return r
