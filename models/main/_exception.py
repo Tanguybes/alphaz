@@ -12,7 +12,13 @@ def get_message_from_name(name):
 
 
 class AlphaException(Exception):
-    def __init__(self, name, description=None, parameters: Dict[str, object] = {},ex:Exception=None):
+    def __init__(
+        self,
+        name,
+        description=None,
+        parameters: Dict[str, object] = {},
+        ex: Exception = None,
+    ):
         self.name = name
         if isinstance(name, Exception):
             self.name = "exception"
@@ -41,7 +47,7 @@ class AlphaException(Exception):
             except Exception as ex:
                 raise AlphaException(
                     "wrong_exception_parameter",
-                    "Wrong parameters for exception %s" % name,
+                    "Wrong parameters for exception {name}",
                 )
 
         super().__init__(self.description)

@@ -38,9 +38,11 @@ class AlphaTable(object):
     # def __new__(class_, *args, **kwargs):
     #    return object.__new__(class_, *args, **kwargs)
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         self.schema = None
         self.ensure = False
+
+        super().__init__(*args, **kwargs)
 
     """@declared_attr
     def __tablename__(self):

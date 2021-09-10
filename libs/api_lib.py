@@ -1,4 +1,3 @@
-
 import sys, os, inspect, copy, requests, enum
 
 from ..libs import dict_lib
@@ -12,14 +11,21 @@ from ..libs.json_lib import jsonify_database_models, jsonify_data
 
 MODULES = {}
 
-def get_api_data(url:str, params: dict={}, log: AlphaLogger=None, method:ApiMethods=ApiMethods.GET, data_only:bool=True) -> dict:
-    """ Get data from api
+
+def get_api_data(
+    url: str,
+    params: dict = {},
+    log: AlphaLogger = None,
+    method: ApiMethods = ApiMethods.GET,
+    data_only: bool = True,
+) -> dict:
+    """Get data from api
 
     Args:
         url (str): [description]
         params (dict, optional): [description]. Defaults to {}.
         log (AlphaLogger, optional): [description]. Defaults to None.
-        method (ApiMethods, optional): The request method. Defaults to GET. 
+        method (ApiMethods, optional): The request method. Defaults to GET.
         data_only (bool, optional): return only the data. Default to True.
 
     Returns:
@@ -32,18 +38,25 @@ def get_api_data(url:str, params: dict={}, log: AlphaLogger=None, method:ApiMeth
     try:
         resp = fct(url=url, params=params)
     except Exception as ex:
-        raise AlphaException(f'Fail to contact {url}', ex=ex)
+        raise AlphaException(f"Fail to contact {url}", ex=ex)
 
     if resp.status_code != 200:
-        raise AlphaException(f'Fail to get data from {url}: {resp.status_code}')
+        raise AlphaException(f"Fail to get data from {url}: {resp.status_code}")
 
-    data = resp.json()
+    try:
+        data = resp.json()
+    except Exception as ex:
+        raise AlphaException(f"Cannot decode answer from {url}", ex=ex)
+
     if data["error"]:
-        raise AlphaException(f'Fail to get data from {url}: {data["status"]} - {data["status_description"]}')
+        raise AlphaException(
+            f'Fail to get data from {url}: {data["status"]} - {data["status_description"]}'
+        )
 
-    return data['data'] if data_only else data
+    return data["data"] if data_only else data
 
-def get_columns_values_output(objects:list,columns:list=None) -> dict:
+
+def get_columns_values_output(objects: list, columns: list = None) -> dict:
     """Get output with columns / values format.
 
     Args:
@@ -56,22 +69,28 @@ def get_columns_values_output(objects:list,columns:list=None) -> dict:
         dict: [description]
     """
     if len(objects) == 0:
-        return {"columns":[], "values":[], "values_nb":0}
+        return {"columns": [], "values": [], "values_nb": 0}
 
     results = jsonify_data(objects)
 
     if columns and len(columns) != 0:
-        results = [{key:value for key, value in result.items() if key in columns} for result in results]
+        results = [
+            {key: value for key, value in result.items() if key in columns}
+            for result in results
+        ]
     else:
         columns = list(results[0].keys())
 
-    data                = {}
-    data['columns']     = [x for x in columns if x in results[0]]
-    data['values']      = [[x[y] for y in columns if y in x] for x in results]
-    data['values_nb']   = len(data['values'])
+    data = {}
+    data["columns"] = [x for x in columns if x in results[0]]
+    data["values"] = [[x[y] for y in columns if y in x] for x in results]
+    data["values_nb"] = len(data["values"])
     return data
 
-def get_routes_infos(log:AlphaLogger=None,categories=None,routes=None,reload_=False) -> dict:
+
+def get_routes_infos(
+    log: AlphaLogger = None, categories=None, routes=None, reload_=False
+) -> dict:
     """Get all apis routes with informations.
 
     Args:
@@ -83,10 +102,13 @@ def get_routes_infos(log:AlphaLogger=None,categories=None,routes=None,reload_=Fa
         dict: [description]
     """
     global ROUTES
-    if len(MODULES) != 0 and not reload_: 
+    if len(MODULES) != 0 and not reload_:
         return MODULES
 
-    if log: log.debug('Getting %s routes from loaded modules'%('alphaz' if not all else "all"))
+    if log:
+        log.debug(
+            "Getting %s routes from loaded modules" % ("alphaz" if not all else "all")
+        )
 
     routes_dict = {}
 
@@ -148,16 +170,18 @@ def get_routes_infos(log:AlphaLogger=None,categories=None,routes=None,reload_=Fa
             }"""
 
     for path, cg in ROUTES.items():
-        out         = dict_lib.get_nested_dict_from_list(cg['paths'])
-        routes_dict = dict_lib.merge_dict(routes_dict,out)
-    categories = list(set([x['category'] for x in ROUTES.values()]))
+        out = dict_lib.get_nested_dict_from_list(cg["paths"])
+        routes_dict = dict_lib.merge_dict(routes_dict, out)
+    categories = list(set([x["category"] for x in ROUTES.values()]))
     categories.sort()
 
     routes_dict = dict_lib.sort_dict(routes_dict)
 
-    MODULES['routes_list']          = ROUTES.keys()
-    MODULES['routes']               = ROUTES
-    MODULES['routes_paths']         = routes_dict
-    MODULES['categories']           = categories
-    MODULES['categories_routes']    = {c:[x for x,y in ROUTES.items() if y['category'] == c] for c in categories}
+    MODULES["routes_list"] = ROUTES.keys()
+    MODULES["routes"] = ROUTES
+    MODULES["routes_paths"] = routes_dict
+    MODULES["categories"] = categories
+    MODULES["categories_routes"] = {
+        c: [x for x, y in ROUTES.items() if y["category"] == c] for c in categories
+    }
     return MODULES

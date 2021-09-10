@@ -1,4 +1,5 @@
 import os, configparser, datetime, copy, jwt, logging, re, itertools, sys, importlib, warnings
+import typing
 import traceback
 from typing import Dict, List
 from flask import Flask, jsonify, request, Response, make_response
@@ -14,7 +15,7 @@ from flask_admin import Admin
 from gevent.pywsgi import WSGIServer
 
 from werkzeug.debug import DebuggedApplication
-
+from werkzeug._reloader import reloader_loops, ReloaderLoop, _find_stat_paths
 import flask_monitoringdashboard
 
 from ...libs import (
@@ -41,11 +42,75 @@ from ._route import Route
 from ._parameter import Parameter
 from ._requests import Requests
 
+from logging.config import dictConfig
+
+dictConfig(
+    {
+        "version": 1,
+        "handlers": {
+            "file.handler": {
+                "class": "logging.handlers.RotatingFileHandler",
+                "filename": "server_werkzeug.log",
+                "maxBytes": 10000000,
+                "backupCount": 5,
+                "level": "DEBUG",
+            },
+        },
+        "loggers": {
+            "werkzeug": {
+                "level": "DEBUG",
+                "handlers": ["file.handler"],
+            },
+        },
+    }
+)
+
+
+class AlphaReloaderLoop(ReloaderLoop):
+    name = "AlphaStat"
+
+    def __enter__(self) -> ReloaderLoop:
+        self.mtimes: typing.Dict[str, float] = {}
+        self.sizes: typing.Dict[str, float] = {}
+        return super().__enter__()
+
+    def run_step(self) -> None:
+        for name in itertools.chain(
+            _find_stat_paths(self.extra_files, self.exclude_patterns)
+        ):
+            try:
+                mtime = os.stat(name).st_mtime
+            except OSError:
+                continue
+
+            try:
+                size = os.stat(name).st_size
+            except OSError:
+                continue
+
+            old_time = self.mtimes.get(name)
+            old_size = self.sizes.get(name)
+
+            if old_time is None:
+                self.mtimes[name] = mtime
+                continue
+            if old_size is None:
+                self.sizes[name] = size
+                continue
+
+            if size > old_size:
+                print(
+                    f"Reloading {name}: mtimes {mtime} > {old_time} sizes {size} / {old_size}"
+                )
+                self.trigger_reload(name)
+
+reloader_loops["AlphaStat"] = AlphaReloaderLoop
+
 class AlphaFlask(Flask, Requests):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.__initiated:bool = False
+        self.__initiated: bool = False
         self.pid = None
         self.conf = None
         self.config_path = ""
@@ -59,11 +124,11 @@ class AlphaFlask(Flask, Requests):
         self.cache_dir = ""
 
         # need to put it here to avoid warnings
-        #self.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True  # TODO modify
+        # self.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True  # TODO modify
 
         self.ma = Marshmallow(self)
 
-        self.routes_objects = {} 
+        self.routes_objects = {}
 
     def get_parameters(self, not_none=False) -> Dict[str, object]:
         """Get non private route parameters values as a dict.
@@ -73,7 +138,11 @@ class AlphaFlask(Flask, Requests):
         """
         route = self.get_current_route()
         parameters = route.parameters
-        parameters_values = {x: y.value for x, y in parameters.items() if not y.private and (not not_none or y.value is not None)}
+        parameters_values = {
+            x: y.value
+            for x, y in parameters.items()
+            if not y.private and (not not_none or y.value is not None)
+        }
         return parameters_values
 
     def set_data(self, data):
@@ -118,7 +187,7 @@ class AlphaFlask(Flask, Requests):
                 module = importlib.import_module(route)
         self.cache_dir = self.conf.get("directories/cache")
 
-        self.log.debug("Init api with routes: %s"%", ".join(routes))
+        self.log.debug("Init api with routes: %s" % ", ".join(routes))
 
         # check request
         # ! freeze - dont know why
@@ -188,8 +257,11 @@ class AlphaFlask(Flask, Requests):
         self.configuration = configuration
 
         self.conf = AlphaConfig(
-            name=name, configuration=configuration, root=root, log=self.log,
-            required=['directories/cache']
+            name=name,
+            configuration=configuration,
+            root=root,
+            log=self.log,
+            required=["directories/cache"],
         )  # root=os.path.dirname(os.path.realpath(__file__))
 
         if self.conf.get("routes_no_log"):
@@ -217,12 +289,18 @@ class AlphaFlask(Flask, Requests):
             return
         host = self.conf.get("host")
         self.port = self.conf.get("port")
-        self.debug = self.conf.get("debug") if not "ALPHA_DEBUG" in os.environ else ("y" in os.environ["ALPHA_DEBUG"].lower() or "t" in os.environ["ALPHA_DEBUG"].lower())
+        self.debug = (
+            self.conf.get("debug")
+            if not "ALPHA_DEBUG" in os.environ
+            else (
+                "y" in os.environ["ALPHA_DEBUG"].lower()
+                or "t" in os.environ["ALPHA_DEBUG"].lower()
+            )
+        )
         if self.debug:
             sys.dont_write_bytecode = True
         self.log.info(
-            "Run api on host %s port %s %s"
-            % (host, self.port, "DEBUG MODE" if self.debug else "")
+            f"Run api on host {host} port {self.port} {'DEBUG MODE' if self.debug else ''}"
         )
         self.__initiated = True
 
@@ -236,10 +314,10 @@ class AlphaFlask(Flask, Requests):
 
         host = self.conf.get("host")
         threaded = self.conf.get("threaded")
-        
+
         mode = self.conf.get("mode")
-        if 'ALPHA_API' in os.environ:
-            mode = os.environ['ALPHA_API']
+        if "ALPHA_API" in os.environ:
+            mode = os.environ["ALPHA_API"]
 
         self.init_run()
 
@@ -253,7 +331,9 @@ class AlphaFlask(Flask, Requests):
                 % ("debug " if self.debug else "", host, self.port)
             )
 
-            server = WSGIServer((host, self.port), application, log=self.log_requests.logger)
+            server = WSGIServer(
+                (host, self.port), application, log=self.log_requests.logger
+            )
             server.serve_forever()
         else:
             # Get werkzueg logger
@@ -269,6 +349,8 @@ class AlphaFlask(Flask, Requests):
                 debug=self.debug,
                 threaded=threaded,
                 ssl_context=ssl_context,
+                exclude_patterns=["*/.vscode/*", "*/site-packages/*", "*/Anaconda3/*"],
+                reloader_type="AlphaStat",
             )
 
         # except SystemExit:
@@ -280,7 +362,7 @@ class AlphaFlask(Flask, Requests):
         if self.config_path is None:
             return
 
-        #self.set_config(config_path=config_path, configuration=self.configuration)
+        # self.set_config(config_path=config_path, configuration=self.configuration)
 
         pid = self.get_config(["tmp", "process"])
 
@@ -296,7 +378,7 @@ class AlphaFlask(Flask, Requests):
 
     def get_url(self, local=False):
         if local:
-            return "http://localhost:%s"%self.port
+            return "http://localhost:%s" % self.port
         ssl = self.get_config("ssl")
         pref = "https://" if ssl else "http://"
         return pref + self.get_config("host_public")
@@ -321,9 +403,9 @@ class AlphaFlask(Flask, Requests):
         if self.log is not None:
             self.log.info(message, level=4)
 
-    def warning(self,message): 
+    def warning(self, message):
         if self.log is not None:
-            self.log.warning(message,level=4)
+            self.log.warning(message, level=4)
 
     def send_mail(self, mail_config, parameters_list, db, sender=None):
         # Configuration
@@ -409,7 +491,7 @@ class AlphaFlask(Flask, Requests):
         if request_uuid not in self.routes_objects:
             self.log.critical("Cannot get route for %s" % request_uuid, monitor="DB")
             return default_route
-        
+
         self.log.critical("Issue with route %s" % request_uuid, monitor="DB")
         return default_route
 
@@ -432,7 +514,7 @@ class AlphaFlask(Flask, Requests):
             if user_data["role"] >= 9:
                 return True
             else:
-                self.warning("Wrong permission: %s is not an admin"%user_data)
+                self.warning("Wrong permission: %s is not an admin" % user_data)
 
         admin_password = self.conf.get("admin_password")
         if self["admin"] and admin_password is not None:
@@ -444,7 +526,7 @@ class AlphaFlask(Flask, Requests):
         if admins_ips and (ip in admins_ips or "::ffff:%s" % ip in admins_ips):
             return True
         else:
-            self.warning("Wrong permission: %s is not an admin"%ip)
+            self.warning("Wrong permission: %s is not an admin" % ip)
         return False
 
     def get_logged_user(self):

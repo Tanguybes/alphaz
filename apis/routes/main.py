@@ -50,7 +50,7 @@ def status():
     return True
 
 
-@route("/",route_log=False)
+@route("/", route_log=False)
 def home():
     config = api.conf
 
@@ -77,48 +77,57 @@ def home():
         "dashboard": config.get("dashboard/dashboard/active"),
         "tests": tests,
         "databases": database_lib.get_databases_tables_dict(core),
-        "date": datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        "date": datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
     }
     api.set_html("home.html", parameters=parameters)
+
 
 @route("doc", mode="html")
 def doc():
     try:
         import markdown2
     except:
-        raise AlphaException("import_error", {"module":"markdown"})
+        raise AlphaException("import_error", {"module": "markdown"})
 
-    with open("alphaz/help.md","r") as f:
+    with open("alphaz/help.md", "r") as f:
         content = f.read()
         html = markdown2.markdown(content)
         return html
+
 
 @route("loggers")
 def get_loggers():
     return core.config.loggers
 
-@route("logger/level", parameters=[
-    Parameter("name",required=True),
-    Parameter("level", options=["info","warnings","error","debug"])
-])
+
+@route(
+    "logger/level",
+    parameters=[
+        Parameter("name", required=True),
+        Parameter("level", options=["info", "warnings", "error", "debug"]),
+    ],
+)
 def set_logger_level():
     logger = core.config.get_logger(api["name"])
     if logger is None:
         raise AlphaException("no_logger")
     logger.set_level(api["level"])
 
+
 @route("infos")
 def get_infos():
     import getpass, platform
+
     return {
-        "user":getpass.getuser(), 
-        "system":platform.uname().system,
-        "node":platform.uname().node,
-        "release":platform.uname().release,
-        "version":platform.uname().version,
-        "machine":platform.uname().machine,
-        "processor":platform.uname()[4]
+        "user": getpass.getuser(),
+        "system": platform.uname().system,
+        "node": platform.uname().node,
+        "release": platform.uname().release,
+        "version": platform.uname().version,
+        "machine": platform.uname().machine,
+        "processor": platform.uname()[4],
     }
+
 
 @route("modules", parameters=[Parameter("name")])
 def get_modules():

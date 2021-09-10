@@ -3,6 +3,7 @@
 @author: Aurele Durand
 """
 import datetime, decimal
+import enum
 import pandas as pd
 import numpy as np
 
@@ -12,6 +13,7 @@ from flask.json import JSONEncoder
 
 from sqlalchemy.exc import OperationalError
 
+
 class AlphaJSONEncoder(JSONEncoder):
     rules = {}
 
@@ -20,22 +22,27 @@ class AlphaJSONEncoder(JSONEncoder):
 
         self.rules[np.int64] = int
         self.rules[np.bool_] = lambda o: o is True
-        self.rules[datetime.datetime] = lambda o: str(o.strftime("%Y-%m-%dT%H:%M:%S")) if 'T' in str(o) else str(o.strftime("%Y-%m-%d %H:%M:%S"))
-        self.rules[pd.DataFrame] = lambda o: o.to_json(orient='index')
-        self.rules[bytes] = lambda o: o.decode('utf-8')
+        self.rules[datetime.datetime] = (
+            lambda o: str(o.strftime("%Y-%m-%dT%H:%M:%S"))
+            if "T" in str(o)
+            else str(o.strftime("%Y-%m-%d %H:%M:%S"))
+        )
+        self.rules[pd.DataFrame] = lambda o: o.to_json(orient="index")
+        self.rules[bytes] = lambda o: str(o.decode("utf-8"))
         self.rules[dict_keys] = lambda o: list(o)
         self.rules[datetime.timedelta] = lambda o: str(o)
         self.rules[decimal.Decimal] = lambda o: str(o)
-        #self.rules[NameError] = lambda o:str(o)
-        #self.rules[ValueError] = lambda o:str(o)
-        #self.rules[TypeError] = lambda o:str(o)
-        #self.rules[AttributeError] = lambda o:str(o)
-        #self.rules[OperationalError] = lambda o:str(o)
-        self.rules[type] = lambda o:str(o)
+        self.rules[enum.Enum] = lambda o: str(o)
+        # self.rules[NameError] = lambda o:str(o)
+        # self.rules[ValueError] = lambda o:str(o)
+        # self.rules[TypeError] = lambda o:str(o)
+        # self.rules[AttributeError] = lambda o:str(o)
+        # self.rules[OperationalError] = lambda o:str(o)
+        # self.rules[str] = lambda o:str(o)
 
-    def default(self, o): # pylint: disable=E0202
+    def default(self, o):  # pylint: disable=E0202
         try:
-            if hasattr(o,'to_json'):
+            if hasattr(o, "to_json"):
                 try:
                     output = o.to_json()
                     return output
@@ -48,7 +55,7 @@ class AlphaJSONEncoder(JSONEncoder):
                     return returned_value
             iterable = iter(o)
         except TypeError as ex:
-            print('Cannot convert %s: %s'%(o,ex))
+            print("Cannot convert %s: %s" % (o, ex))
         else:
             return list(iterable)
         try:

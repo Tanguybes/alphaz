@@ -34,6 +34,31 @@ default_parameters = [
 default_parameters_names = [p.name for p in default_parameters]
 
 
+def _process_parameters(path: str, parameters):
+    parameters = [] if parameters is None else parameters
+    overrides = []
+    for i, parameter in enumerate(parameters):
+        if type(parameter) == str:
+            parameter = Parameter(parameter)
+            parameters[i] = parameter
+        if parameter.name in default_parameters_names:
+            if parameter.override:
+                overrides.append(parameter.name)
+                continue
+            LOG.critical(
+                f"Parameter could not be named <{parameter.name}> for route <{path}>!"
+            )
+            exit()
+    parameters.extend(
+        [
+            parameter
+            for parameter in default_parameters
+            if not parameter.name in overrides
+        ]
+    )
+    return parameters
+
+
 def route(
     path,
     parameters=None,
@@ -45,34 +70,21 @@ def route(
     cat=None,
     description=None,
     mode=None,
-    route_log=True
+    route_log=True,
 ):
     path = "/" + path if path[0] != "/" else path
-    parameters = [] if parameters is None else parameters
 
-    overrides = []
-    for i, parameter in enumerate(parameters):
-        if type(parameter) == str:
-            parameter = Parameter(parameter)
-            parameters[i] = parameter
-        if parameter.name in default_parameters_names:
-            if parameter.override:
-                overrides.append(parameter.name)
-                continue
-            LOG.critical(
-                "Parameter could not be named <%s> for route <%s>!"
-                % (parameter.name, path)
-            )
-            exit()                
-    parameters.extend([parameter for parameter in default_parameters if not parameter.name in overrides])
+    parameters = _process_parameters(path, parameters)
 
     def api_in(func):
-        @api.route(path, methods=methods, endpoint=func.__name__)
+        api.add_url_rule(path, methods=methods, view_func=func, endpoint=func.__name__)
+
+        @api.endpoint(func.__name__)
         def api_wrapper(*args, **kwargs):
             if route_log:
-                LOG.info("Get api route {:10} with method <{}>".format(path, func.__name__))
+                LOG.info(f"Get api route {path} with method <{func.__name__}>")
 
-            uuid_request = api.get_uuid() # ";".join(methods) + '_' + 
+            uuid_request = api.get_uuid()  # ";".join(methods) + '_' +
             __route = Route(
                 uuid_request,
                 path,
@@ -87,7 +99,7 @@ def route(
                 jwt_secret_key=""
                 if not "JWT_SECRET_KEY" in api.config
                 else api.config["JWT_SECRET_KEY"],
-                mode=mode
+                mode=mode,
             )
             api.routes_objects[uuid_request] = __route
             api.routes_objects = {
@@ -110,7 +122,7 @@ def route(
                     __route.access_denied()
                     return __route.get_return()
                 elif logged and (user is None or len(user) == 0):
-                    LOG.warning("Wrong permission: wrong user <%s>"%user)
+                    LOG.warning("Wrong permission: wrong user <%s>" % user)
                     __route.access_denied()
                     return __route.get_return()
 
@@ -162,7 +174,7 @@ def route(
 
         if not "cat" in locals() or cat is None:
             groups = func.__module__.split(".")
-            category = groups[-1] 
+            category = groups[-1]
             if len(groups) >= 2 and groups[-2] != "routes":
                 category = "/".join(groups[-2:])
         else:
@@ -222,4 +234,3 @@ def after_request(response):
     # response.headers.set('Allow', 'GET, PUT, POST, DELETE, OPTIONS')
     response.headers.add("Access-Control-Allow-Credentials", "true")
     return response
-

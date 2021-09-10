@@ -1,6 +1,8 @@
-#from functools import wraps
+# from functools import wraps
 import sys
-#test_method_name = 'test_call'
+from ._levels import Levels
+
+# test_method_name = 'test_call'
 """class test(object):
     def __init__ (self, *args, **kwargs):
         # store arguments passed to the decorator
@@ -31,9 +33,17 @@ import sys
         return test_call """
 
 TEST_METHOD_NAME = "test_alpha_in"
-def test(save=False, description=None, stop=True):
+
+
+def test(
+    save: bool = False,
+    description: str = None,
+    stop: bool = True,
+    disable: bool = False,
+    level: Levels = Levels.MEDIUM,
+):
     def test_alpha_in(func):
-        def test_wrapper(*args,**kwargs):
+        def test_wrapper(*args, **kwargs):
             class_ = args[0]
             class_.output = None
 
@@ -42,21 +52,33 @@ def test(save=False, description=None, stop=True):
                 return class_.output
             return output
 
-        if hasattr(func,'__name__'):
+        if hasattr(func, "__name__"):
             test_wrapper.__name__ = func.__name__
+            parameters = {
+                "save": save,
+                "description": description,
+                "stop": stop,
+                "disable": disable,
+                "level": level,
+            }
+            test_wrapper.__dict__ = parameters
         else:
             pass
-        
+
         return test_wrapper
+
     return test_alpha_in
 
-save_method_name = "save_method_result"  
+
+save_method_name = "save_method_result"
+
+
 def save(func):
-    def save_method_result(*args, **kwargs):  
+    def save_method_result(*args, **kwargs):
         get_return, get_name = False, False
         new_kwargs = {}
         args = list(args)
-    
+
         for kw in kwargs.keys():
             if kw == "get_return":
                 get_return = True
@@ -73,6 +95,5 @@ def save(func):
             return func.__name__
         else:
             return func(*args, **new_kwargs) == return_save
+
     return save_method_result
-
-

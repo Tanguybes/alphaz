@@ -183,13 +183,15 @@
                             <div class="feature-route test-block">
                               <i class="icon-play run" {% if tests.categories[category].groups[group].tests[test].status %} style="color:#27ae60" {% else %} style="color:#c0392b;" {%endif %} onclick="executeTest('{{category}}','{{group}}','{{test}}')"></i>
 
-                              <div class="test"><b>{{test}}</b>
+                              <div class="test" {% if tests.categories[category].groups[group].tests[test].disable %} style="color:black !important" {%endif %}><b>{{test}}</b>
                                 {% if tests.categories[category].groups[group].tests[test].elapsed %}
                                   <span class="elapsed">{{tests.categories[category].groups[group].tests[test].elapsed}}s</span>
                                 {% endif %}
                                 {% if tests.categories[category].groups[group].tests[test].start_time %}
                                   <span class="last-elapsed">{{tests.categories[category].groups[group].tests[test].last_run_elapsed}}</span>
                                 {% endif %}
+                                <br/>
+                                <span class="description">{{tests.categories[category].groups[group].tests[test].description}}</span>
                               </div>
                             </div>
 

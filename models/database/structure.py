@@ -30,7 +30,8 @@ from ...libs import dict_lib, py_lib
 from ...models.main import AlphaException
 from .operators import Operators
 
-def get_conditions_from_dict(values:dict, model, optional:bool=False):
+
+def get_conditions_from_dict(values: dict, model, optional: bool = False):
     conditions = []
     for key, value in values.items():
         if type(key) == str:
@@ -72,13 +73,14 @@ def get_conditions_from_dict(values:dict, model, optional:bool=False):
             conditions.append(key == value)
     return conditions
 
-def get_filters(filters, model, optional:bool=False):
+
+def get_filters(filters, model, optional: bool = False):
     if filters is None:
         return []
     if type(filters) == set:
         filters = list(filters)
     elif type(filters) == dict:
-        filters = [{x:y} for x,y in filters.items()]
+        filters = [{x: y} for x, y in filters.items()]
 
     if type(filters) == dict:
         filters = get_conditions_from_dict(filters, model, optional=optional)
@@ -90,10 +92,15 @@ def get_filters(filters, model, optional:bool=False):
         if type(filter_c) == dict:
             for cc in get_conditions_from_dict(filter_c, model, optional=optional):
                 conditions.append(cc)
-        elif not optional or (optional and _not_null_sqlaclhemy(filter_c.right) and _not_null_sqlaclhemy(filter_c.left)):
+        elif not optional or (
+            optional
+            and _not_null_sqlaclhemy(filter_c.right)
+            and _not_null_sqlaclhemy(filter_c.left)
+        ):
             conditions.append(filter_c)
 
     return conditions
+
 
 def get_compiled_query(query):
     if hasattr(query, "statement"):
@@ -111,10 +118,12 @@ def get_compiled_query(query):
     )
     return full_query_str
 
+
 def add_own_encoders(conn, cursor, query, *args):
     if hasattr(cursor.connection, "encoders"):
         cursor.connection.encoders[np.float64] = lambda value, encoders: float(value)
         cursor.connection.encoders[np.int64] = lambda value, encoders: int(value)
+
 
 class RetryingQuery(BaseQuery):
 
@@ -150,8 +159,10 @@ class RetryingQuery(BaseQuery):
 class BaseModel:
     query_class = RetryingQuery
 
+
 def _not_null_sqlaclhemy(element):
     return str(element).upper() != "NULL"
+
 
 class AlphaDatabaseCore(SQLAlchemy):
     def __init__(
@@ -162,7 +173,7 @@ class AlphaDatabaseCore(SQLAlchemy):
         config=None,
         timeout: int = None,
         main: bool = False,
-        **kwargs
+        **kwargs,
     ):
         self.db_type: str = config["type"]
         if "user" in config:
@@ -174,11 +185,20 @@ class AlphaDatabaseCore(SQLAlchemy):
         engine = create_engine(cnx)
         event.listen(engine, "before_cursor_execute", add_own_encoders)
         self._engine = engine
-        
-        engine_options = config["engine_options"] if 'engine_options' in config else {}
-        session_options = config["session_options"] if 'session_options' in config else {}
-        self.autocommit = "autocommit" in session_options and session_options["autocommit"]
-        super().__init__(*args, engine_options=engine_options, session_options=session_options, **kwargs)
+
+        engine_options = config["engine_options"] if "engine_options" in config else {}
+        session_options = (
+            config["session_options"] if "session_options" in config else {}
+        )
+        self.autocommit = (
+            "autocommit" in session_options and session_options["autocommit"]
+        )
+        super().__init__(
+            *args,
+            engine_options=engine_options,
+            session_options=session_options,
+            **kwargs,
+        )
 
         """if not bind:
             session = scoped_session(sessionmaker(autocommit=False,
@@ -215,14 +235,15 @@ class AlphaDatabaseCore(SQLAlchemy):
         query = "SELECT 1"
         if self.db_type == "oracle":
             query = "SELECT 1 from dual"
-        
+
         try:
             self._engine.execute(query)
             if not self.autocommit:
                 self.session.commit()
             output = True
         except Exception as ex:
-            if self.log: self.log.error('ex:',ex=ex)
+            if self.log:
+                self.log.error("ex:", ex=ex)
             if not self.autocommit:
                 self.session.rollback()
         finally:
@@ -230,7 +251,15 @@ class AlphaDatabaseCore(SQLAlchemy):
                 self.session.close()
         return output
 
-    def _get_filtered_query(self, model, filters=None, optional_filters=None, columns=None, likes=None, sup=None):
+    def _get_filtered_query(
+        self,
+        model,
+        filters=None,
+        optional_filters=None,
+        columns=None,
+        likes=None,
+        sup=None,
+    ):
         query = model.query
 
         if columns is not None:
@@ -245,11 +274,11 @@ class AlphaDatabaseCore(SQLAlchemy):
                 else:
                     ccs.append(column)
             query = query.with_entities(*ccs)
-            #query = query.options(load_only(*columns))
-            #query = query.add_columns(*ccs)
+            # query = query.options(load_only(*columns))
+            # query = query.add_columns(*ccs)
 
         filters = get_filters(filters, model)
-        optional_filters = get_filters(optional_filters,model,optional=True)
+        optional_filters = get_filters(optional_filters, model, optional=True)
         filters = filters + optional_filters
 
         if filters is not None and len(filters) != 0:
@@ -334,7 +363,9 @@ class AlphaDatabase(AlphaDatabaseCore):
                     dict_values = {}
                     for i, val in enumerate(values):
                         if type(val) == dict:
-                            query = query.replace(":%s"%list(val.keys())[0], ":p%s" % i, 1)
+                            query = query.replace(
+                                ":%s" % list(val.keys())[0], ":p%s" % i, 1
+                            )
                             dict_values["p%s" % i] = list(val.values())[0]
                         else:
                             query = query.replace("?", ":p%s" % i, 1)
@@ -504,7 +535,12 @@ class AlphaDatabase(AlphaDatabaseCore):
                 )
 
             for const in unique_constraints:
-                unique = tuple([const,] + [getattr(row,col.name) for col in const.columns])
+                unique = tuple(
+                    [
+                        const,
+                    ]
+                    + [getattr(row, col.name) for col in const.columns]
+                )
                 if unique in seen:
                     return None
                 seen.add(unique)
@@ -536,7 +572,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         session = self.object_session(obj)
         session.delete(obj)
         if commit:
-            return self.commit(close=close,session=session)
+            return self.commit(close=close, session=session)
         return True
 
     def delete(
@@ -602,7 +638,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         self,
         model,
         filters: list = None,
-        optional_filters:list= None,
+        optional_filters: list = None,
         first: bool = False,
         json: bool = False,
         distinct=None,
@@ -614,18 +650,24 @@ class AlphaDatabase(AlphaDatabaseCore):
         columns: list = None,
         close=False,
         flush=False,
-        schema=None
+        schema=None,
     ):
         # model_name = inspect.getmro(model)[0].__name__
         """if self.db_type == "mysql": self.test(close=False)"""
 
-        if unique and (type(unique) == InstrumentedAttribute or type(unique) == str):  # TODO: upgrade
+        if unique and (
+            type(unique) == InstrumentedAttribute or type(unique) == str
+        ):  # TODO: upgrade
             columns = [unique]
             json = True
         elif unique:
-            raise AlphaException("Parameter or <unique> must be of type <InstrumentedAttribute> or <str>")
+            raise AlphaException(
+                "Parameter or <unique> must be of type <InstrumentedAttribute> or <str>"
+            )
 
-        query = self._get_filtered_query(model, filters=filters, optional_filters=optional_filters, columns=columns)
+        query = self._get_filtered_query(
+            model, filters=filters, optional_filters=optional_filters, columns=columns
+        )
         if distinct is not None:
             query = (
                 query.distinct(distinct)
@@ -659,7 +701,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         try:
             results = query.all() if not first else query.first()
         except Exception as ex:
-            self.query_str = get_compiled_query(query).replace('\n','')
+            self.query_str = get_compiled_query(query).replace("\n", "")
             self.log.error('non valid query "%s" \n%s' % (self.query_str, str(ex)))
             query.session.close()
             raise ex
@@ -687,7 +729,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         structures = schema(many=True) if not first else schema()
         results_json = structures.dump(results)
 
-        self.query_str = get_compiled_query(query).replace('\n','')
+        self.query_str = get_compiled_query(query).replace("\n", "")
         self.log.debug(self.query_str, level=2)
 
         if unique:
@@ -697,7 +739,9 @@ class AlphaDatabase(AlphaDatabaseCore):
                 )
             else:
                 return (
-                    [] if len(results_json) == 0 else [x[unique.key] for x in results_json]
+                    []
+                    if len(results_json) == 0
+                    else [x[unique.key] for x in results_json]
                 )
         return results_json
 
@@ -714,29 +758,31 @@ class AlphaDatabase(AlphaDatabaseCore):
             models = [model]
             values_list = [values]
         else:
-            models = model 
+            models = model
             values_list = values
-        size_values= len(values)
+        size_values = len(values)
         for i, model in enumerate(models):
             if i < size_values:
                 values = values_list[i]
-            
-            if hasattr(model, "metadata"): 
+
+            if hasattr(model, "metadata"):
                 attributes = model._sa_class_manager.local_attrs
                 filters, filters_values = [], {}
                 for column_name, column in attributes.items():
                     if column.expression.primary_key:
-                        filters.append(column.expression==getattr(model,column.key))
-                        filters_values[column.key] = getattr(model,column.key)
-                rows = self.select(model._sa_class_manager.class_,filters=filters)
+                        filters.append(column.expression == getattr(model, column.key))
+                        filters_values[column.key] = getattr(model, column.key)
+                rows = self.select(model._sa_class_manager.class_, filters=filters)
                 if len(rows) == 0:
-                    self.log.error(f"Cannot find any entry for model {model._sa_class_manager.class_.__tablename__} and values: {','.join([f'{x}={y}' for x,y in filters_values.items()])}")
+                    self.log.error(
+                        f"Cannot find any entry for model {model._sa_class_manager.class_.__tablename__} and values: {','.join([f'{x}={y}' for x,y in filters_values.items()])}"
+                    )
                     return False
                 self.session.merge(model)
             else:
                 query = self._get_filtered_query(model, filters=filters)
                 values_update = self.get_values(model, values, filters)
- 
+
                 if fetch:
                     query.update(values_update, synchronize_session="fetch")
                 else:
@@ -744,7 +790,7 @@ class AlphaDatabase(AlphaDatabaseCore):
                         query.update(values_update, synchronize_session="evaluate")
                     except:
                         query.update(values_update, synchronize_session="fetch")
- 
+
         if commit:
             return self.commit(close)
         return True
