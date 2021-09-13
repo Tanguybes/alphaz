@@ -405,10 +405,7 @@ class AlphaSsh:
     def install_python_module(self, module: str, version: str = None):
         cmd = "which pip"
         output = self.execute_cmd(cmd)
-        cmd = "yes | pip install %s%s" % (
-            module,
-            "==%s" % version if version is not None else "",
-        )
+        cmd = f"yes | pip install {module}{version}"
         output = self.execute_cmd(cmd)
         return not "error" in output
 

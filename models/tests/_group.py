@@ -17,6 +17,7 @@ class TestGroup:
         if self.category == "":
             self.category = classObject.__module__.split(".")[-1].capitalize()
 
+        tests = {}
         for method_name, method in inspect.getmembers(classObject):
             if "__" in method_name:
                 continue
@@ -35,10 +36,15 @@ class TestGroup:
                     method,
                     self.category,
                     self.name,
-                    **method.__dict__
+                    **method.__dict__,
                 )
 
-                self.tests[test_function.name] = test_function
+                tests[test_function.name] = test_function
+
+        sorted_tests = dict(
+            sorted(tests.items(), key=lambda item: item[1].func.__code__.co_firstlineno)
+        )
+        self.tests = sorted_tests
 
     def get_from_database(self):
         for test in self.tests.values():
@@ -74,4 +80,5 @@ class TestGroup:
         return txt
 
     def to_json(self):
-        return self.tests
+        tests = self.tests
+        return tests

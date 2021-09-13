@@ -11,6 +11,7 @@ from ...libs import date_lib
 
 from enum import Enum
 
+
 class ParameterMode(Enum):
     NONE = 0
     LIKE = 1
@@ -18,19 +19,20 @@ class ParameterMode(Enum):
     START_LIKE = 3
     END_LIKE = 4
 
+
 class Parameter:
     def __init__(
         self,
         name: str,
         default=None,
         options=None,
-        cacheable: bool=True,
-        required: bool=False,
-        ptype: type=str,
-        private: bool=False,
+        cacheable: bool = True,
+        required: bool = False,
+        ptype: type = str,
+        private: bool = False,
         mode: ParameterMode = ParameterMode.NONE,
-        override: bool=False,
-        function: Callable=None
+        override: bool = False,
+        function: Callable = None,
     ):
         """[summary]
 
@@ -73,7 +75,7 @@ class Parameter:
             )
 
     def set_value(self):
-        """ Set parameter value
+        """Set parameter value
 
         Raises:
             AlphaException: [description]
@@ -83,34 +85,51 @@ class Parameter:
             AlphaException: [description]
             AlphaException: [description]
         """
-        
+
         dataPost = request.get_json()
 
         self.value = request.args.get(self.name, self.default)
 
         if self.value is None and dataPost is not None and self.name in dataPost:
             self.value = dataPost[self.name]
-        if self.value is None and request.form is not None and self.name in request.form:
+        if (
+            self.value is None
+            and request.form is not None
+            and self.name in request.form
+        ):
             self.value = request.form[self.name]
-
 
         if self.required and self.value is None:
             missing = True
             raise AlphaException(
                 "api_missing_parameter", parameters={"parameter": self.name}
             )
-        
+
         if self.value is None:
             self.__check_options(self.value)
             return
 
-        if self.ptype == str and (self.mode in [ParameterMode.LIKE,  ParameterMode.IN_LIKE, ParameterMode.START_LIKE, ParameterMode.END_LIKE]):
-            self.value = str(self.value).replace('*', '%')
+        if self.ptype == str and (
+            self.mode
+            in [
+                ParameterMode.LIKE,
+                ParameterMode.IN_LIKE,
+                ParameterMode.START_LIKE,
+                ParameterMode.END_LIKE,
+            ]
+        ):
+            self.value = str(self.value).replace("*", "%")
 
             if not "%" in self.value:
-                if self.mode in [ParameterMode.IN_LIKE,ParameterMode.START_LIKE] and not self.value.startswith('%'):
+                if self.mode in [
+                    ParameterMode.IN_LIKE,
+                    ParameterMode.START_LIKE,
+                ] and not self.value.startswith("%"):
                     self.value = f"%{self.value}"
-                if self.mode in [ParameterMode.IN_LIKE, ParameterMode.END_LIKE] and not self.value.endswith('%'):
+                if self.mode in [
+                    ParameterMode.IN_LIKE,
+                    ParameterMode.END_LIKE,
+                ] and not self.value.endswith("%"):
                     self.value = f"{self.value}%"
 
         if self.ptype == bool:
@@ -124,7 +143,11 @@ class Parameter:
             else:
                 raise AlphaException(
                     "api_wrong_parameter_value",
-                    parameters={"parameter": self.name, "type": "bool", "value":self.value},
+                    parameters={
+                        "parameter": self.name,
+                        "type": "bool",
+                        "value": self.value,
+                    },
                 )
             self.value = value
 
@@ -144,7 +167,11 @@ class Parameter:
                 except:
                     raise AlphaException(
                         "api_wrong_parameter_value",
-                        parameters={"parameter": self.name, "type": "list", "value":self.value},
+                        parameters={
+                            "parameter": self.name,
+                            "type": "list",
+                            "value": self.value,
+                        },
                     )
                 for val in self.value:
                     self.__check_options(val)
@@ -155,7 +182,11 @@ class Parameter:
             except:
                 raise AlphaException(
                     "api_wrong_parameter_value",
-                    parameters={"parameter": self.name, "type": "int", "value":self.value},
+                    parameters={
+                        "parameter": self.name,
+                        "type": "int",
+                        "value": self.value,
+                    },
                 )
             self.__check_options(self.value)
 
@@ -165,7 +196,11 @@ class Parameter:
             except:
                 raise AlphaException(
                     "api_wrong_parameter_value",
-                    parameters={"parameter": self.name, "type": "float", "value":self.value},
+                    parameters={
+                        "parameter": self.name,
+                        "type": "float",
+                        "value": self.value,
+                    },
                 )
             self.__check_options(self.value)
 
@@ -179,4 +214,3 @@ class Parameter:
 
         if self.function is not None:
             self.value = self.function(self.value)
-

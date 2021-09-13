@@ -36,6 +36,7 @@ TEST_METHOD_NAME = "test_alpha_in"
 
 
 def test(
+    mandatory: bool = False,
     save: bool = False,
     description: str = None,
     stop: bool = True,
@@ -60,6 +61,7 @@ def test(
                 "stop": stop,
                 "disable": disable,
                 "level": level,
+                "func": func,
             }
             test_wrapper.__dict__ = parameters
         else:

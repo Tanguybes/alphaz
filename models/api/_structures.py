@@ -42,29 +42,6 @@ from ._route import Route
 from ._parameter import Parameter
 from ._requests import Requests
 
-from logging.config import dictConfig
-
-dictConfig(
-    {
-        "version": 1,
-        "handlers": {
-            "file.handler": {
-                "class": "logging.handlers.RotatingFileHandler",
-                "filename": "server_werkzeug.log",
-                "maxBytes": 10000000,
-                "backupCount": 5,
-                "level": "DEBUG",
-            },
-        },
-        "loggers": {
-            "werkzeug": {
-                "level": "DEBUG",
-                "handlers": ["file.handler"],
-            },
-        },
-    }
-)
-
 
 class AlphaReloaderLoop(ReloaderLoop):
     name = "AlphaStat"
@@ -72,6 +49,7 @@ class AlphaReloaderLoop(ReloaderLoop):
     def __enter__(self) -> ReloaderLoop:
         self.mtimes: typing.Dict[str, float] = {}
         self.sizes: typing.Dict[str, float] = {}
+        self.stats: typing.Dict[str, object] = {}
         return super().__enter__()
 
     def run_step(self) -> None:
@@ -79,17 +57,22 @@ class AlphaReloaderLoop(ReloaderLoop):
             _find_stat_paths(self.extra_files, self.exclude_patterns)
         ):
             try:
-                mtime = os.stat(name).st_mtime
+                stats = os.stat(name)
+            except OSError:
+                continue
+            try:
+                mtime = stats.st_mtime
             except OSError:
                 continue
 
             try:
-                size = os.stat(name).st_size
+                size = stats.st_size
             except OSError:
                 continue
 
             old_time = self.mtimes.get(name)
             old_size = self.sizes.get(name)
+            old_stats = self.stats.get(name)
 
             if old_time is None:
                 self.mtimes[name] = mtime
@@ -97,14 +80,24 @@ class AlphaReloaderLoop(ReloaderLoop):
             if old_size is None:
                 self.sizes[name] = size
                 continue
+            if old_stats is None:
+                self.stats[name] = stats
+                continue
 
-            if size > old_size:
+            if size != old_size:
                 print(
-                    f"Reloading {name}: mtimes {mtime} > {old_time} sizes {size} / {old_size}"
+                    f"   > Reloading {name}: mtimes {mtime} > {old_time} sizes {size} / {old_size}"
                 )
                 self.trigger_reload(name)
 
+            elif mtime > old_time:
+                print(
+                    f"   > File change {name} {mtime} > {old_time}:\n      {old_stats}\n      {stats}"
+                )
+
+
 reloader_loops["AlphaStat"] = AlphaReloaderLoop
+
 
 class AlphaFlask(Flask, Requests):
     def __init__(self, *args, **kwargs):

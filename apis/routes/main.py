@@ -1,10 +1,9 @@
-import datetime
+import datetime, os
 
 from flask import request, send_from_directory
 
-from ...libs import test_lib, database_lib, api_lib, transactions_lib, py_lib
+from ...libs import test_lib, database_lib, api_lib, py_lib
 from ...utils.api import route, Parameter
-from ...utils.time import tic, tac
 from ...models.main import AlphaException
 
 from core import core
@@ -60,6 +59,8 @@ def home():
     except Exception as ex:
         LOG.error(ex)
 
+    conda_env = os.popen("conda env list | grep '*'").read().split("*")[0].strip()
+
     parameters = {
         "mode": core.config.configuration,
         "mode_color": "#e74c3c"
@@ -78,6 +79,8 @@ def home():
         "tests": tests,
         "databases": database_lib.get_databases_tables_dict(core),
         "date": datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+        "conda_env": conda_env,
+        "alphaz_version": "",
     }
     api.set_html("home.html", parameters=parameters)
 

@@ -18,6 +18,7 @@ class TestMethod:
         method,
         category: str,
         group: str,
+        func,
         save: bool = False,
         description: str = "",
         stop: bool = False,
@@ -29,6 +30,7 @@ class TestMethod:
         self.classObject = classObject
         self.category: str = category
         self.group: str = group
+        self.func = func
 
         self.save = save
         self.description = description
@@ -64,13 +66,7 @@ class TestMethod:
         classObject.end()
 
         log.info(
-            "Function <%s> of <%s> in category <%s>: %s"
-            % (
-                self.name,
-                type(self).__name__,
-                self.category,
-                "X" if not self.status else "O",
-            )
+            f"Function <{self.name}> of <{type(self).__name__}> in category <{self.category}>: {'X' if not self.status else 'O'}"
         )
 
         self.end_time = datetime.datetime.now()
