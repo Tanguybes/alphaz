@@ -1,4 +1,4 @@
-import datetime, os
+import datetime, os, importlib, inspect
 
 from flask import request, send_from_directory
 
@@ -130,6 +130,18 @@ def get_infos():
         "machine": platform.uname().machine,
         "processor": platform.uname()[4],
     }
+
+
+@route("/module", parameters=[Parameter("name"), Parameter("function")])
+def get_module_code():
+    module = importlib.import_module(api["module"])
+    if api["function"] is not None:
+        lines = inspect.getsource(getattr(module, api["function"]))
+        return {
+            "version": str(module.__version__),
+            "code": str(lines),
+        }
+    return {"version": module.__version__}
 
 
 @route("modules", parameters=[Parameter("name")])
