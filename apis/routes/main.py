@@ -132,9 +132,9 @@ def get_infos():
     }
 
 
-@route("/module", parameters=[Parameter("name"), Parameter("function")])
+@route("/module", parameters=[Parameter("name", required=True), Parameter("function")])
 def get_module_code():
-    module = importlib.import_module(api["module"])
+    module = importlib.import_module(api["name"])
     if api["function"] is not None:
         lines = inspect.getsource(getattr(module, api["function"]))
         return {
