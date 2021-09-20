@@ -1,3 +1,4 @@
+from sqlalchemy.orm import relationship
 from . import sql_lib, secure_lib
 
 from ..models.database import main_definitions as defs
@@ -16,11 +17,13 @@ def __get_user_data_by_identifier_and_password(
         if identifier_type.lower() == "username"
         else [User.mail == identifier]
     )
-    results = DB.select(User, filters=filters, json=True)
+    results = DB.select(User, filters=filters, json=True, relationship=False)
 
     for user in results:
         user_id = user["id"]
-        if password_attempt is None or secure_lib.compare_passwords(password_attempt, user["password"]):
+        if password_attempt is None or secure_lib.compare_passwords(
+            password_attempt, user["password"]
+        ):
             return get_user_data_by_id(user_id)
     return None
 
@@ -83,7 +86,11 @@ def get_user_data_from_login(login, password=None):
 def __get_user_data(value, column):
     """Get the user role associated with given column."""
     return DB.select(
-        User, filters=[User.__dict__[column] == value], first=True, json=True
+        User,
+        filters=[User.__dict__[column] == value],
+        first=True,
+        json=True,
+        relationship=False,
     )
 
 
@@ -152,4 +159,3 @@ def get_all_address_mails():
     return DB.select(
         defs.MailingList, distinct=defs.MailingList.email, unique=defs.MailingList.email
     )
-

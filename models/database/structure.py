@@ -468,7 +468,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         self, model, parameters=None, commit=True, test=False, update=False, close=False
     ) -> object:
         if test:
-            self.log.info("Insert %s with values %s" % (model, parameters))
+            self.log.info(f"Insert {model} with values {parameters}")
             return None
 
         if parameters is not None:
@@ -601,7 +601,7 @@ class AlphaDatabase(AlphaDatabaseCore):
             except Exception as ex:
                 if drop:
                     self.log.info(
-                        "Drop <%s> table in <%s> database" % (table_name, self.name)
+                        f"Drop <{table_name}> table in <{self.name}> database"
                     )
                     request_model.__table__.drop(self._engine)
                     self.ensure(table_name)
@@ -651,7 +651,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         close=False,
         flush=False,
         schema=None,
-        relationship=True
+        relationship=True,
     ):
         # model_name = inspect.getmro(model)[0].__name__
         """if self.db_type == "mysql": self.test(close=False)"""
@@ -726,7 +726,7 @@ class AlphaDatabase(AlphaDatabaseCore):
                 schema = model.get_schema(relationship=relationship)
             else:
                 self.log.error(f"Missing schema for model <{model.__name__}>")
-                schema = get_schema(model,relationship=relationship)
+                schema = get_schema(model, relationship=relationship)
 
         structures = schema(many=True) if not first else schema()
         results_json = structures.dump(results)

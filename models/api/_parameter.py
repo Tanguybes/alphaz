@@ -109,6 +109,9 @@ class Parameter:
             self.__check_options(self.value)
             return
 
+        if str(self.value).lower() in ["null","none","undefined"]:
+            self.value = None
+
         if self.ptype == str and (
             self.mode
             in [

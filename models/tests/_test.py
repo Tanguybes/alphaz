@@ -125,6 +125,10 @@ class AlphaTest:
             )
         return self._assert(status, conditions)
 
+    def assert_is_true(self, a, conditions: List[bool] = []):
+        status = a
+        return self._assert(status, conditions)
+
     def assert_is_not_empty(
         self, a, conditions: List[bool] = [], attribute=None
     ) -> bool:

@@ -369,15 +369,17 @@ class AlphaSsh:
         return self.get_pid(greps=greps) is not None
 
     def service_restart(self, service: str):
-        cmd = "sudo systemctl restart %s" % service
+        cmd = f"sudo systemctl restart {service}"
         return self.execute_cmd(cmd)
 
     def service_start(self, service: str, start: bool = True):
-        cmd = "sudo systemctl %s %s" % ("restart" if start else "stop", service)
+        action = "restart" if start else "stop"
+        cmd = f"sudo systemctl {action} {service}"
         return self.execute_cmd(cmd)
 
     def service_enable(self, service: str, enable=True):
-        cmd = "sudo systemctl %s %s" % ("enable" if enable else "disable", service)
+        action = "enable" if enable else "disable"
+        cmd = f"sudo systemctl {action} {service}"
         return self.execute_cmd(cmd)
 
     def reload_systemctl(self):
