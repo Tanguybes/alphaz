@@ -3,6 +3,8 @@ from marshmallow import Schema
 from marshmallow import fields as cfields
 from marshmallow_sqlalchemy import ModelConverter, fields
 
+from ..logger import AlphaLogger
+
 def __get_nested_schema(mapper, parent=None):
     #return get_schema(mapper.entity, parent=parent)
 
@@ -26,8 +28,9 @@ def __get_nested_schema(mapper, parent=None):
     )
     return auto_schema
 
-def get_auto_schema(model):    
+def get_auto_schema(model, relationship:bool=True):    
     from core import core
+    core.log.info(f"Getting auto schema for <{model.__name__}>")
 
     properties = {
         'Meta':type('Meta', (object,),
@@ -35,7 +38,7 @@ def get_auto_schema(model):
             'model':model,
             'include_fk':True,
             "load_instance":True,
-            "include_relationships":True
+            "include_relationships":relationship
         })
     }
     schema = type(f"{model.__name__}Schema", (core.ma.SQLAlchemyAutoSchema,),
@@ -44,8 +47,11 @@ def get_auto_schema(model):
     return schema
 
 SCHEMAS = {}
+SCHEMAS_NO_RELATIONSHIP = {}
+MODULES = {}
+LOG = None
 
-def get_schema(class_obj, parent=None):
+def get_schema(class_obj, parent=None, default:bool=False, relationship:bool=True):
     """ Get Schema for a model
 
     Args:
@@ -55,20 +61,28 @@ def get_schema(class_obj, parent=None):
     Returns:
         [type]: [description]
     """
+    from core import core
+
     # custom Schema declaration
     module_name = class_obj.__module__
-    mod = importlib.import_module(module_name)
+    if not module_name in MODULES:
+        mod = importlib.import_module(module_name)  
+        core.log.info(f"Importing module <{module_name}>")
+    else: 
+        MODULES[module_name]
+
+
     schema_name = f"{class_obj.__name__}Schema"
-    if hasattr(mod, schema_name):
+    if hasattr(mod, schema_name) and default:
         return getattr(mod, schema_name)
 
-    auto_schema = get_auto_schema(class_obj)
+    auto_schema = get_auto_schema(class_obj,relationship=relationship)
 
     cols, related, related_list = {}, {}, {}
     for key, value in auto_schema._declared_fields.items():
-        if type(value) == fields.Related:
+        if type(value) == fields.Related and relationship:
             related[key] = value
-        elif type(value) == fields.RelatedList:
+        elif type(value) == fields.RelatedList and relationship:
             related_list[key] = value
         else:
             cols[key] = value
@@ -80,7 +94,7 @@ def get_schema(class_obj, parent=None):
         
         if hasattr(value, 'visible') and getattr(value, 'visible'):
             columns.append(key)
-        elif hasattr(value,"entity"):
+        elif hasattr(value,"entity") and relationship:
             columns.append(key)
             if parent is None or not class_obj in SCHEMAS:
                 nested_schema = __get_nested_schema(value.entity, parent=class_obj)
@@ -100,9 +114,13 @@ def get_schema(class_obj, parent=None):
         cols[key] = fields.Nested(value)
     for key, value in list_nesteds.items():
         cols[key] = cfields.List(fields.Nested(value))
-
     generated_schema = Schema.from_dict(cols)
+
+    if not relationship:
+        SCHEMAS_NO_RELATIONSHIP[class_obj] = generated_schema
+        class_obj.schema_without_relationship = generated_schema
+        return class_obj.schema_without_relationship
+
     SCHEMAS[class_obj] = generated_schema
-    #return generated_schema
     class_obj.schema = generated_schema
     return class_obj.schema

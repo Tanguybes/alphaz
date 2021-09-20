@@ -21,7 +21,7 @@ def get_requests(db: AlphaDatabase, message_types:List[str]=[], limit=20, close=
 def send_raw_request(db: AlphaDatabase, message_type:str, request: Dict[str,object], request_lifetime: int = 3600, uuid_:str = None, pid=None):
     uuid_request = str(uuid.uuid4()) if uuid_ == False else uuid_
     pid = os.getpid() if pid is None else pid
-    db.insert(Requests, values={
+    db.add(Requests, values={
         Requests.uuid: uuid_request,
         Requests.message: str(request),
         Requests.process: pid,
@@ -31,7 +31,7 @@ def send_raw_request(db: AlphaDatabase, message_type:str, request: Dict[str,obje
     return uuid_request
 
 def send_request(db: AlphaDatabase, transaction, close=True):
-    db.insert(Requests, values={
+    db.add(Requests, values={
         Requests.uuid: transaction.uuid,
         Requests.message: str(transaction.message),
         Requests.process: transaction.process,
@@ -40,7 +40,7 @@ def send_request(db: AlphaDatabase, transaction, close=True):
     }, close=True)
 
 def send_answer(db: AlphaDatabase, transaction):
-    db.insert(Answers, values={
+    db.add(Answers, values={
         Answers.uuid: transaction.uuid,
         Answers.message: str(transaction.message),
         Answers.process: transaction.process,

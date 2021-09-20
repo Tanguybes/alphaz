@@ -15,6 +15,7 @@ from sqlalchemy.types import TypeDecorator
 from ...libs import flask_lib
 
 from .utils import get_schema
+from ..main import AlphaClass
 
 
 def repr(instance):
@@ -34,12 +35,13 @@ class AlphaColumn(Column):
         self.visible = visible
         super().__init__(*args, **kwargs)
 
-class AlphaTable(object):
+class AlphaTable(AlphaClass):
     # def __new__(class_, *args, **kwargs):
     #    return object.__new__(class_, *args, **kwargs)
 
     def __init__(self, *args, **kwargs):
         self.schema = None
+        self.schema_without_relationship = None
         self.ensure = False
 
         super().__init__(*args, **kwargs)
@@ -51,12 +53,15 @@ class AlphaTable(object):
     def get_table_name(self):
         return self.__name__.lower()"""
 
+
     def __repr__(self):
         return repr(self)
 
     def to_json(self):
         class_obj = self.__class__
         results_json = {}
+
+        # if it is an AlphaTable
         if hasattr(class_obj, "schema"):
             schema = class_obj.get_schema()
         else:
@@ -67,10 +72,12 @@ class AlphaTable(object):
         return results_json
 
     @classmethod
-    def get_schema(class_obj):
-        if hasattr(class_obj, "schema") and class_obj.schema is not None:
+    def get_schema(class_obj, relationship:bool=True):
+        if hasattr(class_obj, "schema") and class_obj.schema is not None and relationship:
             return class_obj.schema
-        return get_schema(class_obj)
+        elif hasattr(class_obj, "schema_without_relationship") and class_obj.schema_without_relationship is not None and not relationship:
+            return class_obj.schema_without_relationship
+        return get_schema(class_obj, relationship=relationship)
 
     @staticmethod
     def set_attrib_listener(target, value, old_value, initiator):

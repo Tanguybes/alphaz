@@ -2,6 +2,7 @@
     "host": "0.0.0.0",
     "host_public": "",
     "port": 5000,
+    "debug": true,
     "ssl": false,
     "ssl_cert": "",
     "ssl_key": "",
@@ -27,6 +28,6 @@
     },
     "project_name": "alphaz",
     "directories": {
-        "logs":"{{root}}/logs/{{project_name}}"
+        "logs": "{{root}}/logs/{{project_name}}"
     }
 }

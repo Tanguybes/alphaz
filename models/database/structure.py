@@ -651,6 +651,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         close=False,
         flush=False,
         schema=None,
+        relationship=True
     ):
         # model_name = inspect.getmro(model)[0].__name__
         """if self.db_type == "mysql": self.test(close=False)"""
@@ -702,7 +703,7 @@ class AlphaDatabase(AlphaDatabaseCore):
             results = query.all() if not first else query.first()
         except Exception as ex:
             self.query_str = get_compiled_query(query).replace("\n", "")
-            self.log.error('non valid query "%s" \n%s' % (self.query_str, str(ex)))
+            self.log.error(f'non valid query "{self.query_str}"', ex=ex)
             query.session.close()
             raise ex
             # raise AlphaException('non_valid_query',get_compiled_query(query),str(ex)))
@@ -713,6 +714,7 @@ class AlphaDatabase(AlphaDatabaseCore):
 
         if schema is not None:
             model.schema = schema
+
         if not json:
             self.query_str = get_compiled_query(query)
             self.log.debug(self.query_str, level=2)
@@ -721,10 +723,10 @@ class AlphaDatabase(AlphaDatabaseCore):
         results_json = {}
         if schema is None:
             if hasattr(model, "schema"):
-                schema = model.get_schema()
+                schema = model.get_schema(relationship=relationship)
             else:
-                self.log.error("Missing schema for model <%s>" % str(model.__name__))
-                schema = get_schema(model)
+                self.log.error(f"Missing schema for model <{model.__name__}>")
+                schema = get_schema(model,relationship=relationship)
 
         structures = schema(many=True) if not first else schema()
         results_json = structures.dump(results)
