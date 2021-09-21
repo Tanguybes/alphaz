@@ -32,8 +32,11 @@ def get_api_data(
         dict: The request result
     """
     fct = requests.get
-    if hasattr(requests, str(method).lower()):
-        fct = getattr(requests, str(method).lower())
+    method_str = (
+        str(method).lower() if not hasattr(method, "name") else method.name.lower()
+    )
+    if hasattr(requests, method_str):
+        fct = getattr(requests, method_str)
 
     try:
         resp = fct(url=url, params=params)
