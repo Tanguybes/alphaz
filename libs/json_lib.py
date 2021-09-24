@@ -5,6 +5,7 @@ from ..models.database.row import Row
 
 from ..models.json._converters import AlphaJSONEncoder
 
+
 def jsonify_database_models(model: DefaultMeta, first=False):
     """Convert a database model structure to json
 
@@ -16,14 +17,14 @@ def jsonify_database_models(model: DefaultMeta, first=False):
         [type]: [description]
     """
 
-    schema          = model.get_schema()
+    schema = model.get_schema()
 
-    structures      = schema() #schema(many=True) if not first else 
-    results_json    = structures.dump(model) #TODO: ? wtf why does it works 
+    structures = schema()  # schema(many=True) if not first else
+    results_json = structures.dump(model)  # TODO: ? wtf why does it works
     return results_json
 
 
-def jsonify_data(data):
+def jsonify_data(data, string_output: bool = False):
     """Convert any data to a json structure
 
     Args:
@@ -35,26 +36,28 @@ def jsonify_data(data):
     if type(data) == list:
         result = [jsonify_data(x) for x in data]
     elif type(data) == dict:
-        result = {jsonify_data(x):jsonify_data(y) for x,y in data.items()}
+        result = {jsonify_data(x): jsonify_data(y) for x, y in data.items()}
     elif type(data) == Row:
         result = dict(data)
     else:
         result = data
 
-        if hasattr(data,"schema") or hasattr(data,"get_schema"):
+        if hasattr(data, "schema") or hasattr(data, "get_schema"):
             result = jsonify_database_models(data)
-        elif hasattr(data,'_fields'):
-            result = {x:data[i] for i,x in enumerate(data._fields)}
-        
+        elif hasattr(data, "_fields"):
+            result = {x: data[i] for i, x in enumerate(data._fields)}
+    if string_output:
+        result = json.dumps(result)
     return result
 
-def load_json(string:str):
+
+def load_json(string: str):
     if string is None:
         return None
     string = string.strip()
-    if string[0] == '{' and string[-1] == '}':
+    if string[0] == "{" and string[-1] == "}":
         return json.loads(string)
-    
-    string = '{"json":' + string + '}'
+
+    string = '{"json":' + string + "}"
     data = json.loads(string)
     return data["json"]

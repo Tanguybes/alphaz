@@ -79,7 +79,7 @@ def get_definitions_modules(
             ]
 
             for sub_file_name in names:
-                module_full_name = "%s.%s" % (module.__name__, sub_file_name)
+                module_full_name = f"{module.__name__}.{sub_file_name}"
                 if module_full_name in loaded_modules:
                     continue
 
@@ -87,7 +87,7 @@ def get_definitions_modules(
                 try:
                     sub_module = importlib.import_module(module_full_name)
                 except Exception as ex:
-                    log.error("Cannot load module %s" % (module_full_name), ex=ex)
+                    log.error(f"Cannot load module {module_full_name}", ex=ex)
                     continue
 
                 if not "db" in sub_module.__dict__:
@@ -101,8 +101,7 @@ def get_definitions_modules(
                 db = elements["core"].db
             elif not "db" in elements:
                 LOG.error(
-                    "Cannot initialise module <%s>, <db> parameter is missing"
-                    % module_r
+                    f"Cannot initialise module <{module_r}>, <db> parameter is missing"
                 )
                 continue
             else:

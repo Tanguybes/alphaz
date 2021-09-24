@@ -1,4 +1,5 @@
 import datetime
+import typing
 from sqlalchemy import (
     Table,
     Column,
@@ -40,8 +41,6 @@ class AlphaTable(AlphaClass):
     #    return object.__new__(class_, *args, **kwargs)
 
     def __init__(self, *args, **kwargs):
-        self.schema = None
-        self.schema_without_relationship = None
         self.ensure = False
 
         super().__init__(*args, **kwargs)
@@ -72,12 +71,12 @@ class AlphaTable(AlphaClass):
         return results_json
 
     @classmethod
-    def get_schema(class_obj, relationship:bool=True):
+    def get_schema(class_obj, relationship:bool=True,disabled_relationships:typing.List[str]=[]):
         if hasattr(class_obj, "schema") and class_obj.schema is not None and relationship:
             return class_obj.schema
         elif hasattr(class_obj, "schema_without_relationship") and class_obj.schema_without_relationship is not None and not relationship:
             return class_obj.schema_without_relationship
-        return get_schema(class_obj, relationship=relationship)
+        return get_schema(class_obj, relationship=relationship,disabled_relationships=disabled_relationships)
 
     @staticmethod
     def set_attrib_listener(target, value, old_value, initiator):
@@ -110,6 +109,8 @@ class AlphaTable(AlphaClass):
 class AlphaTableId(AlphaTable):
     id = AlphaColumn(Integer, autoincrement=True)
 
+class AlphaTableIdPrimary(AlphaTable):
+    id = AlphaColumn(Integer, autoincrement=True, primary_key=True)
 
 class AlphaTableUpdateDate(AlphaTable):
     update_date = AlphaColumn(

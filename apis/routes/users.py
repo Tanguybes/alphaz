@@ -8,9 +8,11 @@ from core import core
 
 api = core.api
 
+
 @route("user/infos", logged=True)
 def user_infos():
     return api.get_logged_user()
+
 
 @route(
     "/register",
@@ -65,7 +67,9 @@ def password_lost():
         raise AlphaException("logged")
     if api["username"] is None and api.get["mail"] is None:
         raise AlphaException("inputs")
-    users.ask_password_reset(api["username"] if api.get["mail"] is None else api.get["mail"])
+    users.ask_password_reset(
+        api["username"] if api.get["mail"] is None else api.get["mail"]
+    )
 
 
 @route(
@@ -86,6 +90,7 @@ def password_reset_validation():
 @route("/logout", cache=False, logged=False, methods=["GET", "POST"])
 def logout():
     users.logout()
+
 
 @route(
     "/profile/password",

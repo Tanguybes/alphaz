@@ -1,9 +1,14 @@
 import importlib
+import typing
 from marshmallow import Schema
 from marshmallow import fields as cfields
 from marshmallow_sqlalchemy import ModelConverter, fields
 
 from ..logger import AlphaLogger
+
+SCHEMAS = {}
+MODULES = {}
+LOG = None
 
 def __get_nested_schema(mapper, parent=None):
     #return get_schema(mapper.entity, parent=parent)
@@ -28,7 +33,7 @@ def __get_nested_schema(mapper, parent=None):
     )
     return auto_schema
 
-def get_auto_schema(model, relationship:bool=True):    
+def get_auto_schema(model, relationship:bool=True,disabled_relationships:typing.List[str]=[]):    
     from core import core
     core.log.info(f"Getting auto schema for <{model.__name__}>")
 
@@ -46,35 +51,11 @@ def get_auto_schema(model, relationship:bool=True):
     )
     return schema
 
-SCHEMAS = {}
-SCHEMAS_NO_RELATIONSHIP = {}
-MODULES = {}
-LOG = None
-
-def get_schema(class_obj, parent=None, default:bool=False, relationship:bool=True):
-    """ Get Schema for a model
-
-    Args:
-        class_obj ([type]): [description]
-        parent ([type], optional): [description]. Defaults to None.
-
-    Returns:
-        [type]: [description]
-    """
-    from core import core
-
-    # custom Schema declaration
-    module_name = class_obj.__module__
-    if not module_name in MODULES:
-        mod = importlib.import_module(module_name)  
-        core.log.info(f"Importing module <{module_name}>")
-    else: 
-        MODULES[module_name]
-
-
+def generate_schema(class_obj, relationship:bool=True, disabled_relationships:typing.List[str]=[], parents=[]):
     schema_name = f"{class_obj.__name__}Schema"
-    if hasattr(mod, schema_name) and default:
-        return getattr(mod, schema_name)
+    schema_full_name = schema_name if not relationship else f"{schema_name}_{'-'.join(disabled_relationships)}"
+    if schema_full_name in parents:
+        return None
 
     auto_schema = get_auto_schema(class_obj,relationship=relationship)
 
@@ -95,17 +76,22 @@ def get_schema(class_obj, parent=None, default:bool=False, relationship:bool=Tru
         if hasattr(value, 'visible') and getattr(value, 'visible'):
             columns.append(key)
         elif hasattr(value,"entity") and relationship:
-            columns.append(key)
-            if parent is None or not class_obj in SCHEMAS:
-                nested_schema = __get_nested_schema(value.entity, parent=class_obj)
-                #nested_schema = get_schema(value.entity.entity)
-            else:
-                nested_schema = SCHEMAS[class_obj]
+            if key in disabled_relationships:
+                continue
+            entity = value.entity.entity
 
-            if key in related:
-                nesteds[key] = nested_schema
-            elif key in related_list:
-                list_nesteds[key] = nested_schema
+            columns.append(key)
+            #if parent is None or not schema_full_name in SCHEMAS:
+            # nested_schema = __get_nested_schema(value.entity, parent=class_obj)
+                #nested_schema = get_schema(value.entity.entity)
+            #else:
+            parents.append(schema_full_name)
+            nested_schema = generate_schema(entity, relationship=relationship, disabled_relationships=disabled_relationships, parents=parents) #SCHEMAS[schema_full_name]
+            if nested_schema is not None:
+                if key in related:
+                    nesteds[key] = nested_schema
+                elif key in related_list:
+                    list_nesteds[key] = nested_schema
 
     #g_s = ModelConverter()
     #flds = {x:y for x,y in g_s.fields_for_model(class_obj).items() if x in columns}
@@ -116,11 +102,35 @@ def get_schema(class_obj, parent=None, default:bool=False, relationship:bool=Tru
         cols[key] = cfields.List(fields.Nested(value))
     generated_schema = Schema.from_dict(cols)
 
-    if not relationship:
-        SCHEMAS_NO_RELATIONSHIP[class_obj] = generated_schema
-        class_obj.schema_without_relationship = generated_schema
-        return class_obj.schema_without_relationship
+    SCHEMAS[schema_full_name] = generated_schema
+    return generated_schema
 
-    SCHEMAS[class_obj] = generated_schema
-    class_obj.schema = generated_schema
-    return class_obj.schema
+def get_schema(class_obj, default:bool=False, relationship:bool=True, disabled_relationships:typing.List[str]=[]):
+    """ Get Schema for a model
+
+    Args:
+        class_obj ([type]): [description]
+        parent ([type], optional): [description]. Defaults to None.
+
+    Returns:
+        [type]: [description]
+    """
+    schema_name = f"{class_obj.__name__}Schema"
+    schema_full_name = schema_name if not relationship else f"{schema_name}_{'-'.join(disabled_relationships)}"
+
+    if schema_full_name in SCHEMAS:
+        return SCHEMAS[schema_full_name]
+
+    if default:
+        module_name = class_obj.__module__
+        if not module_name in MODULES:
+            mod = importlib.import_module(module_name)  
+            class_obj.log.info(f"Importing module <{module_name}>")
+        else: 
+            mod = MODULES[module_name]
+        if hasattr(mod, schema_name):
+            return getattr(mod, schema_name)
+        else:
+            class_obj.log.error(f"Cannot find a default schema in module <{module_name}>")
+    return generate_schema(class_obj, relationship=relationship, disabled_relationships=disabled_relationships)
+    

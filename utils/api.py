@@ -1,4 +1,5 @@
 import traceback
+import typing
 from flask import (
     request,
     send_file,
@@ -61,16 +62,17 @@ def _process_parameters(path: str, parameters):
 
 def route(
     path,
-    parameters=None,
+    parameters: typing.List[Parameter] = None,
     methods=["GET"],
-    cache=False,
-    logged=False,
-    admin=False,
+    cache: bool = False,
+    logged: bool = False,
+    admin: bool = False,
     timeout=None,
     cat=None,
-    description=None,
+    description: str = None,
     mode=None,
-    route_log=True,
+    route_log: bool = True,
+    access_strings: typing.List[str] = [],
 ):
     path = "/" + path if path[0] != "/" else path
 
@@ -125,6 +127,13 @@ def route(
                     LOG.warning("Wrong permission: wrong user <%s>" % user)
                     __route.access_denied()
                     return __route.get_return()
+                if len(access_strings) != 0:
+                    is_valid_access = any(
+                        [x in user["user_roles"] for x in access_strings]
+                    )
+                    if not is_valid_access:
+                        __route.access_denied()
+                        return __route.get_return()
 
             if admin and not api.check_is_admin():
                 __route.access_denied()

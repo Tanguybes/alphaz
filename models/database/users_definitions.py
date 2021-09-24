@@ -1,5 +1,3 @@
-
-
 from sqlalchemy import (
     Table,
     Column,
@@ -23,13 +21,12 @@ from .models import (
     AlphaTable,
     AlphaTableId,
     AlphaColumn,
-    AlphaFloat,
-    AlphaInteger,
     AlphaTableIdUpdateDate,
+    AlphaTableIdPrimary,
     AlphaTableUpdateDate,
 )
 
-import datetime, inspect, ast
+import datetime
 
 from core import core
 
@@ -37,20 +34,24 @@ db = core.get_database()
 ma = core.ma
 
 BIND = "users"
-class UserSession(db.Model, AlphaTable):
+
+
+class UserSession(db.Model, AlphaTableUpdateDate):
     __bind_key__ = BIND
     __tablename__ = "user_session"
 
     user_id = AlphaColumn(Integer, primary_key=True)
-    token = AlphaColumn(String(255))
+    token = AlphaColumn(String(500))
     ip = AlphaColumn(String(50))
     expire = AlphaColumn(DateTime)
 
-class User(db.Model, AlphaTableId):
+
+class User(db.Model, AlphaTable):
     __bind_key__ = BIND
     __tablename__ = "user"
 
-    username = AlphaColumn(String(30), primary_key=True)
+    id = AlphaColumn(Integer, autoincrement=True, primary_key=True)
+    username = AlphaColumn(String(30), unique=True)
     mail = AlphaColumn(String(40))
     password = AlphaColumn(String(100))
     pass_reset_token = AlphaColumn(String(100))
@@ -59,21 +60,29 @@ class User(db.Model, AlphaTableId):
     role = AlphaColumn(Integer)
     expire = AlphaColumn(DateTime)
     date_registred = AlphaColumn(DateTime)
-    last_activity = AlphaColumn(DateTime, onupdate=datetime.datetime.now())
     registration_token = AlphaColumn(String(100))
     registration_code = AlphaColumn(String(255))
+    infos = AlphaColumn(String(500))
+    last_activity = AlphaColumn(
+        DateTime, default=datetime.datetime.now, onupdate=datetime.datetime.now
+    )
 
-class UserRole(db.Model, AlphaTableIdUpdateDate):
+
+class UserRole(db.Model, AlphaTableUpdateDate):
     __bind_key__ = BIND
     __tablename__ = "user_role"
 
-    user_id = AlphaColumn(Integer, ForeignKey("user.id"), nullable=False, primary_key=True)
+    user_id = AlphaColumn(
+        Integer, ForeignKey("user.id"), nullable=False, primary_key=True
+    )
     user = relationship(
         "User",
         backref=backref(__tablename__ + "s", lazy=True, cascade="all, delete-orphan"),
     )
 
-    role_id = AlphaColumn(Integer, ForeignKey("role.id"), nullable=False)
+    role_name = AlphaColumn(
+        String(200), ForeignKey("role.name"), nullable=False, primary_key=True
+    )
     role = relationship(
         "Role",
         backref=backref(__tablename__ + "s", lazy=True, cascade="all, delete-orphan"),
@@ -81,7 +90,8 @@ class UserRole(db.Model, AlphaTableIdUpdateDate):
 
     activated = AlphaColumn(Boolean, default=True)
 
-class Role(db.Model, AlphaTableIdUpdateDate):
+
+class Role(db.Model, AlphaTableUpdateDate):
     __bind_key__ = BIND
     __tablename__ = "role"
 
@@ -89,17 +99,22 @@ class Role(db.Model, AlphaTableIdUpdateDate):
     description = AlphaColumn(Text)
     activated = AlphaColumn(Boolean, default=True)
 
-class RolePermission(db.Model, AlphaTableIdUpdateDate):
+
+class RolePermission(db.Model, AlphaTableUpdateDate):
     __bind_key__ = BIND
     __tablename__ = "role_permission"
 
-    role_id = AlphaColumn(Integer, ForeignKey("role.id"), nullable=False, primary_key=True)
+    role_name = AlphaColumn(
+        String(200), ForeignKey("role.name"), nullable=False, primary_key=True
+    )
     role = relationship(
         "Role",
         backref=backref(__tablename__ + "s", lazy=True, cascade="all, delete-orphan"),
     )
 
-    permission_id = AlphaColumn(Integer, ForeignKey("permission.id"), nullable=False, primary_key=True)
+    permission_key = AlphaColumn(
+        String(200), ForeignKey("permission.key"), nullable=False, primary_key=True
+    )
     permission = relationship(
         "Permission",
         backref=backref(__tablename__ + "s", lazy=True, cascade="all, delete-orphan"),
@@ -107,7 +122,8 @@ class RolePermission(db.Model, AlphaTableIdUpdateDate):
 
     activated = AlphaColumn(Boolean, default=True)
 
-class Permission(db.Model, AlphaTableIdUpdateDate):
+
+class Permission(db.Model, AlphaTableUpdateDate):
     __bind_key__ = BIND
     __tablename__ = "permission"
 
@@ -115,11 +131,14 @@ class Permission(db.Model, AlphaTableIdUpdateDate):
     description = AlphaColumn(Text)
     activated = AlphaColumn(Boolean, default=True)
 
-class Notification(db.Model, AlphaTableIdUpdateDate):
+
+class Notification(db.Model, AlphaTableUpdateDate):
     __bind_key__ = BIND
     __tablename__ = "notification"
 
-    user_id = AlphaColumn(Integer, ForeignKey("user.id"), nullable=False, primary_key=True)
+    user_id = AlphaColumn(
+        Integer, ForeignKey("user.id"), nullable=False, primary_key=True
+    )
     user = relationship(
         "User",
         backref=backref(__tablename__ + "s", lazy=True, cascade="all, delete-orphan"),

@@ -1,5 +1,6 @@
+import itertools
 from sqlalchemy.orm import relationship
-from . import sql_lib, secure_lib
+from . import sql_lib, secure_lib, json_lib
 
 from ..models.database import main_definitions as defs
 from ..models.database.users_definitions import User, UserSession
@@ -12,19 +13,14 @@ DB = core.get_database("users")
 def __get_user_data_by_identifier_and_password(
     identifier, password_attempt, identifier_type="username"
 ):
-    filters = (
-        [User.username == identifier]
-        if identifier_type.lower() == "username"
-        else [User.mail == identifier]
-    )
-    results = DB.select(User, filters=filters, json=True, relationship=False)
+    user_data = __get_user_data(identifier, identifier_type.lower())
 
-    for user in results:
-        user_id = user["id"]
-        if password_attempt is None or secure_lib.compare_passwords(
-            password_attempt, user["password"]
-        ):
-            return get_user_data_by_id(user_id)
+    if user_data is not None and len(user_data) != 0 and password_attempt is not None:
+        valid_password = secure_lib.compare_passwords(
+            password_attempt, user_data["password"]
+        )
+        if valid_password:
+            return user_data
     return None
 
 
@@ -84,14 +80,30 @@ def get_user_data_from_login(login, password=None):
 
 
 def __get_user_data(value, column):
-    """Get the user role associated with given column."""
-    return DB.select(
+    """Get the user associated with given column."""
+    user_data = DB.select(
         User,
         filters=[User.__dict__[column] == value],
         first=True,
         json=True,
-        relationship=False,
+        relationship=True,
+        disabled_relationships=["notifications"],
     )
+    if "user_roles" in user_data:
+        user_roles = [
+            [
+                x["permission_key"]
+                for x in y["role"]["role_permissions"]
+                if x["activated"] and x["permission"]["activated"]
+            ]
+            for y in user_data["user_roles"]
+            if y["activated"]
+        ]
+        user_roles = list(itertools.chain(*user_roles))
+        user_data["user_roles"] = user_roles
+    if "infos" in user_data:
+        user_data["infos"] = json_lib.load_json(user_data["infos"])
+    return user_data
 
 
 def get_user_data_by_id(user_id):

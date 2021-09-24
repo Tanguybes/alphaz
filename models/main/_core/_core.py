@@ -1,4 +1,5 @@
-import os, sys, datetime, glob, inspect, warnings
+import os, sys, warnings
+from types import ModuleType
 from typing import List, Dict
 
 with warnings.catch_warnings():
@@ -50,7 +51,9 @@ class AlphaCore(AlphaClass):
         self.models_sources: List[str] = []
         self.__models_source_loaded: bool = False
 
-        configuration = None if not "ALPHA_CONF" in os.environ else os.environ["ALPHA_CONF"].lower()
+        configuration = (
+            None if not "ALPHA_CONF" in os.environ else os.environ["ALPHA_CONF"].lower()
+        )
         self.configuration: str = configuration
         self.configuration_name: str = configuration
 
@@ -99,8 +102,8 @@ class AlphaCore(AlphaClass):
             self.config.error("Missing <main> database configuration")
             exit()
 
-        #bind = not "NO_BIND" in os.environ or not "Y" in str(os.environ["NO_BIND"]).upper()
-        #if bind:
+        # bind = not "NO_BIND" in os.environ or not "Y" in str(os.environ["NO_BIND"]).upper()
+        # if bind:
         self.api.set_databases(db_cnx)
 
         # databases
@@ -157,9 +160,7 @@ class AlphaCore(AlphaClass):
                 exit()
 
     def get_table(self, schema: str, table: str):
-        self.info("Loading models")
         self.load_models_sources()
-        self.info("Models loaded")
 
         table = table.upper()
         if type(schema) != str and hasattr(schema, "name"):
@@ -192,12 +193,28 @@ class AlphaCore(AlphaClass):
         return table_object
 
     def create_table(self, schema: str, table_name: str):
-        modules = flask_lib.get_definitions_modules(self.models_sources, log=self.log)
-        table_object = self.get_table(schema, table_name)
-        table_object.__table__.create(table_object.bind._engine)
+        #modules = flask_lib.get_definitions_modules(self.models_sources, log=self.log)
+        founds = []
+        for module in database_models.__dict__.values():
+            if not isinstance(module, ModuleType):
+                continue
+
+            for obj in module.__dict__.values():
+                if not hasattr(obj,"__tablename__"):
+                    continue
+                if obj.__tablename__.lower() == table_name.lower():
+                    founds.append(obj)
+            #table_object = self.get_table(schema, table_name)
+                
+        if len(founds) != 1:
+            founds = [x for x in founds if not hasattr(obj,"__bind_key__") or (hasattr(obj,"__bind_key__") and schema.lower() == obj.__bind_key__.lower())]
+        if len(founds) == 1:
+            dbs = [y for x,y in self.databases.items() if x.lower() == schema.lower()]
+            if len(dbs) == 1:
+                founds[0].__table__.create(dbs[0].engine)
 
     def drop_table(self, schema: str, table_name: str):
-        modules = flask_lib.get_definitions_modules(self.models_sources, log=self.log)
+        #modules = flask_lib.get_definitions_modules(self.models_sources, log=self.log)
         table_object = self.get_table(schema, table_name)
         table_object.__table__.drop(table_object.bind._engine)
 
@@ -208,14 +225,9 @@ class AlphaCore(AlphaClass):
         self.models_sources = self.config.get("directories/database_models")
         if not self.models_sources:
             self.log.error(
-                "Missing <directories/database_models> entry in configuration %s"
-                % self.conf.filepath
+                f"Missing <directories/database_models> entry in configuration {self.conf.filepath}"
             )
             exit()
 
-        self.models_sources.append("alphaz.models.database.main_definitions")
-        self.models_sources.append("alphaz.models.database.users_definitions")
-        modules = flask_lib.get_definitions_modules(
-            self.models_sources, log=self.log
-        )
-
+        self.log.info(f"Getting models definitions from {self.models_sources}")
+        modules = flask_lib.get_definitions_modules(self.models_sources, log=self.log)

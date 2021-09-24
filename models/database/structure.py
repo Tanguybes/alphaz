@@ -1,5 +1,6 @@
 # import mysql.connector
 import inspect, os, re, itertools
+import typing
 
 import numpy as np
 
@@ -332,7 +333,7 @@ class AlphaDatabase(AlphaDatabaseCore):
                     self._engine.execute(query, values)
                 else:
                     self._engine.execute(query)
-            self.query_str = get_compiled_query(query)
+            self.query_str = get_compiled_query(query).replace("\n", "")
             if commit and not self.autocommit:
                 self.commit()
             if close:
@@ -390,7 +391,7 @@ class AlphaDatabase(AlphaDatabaseCore):
                     value[0] if not hasattr(value, "keys") else list(value.values())[0]
                     for value in results
                 ]
-            self.query_str = get_compiled_query(query)
+            self.query_str = get_compiled_query(query).replace("\n", "")
         except Exception as ex:
             if self.log is not None:
                 self.log.error(ex)
@@ -652,6 +653,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         flush=False,
         schema=None,
         relationship=True,
+        disabled_relationships: typing.List[str] = [],
     ):
         # model_name = inspect.getmro(model)[0].__name__
         """if self.db_type == "mysql": self.test(close=False)"""
@@ -695,7 +697,7 @@ class AlphaDatabase(AlphaDatabaseCore):
 
         if count:
             results = query.count()
-            self.query_str = get_compiled_query(query)
+            self.query_str = get_compiled_query(query).replace("\n", "")
             self.log.debug(self.query_str)
             return results
 
@@ -712,21 +714,18 @@ class AlphaDatabase(AlphaDatabaseCore):
         if flush:
             query.session.flush()
 
-        if schema is not None:
-            model.schema = schema
-
         if not json:
-            self.query_str = get_compiled_query(query)
+            self.query_str = get_compiled_query(query).replace("\n", "")
             self.log.debug(self.query_str, level=2)
             return results
 
         results_json = {}
         if schema is None:
-            if hasattr(model, "schema"):
-                schema = model.get_schema(relationship=relationship)
-            else:
-                self.log.error(f"Missing schema for model <{model.__name__}>")
-                schema = get_schema(model, relationship=relationship)
+            schema = get_schema(
+                model,
+                relationship=relationship,
+                disabled_relationships=disabled_relationships,
+            )
 
         structures = schema(many=True) if not first else schema()
         results_json = structures.dump(results)
@@ -763,24 +762,25 @@ class AlphaDatabase(AlphaDatabaseCore):
             models = model
             values_list = values
         size_values = len(values)
+
         for i, model in enumerate(models):
             if i < size_values:
                 values = values_list[i]
 
             if hasattr(model, "metadata"):
                 attributes = model._sa_class_manager.local_attrs
-                filters, filters_values = [], {}
-                for column_name, column in attributes.items():
-                    if column.expression.primary_key:
-                        filters.append(column.expression == getattr(model, column.key))
-                        filters_values[column.key] = getattr(model, column.key)
-                rows = self.select(model._sa_class_manager.class_, filters=filters)
+                filters = get_filters(filters, model)
+                rows = self.select(model, filters=filters)
+                # rows = self.select(model._sa_class_manager.class_, filters=filters)
                 if len(rows) == 0:
                     self.log.error(
-                        f"Cannot find any entry for model {model._sa_class_manager.class_.__tablename__} and values: {','.join([f'{x}={y}' for x,y in filters_values.items()])}"
+                        f"Cannot find any entry for model {model} and values"
                     )
                     return False
-                self.session.merge(model)
+                for row in rows:
+                    for key, value in values.items():
+                        setattr(row, key, value)
+                    self.session.merge(row)
             else:
                 query = self._get_filtered_query(model, filters=filters)
                 values_update = self.get_values(model, values, filters)
