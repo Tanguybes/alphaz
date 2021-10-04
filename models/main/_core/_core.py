@@ -1,9 +1,12 @@
 import os, sys, warnings
+import typing
 from types import ModuleType
 from typing import List, Dict
 
 with warnings.catch_warnings():
     from flask_marshmallow import Marshmallow
+from flask_sqlalchemy import DefaultMeta
+from sqlalchemy.ext.declarative.clsregistry import _ModuleMarker
 
 from ....models.main import AlphaClass
 from ....models.logger import AlphaLogger
@@ -160,37 +163,13 @@ class AlphaCore(AlphaClass):
                 exit()
 
     def get_table(self, schema: str, table: str):
-        self.load_models_sources()
+        db = self.get_database(schema)
+        registered_classes: List[typing.Union[DefaultMeta, _ModuleMarker]] = [x for x in db.Model._decl_class_registry.values()]
+        registered_models: Dict[str, DefaultMeta] = {x.__tablename__:x for x in registered_classes if isinstance(x, DefaultMeta)}
 
-        table = table.upper()
-        if type(schema) != str and hasattr(schema, "name"):
-            schema = schema.name
-        if not schema in flask_lib.TABLES:
-
-            raise AlphaException("schema_not_loaded", parameters={"schema": schema})
-
-        """if table in flask_lib.TABLES:
-            obj = flask_lib.TABLES[table]
-            obj.__table__.drop()
-            api.set_data("%s dropped"%table)"""
-
-        tables = flask_lib.TABLES[schema]["tables"]
-        if not table in tables:
+        if not table in registered_models:
             raise AlphaException("cannot_find_table", parameters={"table": table})
-
-        table_object = tables[table]
-        if table_object is None and table in flask_lib.TABLES["main"]["tables"]:
-            table_object = flask_lib.TABLES["main"]["tables"][table]
-        if table_object is None:
-            raise AlphaException("cannot_find_table", parameters={"table": table})
-
-        table_object.bind = flask_lib.TABLES[schema]["db"]
-
-        """if not table in db.metadata.tables:
-            raise AlphaException('cannot_find_table',parameters={'table':table})
-
-        table_object = db.metadata.tables[table]"""
-        return table_object
+        return registered_models[table]
 
     def create_table(self, schema: str, table_name: str):
         #modules = flask_lib.get_definitions_modules(self.models_sources, log=self.log)
@@ -214,9 +193,9 @@ class AlphaCore(AlphaClass):
                 founds[0].__table__.create(dbs[0].engine)
 
     def drop_table(self, schema: str, table_name: str):
-        #modules = flask_lib.get_definitions_modules(self.models_sources, log=self.log)
+        db = self.get_database(schema)
         table_object = self.get_table(schema, table_name)
-        table_object.__table__.drop(table_object.bind._engine)
+        table_object.__table__.drop(db.engine)
 
     def load_models_sources(self):
         if self.__models_source_loaded:

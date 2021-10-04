@@ -11,8 +11,6 @@ MODULES = {}
 LOG = None
 
 def __get_nested_schema(mapper, parent=None):
-    #return get_schema(mapper.entity, parent=parent)
-
     auto_schema = get_auto_schema(mapper.entity)
 
     from core import core
