@@ -84,7 +84,9 @@ def route(
         @api.endpoint(func.__name__)
         def api_wrapper(*args, **kwargs):
             if route_log:
-                LOG.info(f"Get api route {path} with method <{func.__name__}>")
+                LOG.info(
+                    f"Get api route {path} with function <{func.__name__}> and methods {','.join(methods)}"
+                )
 
             uuid_request = api.get_uuid()  # ";".join(methods) + '_' +
             __route = Route(
@@ -211,6 +213,9 @@ def route(
             x: y if x != "parameters" else [j.__dict__ for j in y]
             for x, y in kwargs_.items()
         }
+        for parameter in arguments["parameters"]:
+            if hasattr(parameter["ptype"], "metadata"):
+                parameter["attributes"] = parameter["ptype"].type_sa_class_manager.local_attrs
 
         trace = traceback.format_stack()
 

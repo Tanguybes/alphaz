@@ -33,6 +33,7 @@ class AlphaJSONEncoder(JSONEncoder):
         self.rules[datetime.timedelta] = lambda o: str(o)
         self.rules[decimal.Decimal] = lambda o: str(o)
         self.rules[enum.Enum] = lambda o: str(o)
+        self.rules[str] = lambda o: str(o)
         # self.rules[NameError] = lambda o:str(o)
         # self.rules[ValueError] = lambda o:str(o)
         # self.rules[TypeError] = lambda o:str(o)

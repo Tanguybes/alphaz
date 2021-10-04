@@ -2,6 +2,7 @@ import json, datetime
 from flask import request
 from sqlalchemy.orm.base import object_mapper
 from sqlalchemy.orm.exc import UnmappedInstanceError
+from sqlalchemy.ext.declarative import DeclarativeMeta
 
 from collections.abc import Callable
 
@@ -99,6 +100,10 @@ class Parameter:
         ):
             self.value = request.form[self.name]
 
+        if isinstance(self.ptype, DeclarativeMeta):
+            parameters = {x: y for x, y in dataPost.items() if hasattr(self.ptype, x)}
+            self.value = self.ptype(**parameters)
+
         if self.required and self.value is None:
             missing = True
             raise AlphaException(
@@ -109,7 +114,7 @@ class Parameter:
             self.__check_options(self.value)
             return
 
-        if str(self.value).lower() in ["null","none","undefined"]:
+        if str(self.value).lower() in ["null", "none", "undefined"]:
             self.value = None
 
         if self.ptype == str and (
@@ -124,15 +129,23 @@ class Parameter:
             self.value = str(self.value).replace("*", "%")
 
             if not "%" in self.value:
-                if self.mode in [
-                    ParameterMode.IN_LIKE,
-                    ParameterMode.START_LIKE,
-                ] and not self.value.startswith("%"):
+                if (
+                    self.mode
+                    in [
+                        ParameterMode.IN_LIKE,
+                        ParameterMode.START_LIKE,
+                    ]
+                    and not self.value.startswith("%")
+                ):
                     self.value = f"%{self.value}"
-                if self.mode in [
-                    ParameterMode.IN_LIKE,
-                    ParameterMode.END_LIKE,
-                ] and not self.value.endswith("%"):
+                if (
+                    self.mode
+                    in [
+                        ParameterMode.IN_LIKE,
+                        ParameterMode.END_LIKE,
+                    ]
+                    and not self.value.endswith("%")
+                ):
                     self.value = f"{self.value}%"
 
         if self.ptype == bool:
@@ -211,7 +224,7 @@ class Parameter:
             self.__check_options(self.value)
             self.value = date_lib.str_to_datetime(self.value)
 
-        if hasattr(self.ptype, "metadata"):
+        if hasattr(self.ptype, "metadata") and not hasattr(self.value, "metadata"):
             r = json.loads(self.value)
             self.value = self.ptype(**r)
 

@@ -6,61 +6,77 @@ from ...models.main import AlphaException
 
 from core import core
 
-api         = core.api
-db          = core.db
-log         = core.get_logger('api')
+api = core.api
+db = core.db
+log = core.get_logger("api")
 
-@route('/database/tables',admin=True)
+
+@route("/database/tables", admin=True)
 def liste_tables():
     return database_lib.get_databases_tables_dict(core)
 
-@route('/database/create',admin=True,
-    parameters=[
-        Parameter('schema',required=True),
-        Parameter('table',required=True)
-    ]
+
+@route(
+    "/database/create",
+    admin=True,
+    parameters=[Parameter("schema", required=True), Parameter("table", required=True)],
 )
 def create_table():
-    created = core.create_table(api.get('schema'), api.get('table'))
+    created = core.create_table(api.get("schema"), api.get("table"))
     if created:
-        return 'table %s created'%api.get('table')
+        log.info(f"table {api.get('table')} created")
+    else:
+        log.error(f"table {api.get('table')} notcreated")
+    return created
 
-@route('/database/drop',admin=True,
-    parameters=[
-        Parameter('schema',required=True),
-        Parameter('table',required=True)
-    ]
+
+@route(
+    "/database/drop",
+    admin=True,
+    parameters=[Parameter("schema", required=True), Parameter("table", required=True)],
 )
 def drop_table():
-    dropped = core.drop_table(api.get('schema'), api.get('table'))
+    dropped = core.drop_table(api.get("schema"), api.get("table"))
     if dropped:
-        return 'table %s dropped'%api.get('table')
+        return "table %s dropped" % api.get("table")
 
-@route('/database/init', admin=True,
-parameters=[
-    Parameter('database',required=True),
-    Parameter('table',required=True),
-    Parameter('drop',ptype=bool)
-])
+
+@route(
+    "/database/init",
+    admin=True,
+    parameters=[
+        Parameter("database", required=True),
+        Parameter("table", required=True),
+        Parameter("drop", ptype=bool),
+    ],
+)
 def init_database():
-    log = core.get_logger('database')
-    database_lib.init_databases(core, api.get('database'),api.get('table'),drop=api.get('drop'),log=log)
+    log = core.get_logger("database")
+    database_lib.init_databases(
+        core, api.get("database"), api.get("table"), drop=api.get("drop"), log=log
+    )
 
-@route('/database/init/all', admin=True,
-parameters=[
-    Parameter('database',required=True),
-    Parameter('drop',ptype=bool)
-])
+
+@route(
+    "/database/init/all",
+    admin=True,
+    parameters=[Parameter("database", required=True), Parameter("drop", ptype=bool)],
+)
 def init_all_database():
-    log = core.get_logger('database')
+    log = core.get_logger("database")
 
     databases = database_lib.get_databases_tables_dict(core)
-    if not api.get('database') in databases:
-        raise AlphaException('missing_database',parameters={'database':api.get('database')})
+    if not api.get("database") in databases:
+        raise AlphaException(
+            "missing_database", parameters={"database": api.get("database")}
+        )
 
-    for table in databases[api.get('database')]:
-        database_lib.init_databases(core, api.get('database'),table,drop=api.get('drop'),log=log)
+    for table in databases[api.get("database")]:
+        database_lib.init_databases(
+            core, api.get("database"), table, drop=api.get("drop"), log=log
+        )
 
-@route("database/blocking",admin=True)
+
+@route("database/blocking", admin=True)
 def get_blocking_queries():
     return core.db.get_blocked_queries()

@@ -9,7 +9,7 @@ from sqlalchemy import (
     Text,
     DateTime,
     UniqueConstraint,
-    event
+    event,
 )
 from sqlalchemy.types import TypeDecorator
 
@@ -32,9 +32,10 @@ def repr(instance):
 class AlphaColumn(Column):
     visible = True
 
-    def __init__(self, *args, visible:bool=True, **kwargs):
+    def __init__(self, *args, visible: bool = True, **kwargs):
         self.visible = visible
         super().__init__(*args, **kwargs)
+
 
 class AlphaTable(AlphaClass):
     # def __new__(class_, *args, **kwargs):
@@ -52,7 +53,6 @@ class AlphaTable(AlphaClass):
     def get_table_name(self):
         return self.__name__.lower()"""
 
-
     def __repr__(self):
         return repr(self)
 
@@ -64,19 +64,39 @@ class AlphaTable(AlphaClass):
         if hasattr(class_obj, "schema"):
             schema = class_obj.get_schema()
         else:
-            #self.log.error("Missing schema for model <%s>" % str(self.__name__))
+            # self.log.error("Missing schema for model <%s>" % str(self.__name__))
             schema = get_schema(class_obj)
 
         results_json = schema().dump(self)
         return results_json
 
+    def init(self, kwargs: dict, not_none:bool=False):
+        kwargs = {(x if type(x) == str else x.key): y for x, y in kwargs.items() if not not_none or (y is not None)}
+        return self.__init__(**kwargs)
+
     @classmethod
-    def get_schema(class_obj, relationship:bool=True,disabled_relationships:typing.List[str]=[]):
-        if hasattr(class_obj, "schema") and class_obj.schema is not None and relationship:
+    def get_schema(
+        class_obj,
+        relationship: bool = True,
+        disabled_relationships: typing.List[str] = [],
+    ):
+        if (
+            hasattr(class_obj, "schema")
+            and class_obj.schema is not None
+            and relationship
+        ):
             return class_obj.schema
-        elif hasattr(class_obj, "schema_without_relationship") and class_obj.schema_without_relationship is not None and not relationship:
+        elif (
+            hasattr(class_obj, "schema_without_relationship")
+            and class_obj.schema_without_relationship is not None
+            and not relationship
+        ):
             return class_obj.schema_without_relationship
-        return get_schema(class_obj, relationship=relationship,disabled_relationships=disabled_relationships)
+        return get_schema(
+            class_obj,
+            relationship=relationship,
+            disabled_relationships=disabled_relationships,
+        )
 
     @staticmethod
     def set_attrib_listener(target, value, old_value, initiator):
@@ -85,7 +105,11 @@ class AlphaTable(AlphaClass):
         if value is None:
             return None
         if python_type == datetime.datetime and type(value) == str:
-            return datetime.datetime.strptime(value,"%Y-%m-%dT%H:%M:%S") if 'T' in value else datetime.datetime.strptime(value,"%Y-%m-%d %H:%M:%S")
+            return (
+                datetime.datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
+                if "T" in value
+                else datetime.datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
+            )
         if python_type == datetime.datetime and type(value) == datetime.datetime:
             return value
         try:
@@ -104,13 +128,16 @@ class AlphaTable(AlphaClass):
                     retval=True,
                 )
             except Exception as ex:
-                continue #TODO: modify
+                continue  # TODO: modify
+
 
 class AlphaTableId(AlphaTable):
     id = AlphaColumn(Integer, autoincrement=True)
 
+
 class AlphaTableIdPrimary(AlphaTable):
     id = AlphaColumn(Integer, autoincrement=True, primary_key=True)
+
 
 class AlphaTableUpdateDate(AlphaTable):
     update_date = AlphaColumn(

@@ -595,7 +595,7 @@ class AlphaDatabase(AlphaDatabaseCore):
             request_model = core.get_table(self, self.name, table_name)
 
             self.log.info(
-                "Creating <%s> table in <%s> database" % (table_name, self.name)
+                f"Creating <{table_name}> table in <{self.name}> database"
             )
             try:
                 request_model.__table__.create(self._engine)
@@ -769,6 +769,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         fetch: bool = True,
         commit: bool = True,
         close: bool = False,
+        not_none:bool=False
     ) -> bool:
         if type(model) != list:
             models = [model]
@@ -783,10 +784,29 @@ class AlphaDatabase(AlphaDatabaseCore):
                 values = values_list[i]
 
             if hasattr(model, "metadata"):
+                if filters is None and size_values == 0:
+                    self.session.merge(model)
+                    continue
+                if filters is None:
+                    filters = []
                 attributes = model._sa_class_manager.local_attrs
+                if len(filters) == 0:
+                    for attribute in attributes:
+                        col = getattr(model, attribute)
+                        val = (
+                            values[attribute]
+                            if attribute in values
+                            else (values[col] if col in values else None)
+                        )
+                        if (
+                            hasattr(col.comparator, "primary_key")
+                            and col.comparator.primary_key
+                            and val is not None
+                        ):
+                            filters.append(col == val)
+
                 filters = get_filters(filters, model)
                 rows = self.select(model, filters=filters)
-                # rows = self.select(model._sa_class_manager.class_, filters=filters)
                 if len(rows) == 0:
                     self.log.error(
                         f"Cannot find any entry for model {model} and values"
@@ -794,7 +814,12 @@ class AlphaDatabase(AlphaDatabaseCore):
                     return False
                 for row in rows:
                     for key, value in values.items():
-                        setattr(row, key, value)
+                        if not_none and value is None:
+                            continue
+                        if type(key) == str:
+                            setattr(row, key, value)
+                        else:
+                            setattr(row, key.key, value)
                     self.session.merge(row)
             else:
                 query = self._get_filtered_query(model, filters=filters)
