@@ -215,7 +215,10 @@ def route(
         }
         for parameter in arguments["parameters"]:
             if hasattr(parameter["ptype"], "metadata"):
-                parameter["attributes"] = parameter["ptype"].type_sa_class_manager.local_attrs
+                if hasattr(parameter["ptype"], "type_sa_class_manager"):
+                    parameter["attributes"] = parameter[
+                        "ptype"
+                    ].type_sa_class_manager.local_attrs
 
         trace = traceback.format_stack()
 
