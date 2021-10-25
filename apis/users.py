@@ -260,9 +260,9 @@ def try_login(username, password):
 
     # Generate token
     data_to_jwt = {"id": "id", "username": "sub", "time": "iat", "user_roles": "roles"}
-    user_data["time"] = str(datetime.datetime.now())
+    user_data["time"] = int(datetime.datetime.now().timestamp())
     user_data_to_encode = {y: user_data[x] for x, y in data_to_jwt.items()}
-    user_data_to_encode["exp"] = str(expire)
+    user_data_to_encode["exp"] = int(expire.timestamp())
     user_data_to_encode["app"] = "alpha"
     user_data_to_encode["env"] = env
 
