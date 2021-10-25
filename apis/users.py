@@ -203,10 +203,10 @@ def check_credentials(username, password):
 
 
 def try_login(username, password):
+    env = core.configuration
     if API.get_logged_user() is not None:
         raise AlphaException("user_already_logged")
 
-    data_to_jwt = ["id", "username", "time"]
     if LOGIN_MODE == "ldap":
         valid_ldap = check_credentials(username, password)
         if valid_ldap is None:
@@ -240,19 +240,6 @@ def try_login(username, password):
     if not "JWT_SECRET_KEY" in API.config:
         raise AlphaException("Missing <JWT_SECRET_KEY> api parameter")
 
-    # Generate token
-    user_data["time"] = str(datetime.datetime.now())
-    user_data_to_encode = {x: user_data[x] for x in data_to_jwt}
-    encoded_jwt = jwt.encode(
-        user_data_to_encode,
-        API.config["JWT_SECRET_KEY"],
-        algorithm="HS256",
-    )
-    try:  # TODO: remove
-        encoded_jwt = encoded_jwt.decode("ascii")
-    except:
-        pass
-
     defaults_validity = {
         "days": 7,
         "seconds": 0,
@@ -269,6 +256,25 @@ def try_login(username, password):
         else validity_config[x]
         for x, y in defaults_validity.items()
     }
+    expire = datetime.datetime.now() + datetime.timedelta(**validity_config)
+
+    # Generate token
+    data_to_jwt = {"id": "id", "username": "sub", "time": "iat", "user_roles": "roles"}
+    user_data["time"] = str(datetime.datetime.now())
+    user_data_to_encode = {y: user_data[x] for x, y in data_to_jwt.items()}
+    user_data_to_encode["exp"] = str(expire)
+    user_data_to_encode["app"] = "alpha"
+    user_data_to_encode["env"] = env
+
+    encoded_jwt = jwt.encode(
+        user_data_to_encode,
+        API.config["JWT_SECRET_KEY"],
+        algorithm="HS256",
+    )
+    try:  # TODO: remove
+        encoded_jwt = encoded_jwt.decode("ascii")
+    except Exception as ex:
+        pass
 
     # Add new token session related to user
     if not DB.add_or_update(
@@ -276,13 +282,13 @@ def try_login(username, password):
             user_id=user_data["id"],
             token=encoded_jwt,
             ip=request.remote_addr,
-            expire=datetime.datetime.now() + datetime.timedelta(**validity_config),
+            expire=expire,
         )
     ):
         raise AlphaException("error")
 
     return {
-        **user_data,
+        **{x: y for x, y in user_data.items() if not x in data_to_jwt},
         "token": encoded_jwt,
         "valid_until": datetime.datetime.now() + datetime.timedelta(**validity_config),
     }
