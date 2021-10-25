@@ -10,7 +10,14 @@ from pymysql.err import IntegrityError
 
 from sqlalchemy import inspect as inspect_sqlalchemy
 from sqlalchemy import update, create_engine, event
-from sqlalchemy.orm import scoped_session, sessionmaker, Session, load_only, RelationshipProperty, ColumnProperty
+from sqlalchemy.orm import (
+    scoped_session,
+    sessionmaker,
+    Session,
+    load_only,
+    RelationshipProperty,
+    ColumnProperty,
+)
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql.expression import or_, and_, all_
@@ -658,7 +665,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         # model_name = inspect.getmro(model)[0].__name__
         """if self.db_type == "mysql": self.test(close=False)"""
 
-        attributes = None
+        """attributes = None
         if not relationship:
             attributes = {x:y for x,y in dict(model.__dict__).items() if hasattr(y,"prop") and isinstance(y.prop, ColumnProperty)}
         if disabled_relationships:
@@ -669,8 +676,8 @@ class AlphaDatabase(AlphaDatabaseCore):
                 columns = attributes.values()
             else:
                 columns = columns.extend(attributes.values())
-
-        #CopyOfB = type(type(model).__name__+'C', model.__bases__, attributes)
+        """
+        # CopyOfB = type(type(model).__name__+'C', model.__bases__, attributes)
 
         if unique and (
             type(unique) == InstrumentedAttribute or type(unique) == str
