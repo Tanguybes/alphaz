@@ -8,7 +8,7 @@ from collections.abc import Callable
 
 from ..main import AlphaException
 
-from ...libs import date_lib
+from ...libs import date_lib, json_lib
 
 from enum import Enum
 
@@ -101,7 +101,12 @@ class Parameter:
             self.value = request.form[self.name]
 
         if isinstance(self.ptype, DeclarativeMeta):
-            parameters = {x: y for x, y in dataPost.items() if hasattr(self.ptype, x)}
+            if self.value is None:
+                parameters = {
+                    x: y for x, y in dataPost.items() if hasattr(self.ptype, x)
+                }
+            else:
+                parameters = json_lib.load_json(self.value)
             self.value = self.ptype(**parameters)
 
         if self.required and self.value is None:

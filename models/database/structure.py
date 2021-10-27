@@ -21,7 +21,7 @@ from sqlalchemy.orm import (
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql.expression import or_, and_, all_
-from sqlalchemy.sql.elements import Null
+from sqlalchemy.sql.elements import BinaryExpression, Null
 from flask_sqlalchemy import SQLAlchemy, BaseQuery
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.exc import OperationalError
@@ -501,10 +501,6 @@ class AlphaDatabase(AlphaDatabaseCore):
 
         if commit and not self.autocommit:
             self.commit()
-            """except Exception as ex:
-                primaryKeyColName = inspect_sqlalchemy(obj)
-
-                raise AlphaException("database_insert", description=str(ex))"""
         if close:
             self.session.close()
         return obj
@@ -601,9 +597,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         if not table_name.lower() in tables:
             request_model = core.get_table(self, self.name, table_name)
 
-            self.log.info(
-                f"Creating <{table_name}> table in <{self.name}> database"
-            )
+            self.log.info(f"Creating <{table_name}> table in <{self.name}> database")
             try:
                 request_model.__table__.create(self._engine)
             except Exception as ex:
@@ -663,20 +657,37 @@ class AlphaDatabase(AlphaDatabaseCore):
         disabled_relationships: typing.List[str] = [],
     ):
         # model_name = inspect.getmro(model)[0].__name__
-        """if self.db_type == "mysql": self.test(close=False)"""
+        # if self.db_type == "mysql": self.test(close=False)
 
         """attributes = None
+        items = dict(model.__dict__).items()
         if not relationship:
-            attributes = {x:y for x,y in dict(model.__dict__).items() if hasattr(y,"prop") and isinstance(y.prop, ColumnProperty)}
+            attributes = {
+                x: y
+                for x, y in items
+                if hasattr(y, "prop")
+                and isinstance(y.prop, ColumnProperty)
+                and not isinstance(y.expression, BinaryExpression)
+            }
         if disabled_relationships:
-            attributes = {x:y for x,y in dict(model.__dict__).items() if hasattr(y,"prop") and (isinstance(y.prop, ColumnProperty) or isinstance(y.prop, RelationshipProperty)) and x not in disabled_relationships}
+            attributes = {
+                x: y
+                for x, y in items
+                if hasattr(y, "prop")
+                and (
+                    isinstance(y.prop, ColumnProperty)
+                    or isinstance(y.prop, RelationshipProperty)
+                )
+                and not isinstance(y.expression, BinaryExpression)
+                and x not in disabled_relationships
+            }
 
         if attributes is not None:
             if columns is None:
                 columns = attributes.values()
             else:
-                columns = columns.extend(attributes.values())
-        """
+                columns = columns.extend(attributes.values())"""
+
         # CopyOfB = type(type(model).__name__+'C', model.__bases__, attributes)
 
         if unique and (
@@ -776,7 +787,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         fetch: bool = True,
         commit: bool = True,
         close: bool = False,
-        not_none:bool=False
+        not_none: bool = False,
     ) -> bool:
         if type(model) != list:
             models = [model]

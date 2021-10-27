@@ -20,12 +20,20 @@ from ..main import AlphaClass
 
 
 def repr(instance):
-    columns_values = {
-        x: instance.__dict__[x] if x in instance.__dict__ else None
-        for x, y in instance.columns.items()
-        if y["show"]
-    }
-    text = ",".join("%s=%s" % (x, y) for x, y in columns_values.items())
+    columns_values = {}
+    if hasattr(instance, "columns"):
+        columns_values = {
+            x: instance.__dict__[x] if x in instance.__dict__ else None
+            for x, y in instance.columns.items()
+            if y["show"]
+        }
+    elif hasattr(instance, "__table__") and hasattr(instance.__table__, "columns"):
+        # TODO: update visible
+        columns_values = {
+            x: instance.__dict__[x] if x in instance.__dict__ else None
+            for x, y in instance.__table__.columns.items()
+        }
+    text = ", ".join("%s=%s" % (x, y) for x, y in columns_values.items())
     return "<%s %r>" % (instance.__tablename__.capitalize(), text)
 
 
@@ -53,6 +61,9 @@ class AlphaTable(AlphaClass):
     def get_table_name(self):
         return self.__name__.lower()"""
 
+    def __str__(self):
+        return repr(self)
+
     def __repr__(self):
         return repr(self)
 
@@ -70,8 +81,12 @@ class AlphaTable(AlphaClass):
         results_json = schema().dump(self)
         return results_json
 
-    def init(self, kwargs: dict, not_none:bool=False):
-        kwargs = {(x if type(x) == str else x.key): y for x, y in kwargs.items() if not not_none or (y is not None)}
+    def init(self, kwargs: dict, not_none: bool = False):
+        kwargs = {
+            (x if type(x) == str else x.key): y
+            for x, y in kwargs.items()
+            if not not_none or (y is not None)
+        }
         return self.__init__(**kwargs)
 
     @classmethod
