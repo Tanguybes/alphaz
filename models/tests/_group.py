@@ -9,7 +9,8 @@ from collections import OrderedDict
 
 
 class TestGroup:
-    def __init__(self, name, classObject):
+    def __init__(self, name, classObject, coverage: bool = False):
+        self.coverage = coverage
         self.name = name
         self.classObject = classObject
         self.tests: OrderedDict[str, TestMethod] = OrderedDict()
@@ -52,17 +53,17 @@ class TestGroup:
 
     def test(self, name: str):
         if name in self.tests:
-            self.tests[name].test()
+            self.tests[name].test(coverage=self.coverage)
 
     def test_all(self, names: List[str] = []):
         if len(names) == 0:
             classObject = self.classObject()
             for method in self.tests.values():
-                method.test(classObject=classObject)
+                method.test(classObject=classObject, coverage=self.coverage)
         else:
             for name in names:
                 if name in self.tests:
-                    self.tests[name].test()
+                    self.tests[name].test(coverage=self.coverage)
 
     def save_all(self):
         for method in self.tests.values():

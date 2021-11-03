@@ -1,4 +1,6 @@
 import os, imp, sys, inspect
+
+from . import io_lib
 from ..models.tests import TestGroup, AlphaTest, test, TestCategories
 import importlib
 from inspect import getmembers, isfunction, isclass
@@ -25,6 +27,7 @@ def get_tests_auto(
     file_path: str = None,
     run: bool = False,
     resume: bool = False,
+    coverage: str = None,
 ) -> TestCategories:
     """Get the TestCategories class, containings all required tests.
 
@@ -89,7 +92,7 @@ def get_tests_auto(
         )
 
         for el in class_list:
-            test_group = TestGroup(el[0], el[1])
+            test_group = TestGroup(el[0], el[1], coverage=coverage is not None)
 
             if len(categories) != 0 and test_group.category not in categories:
                 continue
@@ -112,6 +115,20 @@ def get_tests_auto(
 
     if resume:
         test_categories.resume()
+
+    if coverage is not None:
+        coverages = {}
+        for category_name, category in test_categories.categories.items():
+            for group_name, group in category.groups.items():
+                for test_name, test in group.tests.items():
+                    if (
+                        test_name in test.coverages
+                        and test.coverages[test_name] is not None
+                    ):
+                        coverages[
+                            f"{category_name}-{group_name}-{test_name}"
+                        ] = test.coverages[test_name]
+        io_lib.archive_object(coverages, coverage)
     return test_categories
 
 

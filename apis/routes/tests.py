@@ -2,7 +2,7 @@ from ...utils.api import route, Parameter
 
 from .. import tests
 
-from ...libs import test_lib
+from ...libs import test_lib, io_lib
 
 from core import core
 
@@ -22,12 +22,19 @@ log = core.get_logger("api")
         Parameter("names", ptype=list),
         Parameter("run", ptype=bool),
         Parameter("file_path", ptype=str),
+        Parameter("coverage", ptype=str),
     ],
 )
 def get_tests():
     return test_lib.get_tests_auto(
         core.config.get("directories/tests"), **api.get_parameters()
     )
+
+
+@route("/tests/coverage", parameters=[Parameter("file", required=True)])
+def get_coverage_file():
+    coverages = io_lib.unarchive_object(api["file"])
+    return coverages
 
 
 @route("/tests/methods", methods=["GET"])

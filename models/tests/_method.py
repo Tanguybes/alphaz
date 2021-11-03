@@ -1,4 +1,5 @@
 import datetime, re
+import typing
 
 from core import core
 from ..database.main_definitions import Tests
@@ -43,23 +44,28 @@ class TestMethod:
         self.end_time: datetime.datetime = None
         self.elapsed: int = 0
         self.last_run_elapsed = None
+        self.coverages: typing.Dict[str, object] = {}
 
         self.ex: Exception = None
 
-    def test(self, classObject=None):
+    def test(self, classObject=None, coverage: bool = False):
         if classObject is None:
             classObject = self.classObject()
 
         self.start_time = datetime.datetime.now()
 
         log.info(
-            "Testing function <%s> of <%s> in category <%s>"
-            % (self.name, type(self).__name__, self.category)
+            f"Testing function <{self.name}> of <{type(self).__name__}> in category <{self.category}>"
         )
 
         self.status = False
         try:
-            result = classObject.test(self.name)
+            result = classObject.test(self.name, coverage=coverage)
+            self.coverages[self.name] = (
+                classObject.coverages[self.name]
+                if self.name in classObject.coverages
+                else None
+            )
             self.status = result if type(result) == bool else False
         except Exception as ex:
             self.ex = ex

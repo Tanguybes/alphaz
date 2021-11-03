@@ -66,6 +66,13 @@ class AlphaCore(AlphaClass):
 
         self.log = self.config.get_logger("main")
 
+    def check_databases(self):
+        if self.configuration == "local":
+            self.prepare_api(self.configuration)
+            self.load_models_sources()
+            for db in self.databases.values():
+                db.create_all()
+
     def set_configuration(self, configuration_name):
         if configuration_name is None and self.config.configuration is not None:
             configuration_name = self.config.configuration
@@ -164,31 +171,43 @@ class AlphaCore(AlphaClass):
 
     def get_table(self, schema: str, table: str):
         db = self.get_database(schema)
-        registered_classes: List[typing.Union[DefaultMeta, _ModuleMarker]] = [x for x in db.Model._decl_class_registry.values()]
-        registered_models: Dict[str, DefaultMeta] = {x.__tablename__:x for x in registered_classes if isinstance(x, DefaultMeta)}
+        registered_classes: List[typing.Union[DefaultMeta, _ModuleMarker]] = [
+            x for x in db.Model._decl_class_registry.values()
+        ]
+        registered_models: Dict[str, DefaultMeta] = {
+            x.__tablename__: x for x in registered_classes if isinstance(x, DefaultMeta)
+        }
 
         if not table in registered_models:
             raise AlphaException("cannot_find_table", parameters={"table": table})
         return registered_models[table]
 
     def create_table(self, schema: str, table_name: str):
-        #modules = flask_lib.get_definitions_modules(self.models_sources, log=self.log)
+        # modules = flask_lib.get_definitions_modules(self.models_sources, log=self.log)
         founds = []
         for module in database_models.__dict__.values():
             if not isinstance(module, ModuleType):
                 continue
 
             for obj in module.__dict__.values():
-                if not hasattr(obj,"__tablename__"):
+                if not hasattr(obj, "__tablename__"):
                     continue
                 if obj.__tablename__.lower() == table_name.lower():
                     founds.append(obj)
-            #table_object = self.get_table(schema, table_name)
-                
+            # table_object = self.get_table(schema, table_name)
+
         if len(founds) != 1:
-            founds = [x for x in founds if not hasattr(obj,"__bind_key__") or (hasattr(obj,"__bind_key__") and schema.lower() == obj.__bind_key__.lower())]
+            founds = [
+                x
+                for x in founds
+                if not hasattr(obj, "__bind_key__")
+                or (
+                    hasattr(obj, "__bind_key__")
+                    and schema.lower() == obj.__bind_key__.lower()
+                )
+            ]
         if len(founds) == 1:
-            dbs = [y for x,y in self.databases.items() if x.lower() == schema.lower()]
+            dbs = [y for x, y in self.databases.items() if x.lower() == schema.lower()]
             if len(dbs) == 1:
                 founds[0].__table__.create(dbs[0].engine)
 

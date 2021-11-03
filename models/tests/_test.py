@@ -1,4 +1,4 @@
-import traceback, inspect
+import traceback, inspect, trace, sys, os
 from core import core
 from typing import List, Dict
 
@@ -15,13 +15,14 @@ class AlphaTest:
     category = ""
 
     def __init__(self):
-        self.outputs: bool = None
+        self.outputs: Dict[str, bool] = {}
+        self.coverages: Dict[str, object] = {}
         self.index = 0
 
     def end(self):
         pass
 
-    def test(self, name):
+    def test(self, name, coverage: bool = False):
         self.output = None
         status = False
         fct = getattr(self, name)
@@ -30,13 +31,20 @@ class AlphaTest:
                 f"Failed to get testing function <{name}> in category <{self.category}>"
             )
             return False
-        try:
-            status = fct()
-            if self.output is not None:
-                status = self.output
-        except Exception as ex:
-            text = traceback.format_exc()
-            LOG.error(text)
+
+        ignore_dirs = [
+            sys.prefix,
+            sys.exec_prefix,
+            os.sep.join(sys.prefix.split(os.sep)[:-1]),
+        ]  # TODO: log ignored
+        tracer = trace.Trace(ignoredirs=ignore_dirs)
+        status = fct()
+        if coverage:
+            tracer.runfunc(fct)
+            self.coverages[name] = tracer.results()
+        if self.output is not None:
+            status = self.output
+
         return status
 
     def save(self, name):

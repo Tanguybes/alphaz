@@ -49,8 +49,11 @@ def test(
             class_.output = None
 
             output = func(*args, **kwargs)
+
             if class_.output is not None:
+                class_.outputs[func.__name__] = class_.output
                 return class_.output
+            class_.outputs[func.__name__] = output
             return output
 
         if hasattr(func, "__name__"):
