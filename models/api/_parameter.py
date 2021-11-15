@@ -173,9 +173,9 @@ class Parameter:
             self.value = value
 
         if self.ptype == list:
-            if self.value.strip() == "":
+            if type(self.value) == str and self.value.strip() == "":
                 self.value = []
-            else:
+            elif type(self.value) == str:
                 try:
                     if ";" in str(self.value) or "," in str(self.value):
                         self.value = (
@@ -194,8 +194,8 @@ class Parameter:
                             "value": self.value,
                         },
                     )
-                for val in self.value:
-                    self.__check_options(val)
+            for val in self.value:
+                self.__check_options(val)
 
         if self.ptype == int:
             try:
