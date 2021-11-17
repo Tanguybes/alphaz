@@ -51,6 +51,7 @@ def get_conditions_from_dict(values: dict, model, optional: bool = False):
             for k, v in value.items():
                 if optional and v is None:
                     continue
+                
                 if Operators.EQUAL.equals(k) or Operators.ASIGN.equals(k):
                     conditions.append(key == v)
                 elif Operators.DIFFERENT.equals(k) or Operators.NOT.equals(k):

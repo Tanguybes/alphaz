@@ -1,4 +1,5 @@
 import json, datetime
+import typing
 from flask import request
 from sqlalchemy.orm.base import object_mapper
 from sqlalchemy.orm.exc import UnmappedInstanceError
@@ -8,7 +9,7 @@ from collections.abc import Callable
 
 from ..main import AlphaException
 
-from ...libs import date_lib, json_lib
+from ...libs import date_lib, json_lib, py_lib
 
 from enum import Enum
 
@@ -172,7 +173,7 @@ class Parameter:
                 )
             self.value = value
 
-        if self.ptype == list:
+        if self.ptype == list or py_lib.is_subtype(self.ptype, typing.List):
             if type(self.value) == str and self.value.strip() == "":
                 self.value = []
             elif type(self.value) == str:
@@ -194,6 +195,12 @@ class Parameter:
                             "value": self.value,
                         },
                     )
+
+            if py_lib.is_subtype(self.ptype, typing.List[int]):
+                self.value=[int(x) for x in self.value]
+            if py_lib.is_subtype(self.ptype, typing.List[float]):
+                self.value=[float(x) for x in self.value]
+
             for val in self.value:
                 self.__check_options(val)
 

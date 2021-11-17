@@ -102,3 +102,28 @@ def filter_kwargs(fct, args: list = [], kwargs: dict={}) -> dict:
     fargs = inspect.getfullargspec(fct)
     kwargs = {x:y for x,y in kwargs.items() if x in fargs.args}
     return kwargs
+
+def is_subtype(sub_type, parent_type):
+    if sys.version_info >= (3, 7):
+        if not hasattr(sub_type, '__origin__') or not hasattr(parent_type, '__origin__'):
+            return False
+
+        if sub_type.__origin__ != parent_type.__origin__:
+            return False
+
+        if isinstance(parent_type.__args__[0], type):
+            return sub_type.__args__ == parent_type.__args__
+
+        return True
+
+    else:
+        if not hasattr(sub_type, '__extra__') or not hasattr(parent_type, '__extra__'):
+            return False
+
+        if sub_type.__extra__ != parent_type.__extra__:
+            return False
+
+        if not parent_type.__args__ or parent_type.__args__ == sub_type.__args__:
+            return True
+
+    return False

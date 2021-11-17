@@ -16,5 +16,9 @@ class Operators(Enum):
     IN = "in"
     NOT_IN = "notin"
 
-    def equals(self, string):
-       return self.value == string
+    def equals(self, val):
+        if type(val) == str:
+            return self.value == val
+        elif type(val) == Operators:
+            return self.value == val.value
+        return False
