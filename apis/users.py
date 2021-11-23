@@ -217,7 +217,7 @@ def try_login(username, password):
                 added_infos[name] = (
                     valid_ldap[ldap_name] if ldap_name in valid_ldap else ""
                 )
-        user_data = user_lib.get_user_data_from_login(username, password)
+        user_data = user_lib.get_user_data_from_login(username, password, no_password_check=True)
         if user_data is None:
             try_register_user(
                 mail=valid_ldap["mail"],
@@ -227,7 +227,7 @@ def try_login(username, password):
                 validation=False,
                 infos=added_infos,
             )
-            user_data = user_lib.get_user_data_from_login(username, password)
+            user_data = user_lib.get_user_data_from_login(username, password, no_password_check=True)
         else:
             update_infos(user_data, added_infos)
     else:

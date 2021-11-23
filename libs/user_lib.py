@@ -11,7 +11,7 @@ DB = core.get_database("users")
 
 
 def __get_user_data_by_identifier_and_password(
-    identifier, password_attempt, identifier_type="username"
+    identifier, password_attempt, identifier_type="username", no_password_check:bool=False
 ):
     user_data = __get_user_data(identifier, identifier_type.lower())
 
@@ -19,7 +19,7 @@ def __get_user_data_by_identifier_and_password(
         valid_password = secure_lib.compare_passwords(
             password_attempt, user_data["password"]
         )
-        if valid_password:
+        if valid_password or no_password_check:
             return user_data
     return None
 
@@ -56,7 +56,7 @@ def get_user_data_by_mail_and_password(mail, password_attempt):
     )
 
 
-def get_user_data_from_login(login, password=None):
+def get_user_data_from_login(login, password=None, no_password_check:bool=False):
     """Get user data from database either by mail or username.
 
     Args:
@@ -67,10 +67,10 @@ def get_user_data_from_login(login, password=None):
         [type]: [description]
     """
     user_mail = __get_user_data_by_identifier_and_password(
-        login, password, identifier_type="mail"
+        login, password, identifier_type="mail", no_password_check=no_password_check
     )
     user_username = __get_user_data_by_identifier_and_password(
-        login, password, identifier_type="username"
+        login, password, identifier_type="username", no_password_check=no_password_check
     )
     if user_mail is not None:
         return user_mail
