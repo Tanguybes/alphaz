@@ -1,13 +1,12 @@
 import sys, os, inspect, copy, requests, enum
 
-from ..libs import dict_lib
 from ..utils.api import ROUTES
 
 from ..models.logger import AlphaLogger
 from ..models.api import ApiMethods
 from ..models.main import AlphaException
 
-from ..libs.json_lib import jsonify_database_models, jsonify_data
+from ..libs import dict_lib, json_lib
 
 MODULES = {}
 
@@ -74,7 +73,7 @@ def get_columns_values_output(objects: list, columns: list = None) -> dict:
     if len(objects) == 0:
         return {"columns": [], "values": [], "values_nb": 0}
 
-    results = jsonify_data(objects)
+    results = json_lib.jsonify_data(objects)
 
     if columns and len(columns) != 0:
         results = [

@@ -4,7 +4,7 @@ from typing import List, Dict
 
 myself = lambda: inspect.stack()[1][3]
 
-def get_modules_infos(name:str=None):
+def get_modules_infos(name:str=None, url:str=None):
     from importlib_metadata import version
     import pkgutil
     data = {}
@@ -15,6 +15,45 @@ def get_modules_infos(name:str=None):
             data[item.name] = version(item.name)
         except:
             continue
+
+    if url:
+        from . import api_lib
+        params = {}
+        if name:
+            params["name"] = name
+        data_url = api_lib.get_api_data(f"{url}/modules", params)
+
+        K = ['local', 'local_up','local_down', 'distant', 'distant_up', 'distant_down', 'up', 'down','distant_align']
+        updates, out = {x:[] for x in K}, {}
+        keys = list(set(list(data_url.keys()) + list(data.keys())))
+        for key in keys:
+            if key in data_url and key in data and data_url[key] == data[key]:
+                continue
+
+            out[key] = [data[key] if key in data else None, data_url[key] if key in data_url else None]
+
+            if key in data:
+                updates["distant"].append(f"{key}=={data[key]}")
+            if key in data and key in data_url:
+                updates["distant_align"].append(f"{key}=={data[key]}")
+
+            if key in data_url:
+                updates["local"].append(f"{key}=={data_url[key]}")
+            if key in data and key in data_url:
+                updates["up"].append(f"{key}=={data[key] if data[key] > data_url[key] else data_url[key]}")
+            if key in data and key in data_url:
+                updates["down"].append(f"{key}=={data[key] if data[key] < data_url[key] else data_url[key]}")
+
+            if key in data and key in data_url and data[key] < data_url[key]:
+                updates["local_up"].append(f"{key}=={data_url[key]}")
+                updates["distant_down"].append(f"{key}=={data[key]}")
+            if key in data and key in data_url and data[key] > data_url[key]:
+                updates["local_down"].append(f"{key}=={data_url[key]}")
+                updates["distant_up"].append(f"{key}=={data[key]}")
+                
+        for key, items in updates.items():
+            out[key] = " ".join(items)
+        return out
     return data
 
 def myself(fct=None):

@@ -132,6 +132,14 @@ def get_infos():
     }
 
 
+@route("/memory")
+def get_memory_usage():
+    from guppy3 import hpy
+
+    h = hpy()
+    return h.heap()
+
+
 @route("/module", parameters=[Parameter("name", required=True), Parameter("function")])
 def get_module_code():
     module = importlib.import_module(api["name"])
@@ -144,6 +152,6 @@ def get_module_code():
     return {"version": module.__version__}
 
 
-@route("modules", parameters=[Parameter("name")])
+@route("modules", parameters=[Parameter("name"), Parameter("url")])
 def get_modules():
     return py_lib.get_modules_infos(**api.get_parameters())

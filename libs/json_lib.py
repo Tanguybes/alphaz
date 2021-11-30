@@ -55,9 +55,9 @@ def load_json(string: str):
     if string is None:
         return None
     string = string.strip()
+    
     if string[0] == "{" and string[-1] == "}":
         return json.loads(string)
-
     string = '{"json":' + string + "}"
     data = json.loads(string)
     return data["json"]
