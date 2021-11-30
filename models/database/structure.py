@@ -185,15 +185,13 @@ class AlphaDatabaseCore(SQLAlchemy):
         **kwargs,
     ):
         self.db_type: str = config["type"]
-        if "user" in config:
-            self.user: str = config["user"]
-        cnx = config["cnx"]
+        #cnx = config["cnx"]
 
-        if type(cnx) == dict:
-            cnx = py_lib.filter_kwargs(create_engine, kwargs=cnx)
-        engine = create_engine(cnx)
-        event.listen(engine, "before_cursor_execute", add_own_encoders)
-        self._engine = engine
+        """if type(cnx) == dict:
+            cnx = py_lib.filter_kwargs(create_engine, kwargs=cnx)"""
+        #engine = create_engine(cnx)
+        #event.listen(engine, "before_cursor_execute", add_own_encoders)
+        #self._engine = engine
 
         engine_options = config["engine_options"] if "engine_options" in config else {}
         session_options = (
@@ -234,7 +232,7 @@ class AlphaDatabaseCore(SQLAlchemy):
     def get_session(self):
         return self.db.session"""
 
-    def test(self, close=False):
+    def test(self, bind:str=None, close=False):
         """[Test the connection]
 
         Returns:
@@ -246,7 +244,7 @@ class AlphaDatabaseCore(SQLAlchemy):
             query = "SELECT 1 from dual"
 
         try:
-            self._engine.execute(query)
+            self.get_engine(bind=bind).execute(query)
             if not self.autocommit:
                 self.session.commit()
             output = True
@@ -302,14 +300,14 @@ class AlphaDatabase(AlphaDatabaseCore):
     def drop(self, table_model):
         table_model.__table__.drop(self.get_engine())
 
-    def truncate(self, table_model):
-        self.execute(f"truncate table {table_model.__tablename__}")
+    def truncate(self, table_model, bind=None):
+        self.execute(f"truncate table {table_model.__tablename__}", bind=bind)
 
-    def execute(self, query, values=None, commit=True, close=False):
-        return self.execute_query(query, values, commit=commit, close=close)
+    def execute(self, query, values=None, commit=True, bind:str=None, close=False):
+        return self.execute_query(query, values, commit=commit, bind=bind, close=close)
 
-    def execute_many_query(self, query, values=None, commit=True, close=False):
-        return self.execute_query(query, values, multi=True, commit=commit)
+    def execute_many_query(self, query, values=None, commit=True, bind:str=None, close=False):
+        return self.execute_query(query, values, multi=True, bind=bind, commit=commit)
 
     def execute_query(
         self,
@@ -317,6 +315,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         values={},
         multi: bool = False,
         commit: bool = True,
+        bind: str = None,
         close: bool = False,
     ) -> bool:
         if self.db_type == "sqlite":
@@ -325,7 +324,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         # redirect to get if select
         select = query.strip().upper()[:6] == "SELECT"
         if select:
-            return self.get_query_results(query, values, unique=False, close=close)
+            return self.get_query_results(query, values, unique=False, bind=bind, close=close)
 
         """session = self.get_engine().connect()
         trans = session.begin()"""
@@ -334,13 +333,13 @@ class AlphaDatabase(AlphaDatabaseCore):
             if multi:
                 for value in values:
                     if value is not None:
-                        self._engine.execute(query, value)
-                    self._engine.execute(query)
+                        self.get_engine(bind=bind).execute(query, value)
+                    self.get_engine(bind=bind).execute(query)
             else:
                 if values is not None:
-                    self._engine.execute(query, values)
+                    self.get_engine(bind=bind).execute(query, values)
                 else:
-                    self._engine.execute(query)
+                    self.get_engine(bind=bind).execute(query)
             self.query_str = get_compiled_query(query).replace("\n", "")
             if commit and not self.autocommit:
                 self.commit()
@@ -351,13 +350,13 @@ class AlphaDatabase(AlphaDatabaseCore):
             self.log.error(ex)
             return False
 
-    def get(self, query, values=None, unique=False, log=None):
-        return self.get_query_results(query, values=values, unique=unique, log=log)
+    def get(self, query, values=None, unique=False, bind:str=None, log=None):
+        return self.get_query_results(query, values=values, unique=unique, bind=bind, log=log)
 
     def get_query_results(
-        self, query, values=None, unique=False, log=None, close=False
+        self, query, values=None, unique=False, log=None, bind= None, close=False
     ):
-        session = self.get_engine(self.app, self.name)
+        session = self.get_engine(self.app, bind)
 
         if self.db_type == "sqlite":
             query = query.replace("%s", "?")
@@ -381,9 +380,9 @@ class AlphaDatabase(AlphaDatabaseCore):
                             dict_values["p%s" % i] = val
                     values = dict_values
 
-                resultproxy = session.execute(query, values)
+                resultproxy = session.execute(query, values, bind=bind)
             else:
-                resultproxy = session.execute(query)
+                resultproxy = session.execute(query, bind=bind)
             results = []
             for rowproxy in resultproxy:
                 if hasattr(rowproxy, "items"):
@@ -425,7 +424,7 @@ class AlphaDatabase(AlphaDatabaseCore):
 
     # MySQL thread id 6081, OS thread handle 0x7f475abcc700, query id 9036497 localhost 127.0.0.1 golliathdb
 
-    def get_blocked_queries(self):
+    def get_blocked_queries(self, bind:str=None):
         query = """SELECT SQL_TEXT
         FROM performance_schema.events_statements_history ESH,
             performance_schema.threads T
@@ -443,7 +442,7 @@ class AlphaDatabase(AlphaDatabaseCore):
                     matchs_thread = re.findall("thread id ([0-9]*),", line)
                     matchs_query = re.findall("query id ([0-9]*)", line)
                     if len(matchs_thread):
-                        trs = self.get_query_results(query % matchs_thread[0])
+                        trs = self.get_query_results(query % matchs_thread[0], bind=bind)
                         outputs[int(times)] = [x["SQL_TEXT"] for x in trs]
                     transaction_id = None
 
@@ -506,7 +505,7 @@ class AlphaDatabase(AlphaDatabaseCore):
             self.session.close()
         return obj
 
-    def upsert(self, model, rows):
+    def upsert(self, model, rows, bind=None):
         if type(rows) != list:
             rows = [rows]
         from sqlalchemy.dialects import postgresql
@@ -553,7 +552,7 @@ class AlphaDatabase(AlphaDatabaseCore):
             return row
 
         rows = list(filter(None, (handle_foreignkeys_constraints(row) for row in rows)))
-        self.session.execute(stmt, rows)
+        self.session.execute(stmt, rows, bind=bind)
 
     def commit(self, close=False, session=None):
         if self.autocommit:
@@ -592,21 +591,21 @@ class AlphaDatabase(AlphaDatabaseCore):
             return self.commit(close=close)
         return True
 
-    def ensure(self, table_name: str, drop: bool = False):
-        inspector = Inspector.from_engine(self._engine)
+    def ensure(self, table_name: str, bind=None, drop: bool = False):
+        inspector = Inspector.from_engine(self.get_engine(bind=bind))
         tables = inspector.get_table_names()
         if not table_name.lower() in tables:
-            request_model = core.get_table(self, self.name, table_name)
+            request_model = core.get_table(self, bind, table_name)
 
-            self.log.info(f"Creating <{table_name}> table in <{self.name}> database")
+            self.log.info(f"Creating <{table_name}> table in <{bind}> database")
             try:
-                request_model.__table__.create(self._engine)
+                request_model.__table__.create(self.get_engine(bind=bind))
             except Exception as ex:
                 if drop:
                     self.log.info(
-                        f"Drop <{table_name}> table in <{self.name}> database"
+                        f"Drop <{table_name}> table in <{bind}> database"
                     )
-                    request_model.__table__.drop(self._engine)
+                    request_model.__table__.drop(self.get_engine(bind=bind))
                     self.ensure(table_name)
                 else:
                     self.log.error(ex)
@@ -619,11 +618,11 @@ class AlphaDatabase(AlphaDatabaseCore):
         if not self.exist(request_model):
             self.log.info('Creating <%s> table in <%s> database'%(table_name,self.name))
             try:
-                request_model.__table__.create(self._engine)
+                request_model.__table__.create(self.get_engine(bind=bind))
             except Exception as ex:
                 if drop:
                     self.log.info('Drop <%s> table in <%s> database'%(table_name,self.name))
-                    request_model.__table__.drop(self._engine)
+                    request_model.__table__.drop(self.get_engine(bind=bind))
                     self.ensure(table_name)
                 else:
                     self.log.error(ex)

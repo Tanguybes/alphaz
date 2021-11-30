@@ -30,7 +30,7 @@ import datetime, inspect, ast
 
 from core import core
 
-db = core.get_database()
+db = core.db
 ma = core.ma
 
 

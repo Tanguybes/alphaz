@@ -52,7 +52,6 @@ LOG.info('message')
 ```python
 from core import core
 DB = core.db
-DB_USERS = core.get_database('users')
 ```
 
 

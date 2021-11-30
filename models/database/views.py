@@ -5,7 +5,7 @@ from flask import Markup
 
 from core import core
 
-db = core.get_database()
+db = core.db
 
 from . import main_definitions as defs
 from . import users_definitions as users_defs

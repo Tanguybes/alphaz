@@ -7,7 +7,7 @@ from ..models.database.users_definitions import User, UserSession
 
 from core import core
 
-DB = core.get_database("users")
+DB = core.db
 
 
 def __get_user_data_by_identifier_and_password(

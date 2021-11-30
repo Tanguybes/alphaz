@@ -121,12 +121,14 @@ class AlphaCore(AlphaClass):
         if db_logger is None:
             db_logger = self.config.get_logger("main")
 
-        for name, cf in db_cnx.items():
+        """for name, cf in db_cnx.items():
             log = self.config.get_logger(cf["logger"]) if "logger" in cf else db_logger
             self.databases[name] = AlphaDatabase(
                 self.api, name=name, config=cf, log=log, main=cf == db_cnx["main"]
-            )
-        self.db = self.databases["main"]
+            )"""
+        self.db = AlphaDatabase(self.api, name="main", main= True, 
+        log = db_logger,
+        config={"type":"oracle"})
 
         # configuration
         self.api.log = self.get_logger("api")
@@ -152,6 +154,7 @@ class AlphaCore(AlphaClass):
 
         if name == "users" and "users" not in self.databases:
             return self.db
+        return self.db
 
         if name in self.databases:
             return self.databases[name]

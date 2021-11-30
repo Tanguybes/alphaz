@@ -1,7 +1,7 @@
 from core import core
 
 api     = core.api
-db      = core.get_database('logs')
+db      = core.db
 
 def clear_logs():
     query   = "TRUNCATE logs"

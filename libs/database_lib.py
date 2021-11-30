@@ -83,7 +83,7 @@ def init_databases(core, database_name, table_name, drop=False, log=None):
         return False
     database_name_in_configs = database_names_in_configs[0]
 
-    db = core.get_database(database_name_in_configs)
+    db = core.db
 
     if drop:
         if log:
@@ -175,7 +175,7 @@ def __get_entries(core, database_name, table_name, file_path, configuration, log
             if database != database_name:
                 continue
 
-            db = core.get_database(database)
+            db = core.db
             if db is None:
                 if log:
                     log.error(

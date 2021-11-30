@@ -3,7 +3,7 @@ from ..libs import config_lib
 
 from core import core
 
-DB = core.get_database()
+DB = core.db
 
 class ConfigConstants(AlphaTest):
     def __init__(self):

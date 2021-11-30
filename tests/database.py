@@ -20,7 +20,7 @@ class Database(AlphaTest):
     def __init__(self):
         super().__init__()
 
-        self.db         = core.get_database()
+        self.db         = core.db
         self.connected  = self.db.test()
 
         if not self.connected:

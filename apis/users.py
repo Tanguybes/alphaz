@@ -14,7 +14,7 @@ from core import core
 from flask import request
 
 API = core.api
-DB = core.get_database("users")
+DB = core.db
 
 LOG = core.get_logger("users")
 LOGIN_MODE = core.api.conf.get("auth/mode")
