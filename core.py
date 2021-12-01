@@ -10,4 +10,5 @@ class Core(AlphaCore):
 
 
 core = Core(__file__)
+core.prepare_api(core.configuration)
 core.check_databases()
