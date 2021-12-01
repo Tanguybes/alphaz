@@ -48,7 +48,7 @@ class AlphaCore(AlphaClass):
         self.databases: dict = {}
 
         self.ma: Marshmallow = None
-        self.db: AlphaDatabase = None
+        self._db: AlphaDatabase = None
         self.api: AlphaFlask = None
 
         self.models_sources: List[str] = []
@@ -66,6 +66,11 @@ class AlphaCore(AlphaClass):
 
         self.log = self.config.get_logger("main")
 
+    @property
+    def db(self):
+        self.prepare_api(self.configuration)
+        return self._db
+       
     def check_databases(self):
         if self.configuration == "local":
             self.prepare_api(self.configuration)
@@ -126,7 +131,7 @@ class AlphaCore(AlphaClass):
             self.databases[name] = AlphaDatabase(
                 self.api, name=name, config=cf, log=log, main=cf == db_cnx["main"]
             )"""
-        self.db = AlphaDatabase(self.api, name="main", main= True, 
+        self._db = AlphaDatabase(self.api, name="main", main= True, 
         log = db_logger,
         config={"type":"oracle"})
 
@@ -140,7 +145,7 @@ class AlphaCore(AlphaClass):
             configuration=self.configuration,
             root=api_root if api_root is not None else self.root,
         )
-        self.api.db = self.db
+        self.api.db = self._db
 
         """# ensure tests
         self.db.ensure("tests", drop=True)
@@ -150,11 +155,11 @@ class AlphaCore(AlphaClass):
         self.prepare_api(self.configuration)
 
         if name is None or name == "main":
-            return self.db
+            return self._db
 
         if name == "users" and "users" not in self.databases:
-            return self.db
-        return self.db
+            return self._db
+        return self._db
 
         if name in self.databases:
             return self.databases[name]
