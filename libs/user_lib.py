@@ -17,7 +17,7 @@ def __get_user_data_by_identifier_and_password(
 
     if user_data is not None and len(user_data) != 0 and password_attempt is not None:
         if no_password_check:
-            return True
+            return user_data
         valid_password = secure_lib.compare_passwords(
             password_attempt, user_data["password"]
         )
