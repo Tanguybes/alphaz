@@ -67,16 +67,16 @@ class AlphaTable(AlphaClass):
     def __repr__(self):
         return repr(self)
 
-    def to_json(self):
+    def to_json(self, relationship: bool = True, disabled_relationships: typing.List[str] = None):
         class_obj = self.__class__
         results_json = {}
 
         # if it is an AlphaTable
         if hasattr(class_obj, "schema"):
-            schema = class_obj.get_schema()
+            schema = class_obj.get_schema(relationship = relationship, disabled_relationships=disabled_relationships)
         else:
             # self.log.error("Missing schema for model <%s>" % str(self.__name__))
-            schema = get_schema(class_obj)
+            schema = get_schema(class_obj, relationship = relationship, disabled_relationships=disabled_relationships)
 
         results_json = schema().dump(self)
         return results_json
@@ -93,8 +93,9 @@ class AlphaTable(AlphaClass):
     def get_schema(
         class_obj,
         relationship: bool = True,
-        disabled_relationships: typing.List[str] = [],
+        disabled_relationships: typing.List[str] = None,
     ):
+        disabled_relationships = disabled_relationships or []
         """if (
             hasattr(class_obj, "schema")
             and class_obj.schema is not None

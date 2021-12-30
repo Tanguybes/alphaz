@@ -1,4 +1,5 @@
 import json
+import typing
 from flask_sqlalchemy.model import DefaultMeta
 
 from ..models.database.row import Row
@@ -6,7 +7,7 @@ from ..models.database.row import Row
 from ..models.json._converters import AlphaJSONEncoder
 
 
-def jsonify_database_models(model: DefaultMeta, first=False):
+def jsonify_database_models(model: DefaultMeta, first=False, relationship: bool = True, disabled_relationships: typing.List[str] = None):
     """Convert a database model structure to json
 
     Args:
@@ -17,7 +18,7 @@ def jsonify_database_models(model: DefaultMeta, first=False):
         [type]: [description]
     """
 
-    schema = model.get_schema()
+    schema = model.get_schema(relationship = relationship, disabled_relationships = disabled_relationships)
 
     structures = schema()  # schema(many=True) if not first else
     results_json = structures.dump(model)  # TODO: ? wtf why does it works

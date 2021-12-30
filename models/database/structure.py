@@ -654,10 +654,11 @@ class AlphaDatabase(AlphaDatabaseCore):
         flush=False,
         schema=None,
         relationship=True,
-        disabled_relationships: typing.List[str] = [],
+        disabled_relationships: typing.List[str] = None,
     ):
         # model_name = inspect.getmro(model)[0].__name__
         # if self.db_type == "mysql": self.test(close=False)
+        disabled_relationships = disabled_relationships or []
 
         attributes = {}
         for key, col in dict(model.__dict__).items():

@@ -9,7 +9,7 @@ from ..logger import AlphaLogger
 SCHEMAS = {}
 MODULES = {}
 LOG = None
-DEBUG_SCHEMA = False
+DEBUG_SCHEMA = True
 
 def __get_nested_schema(mapper, parent=None):
     auto_schema = get_auto_schema(mapper.entity)
@@ -51,10 +51,10 @@ def get_auto_schema(model, relationship:bool=True,disabled_relationships:typing.
     )
     return schema
 
-def generate_schema(class_obj, relationship:bool=True, disabled_relationships:typing.List[str]=None, parents=None):
+def generate_schema(class_obj, relationship:bool=True, disabled_relationships:typing.List[str]=None, parents:typing.List[str]=None):
     global DEBUG_SCHEMA
     parents = parents or []
-    disabled_relationships = disabled_relationships or []
+    disabled_relationships = disabled_relationships or []    
 
     schema_key = "-".join([f"{x}:{str(y)}" for x,y in locals().items()])
     if schema_key in SCHEMAS:
@@ -66,7 +66,8 @@ def generate_schema(class_obj, relationship:bool=True, disabled_relationships:ty
         if DEBUG_SCHEMA:
             from core import core
             core.log.error(f"Schema {schema_full_name} in parents {str(parents)}")
-        return None
+        relationship = False
+        #return None
 
     auto_schema = get_auto_schema(class_obj,relationship=relationship)
 
@@ -122,7 +123,7 @@ def generate_schema(class_obj, relationship:bool=True, disabled_relationships:ty
     SCHEMAS[schema_key] = generated_schema
     return generated_schema
 
-def get_schema(class_obj, default:bool=False, relationship:bool=True, disabled_relationships:typing.List[str]=[]):
+def get_schema(class_obj, default:bool=False, relationship:bool=True, disabled_relationships:typing.List[str]=None):
     """ Get Schema for a model
 
     Args:
@@ -132,6 +133,8 @@ def get_schema(class_obj, default:bool=False, relationship:bool=True, disabled_r
     Returns:
         [type]: [description]
     """
+    disabled_relationships =disabled_relationships or []
+
     schema_name = f"{class_obj.__name__}Schema"
 
     if default:
