@@ -659,7 +659,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         # model_name = inspect.getmro(model)[0].__name__
         # if self.db_type == "mysql": self.test(close=False)
 
-        attributes = {}
+        """attributes = {}
         for key, col in dict(model.__dict__).items():
             if not relationship:
                 if hasattr(col, "prop") and isinstance(col.prop, ColumnProperty) and not isinstance(col.expression, BinaryExpression):
@@ -669,7 +669,7 @@ class AlphaDatabase(AlphaDatabaseCore):
                     attributes[key] = col
 
         if len(attributes) != 0:
-            columns = attributes.values() if columns is None else columns.extend(attributes.values())
+            columns = attributes.values() if columns is None else columns.extend(attributes.values())"""
 
         # CopyOfB = type(type(model).__name__+'C', model.__bases__, attributes)
 
