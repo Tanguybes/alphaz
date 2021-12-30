@@ -55,9 +55,9 @@ class AlphaCore(AlphaClass):
         self.__models_source_loaded: bool = False
 
         configuration = (
-            None if not "ALPHA_CONF" in os.environ else os.environ["ALPHA_CONF"].lower()
+            None if not "ALPHA_CONF" in os.environ else os.environ["ALPHA_CONF"].lower().strip()
         )
-        self.configuration: str = configuration.strip()
+        self.configuration: str = configuration
         self.configuration_name: str = configuration
 
         self.config: AlphaConfig = AlphaConfig(
