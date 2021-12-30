@@ -659,34 +659,17 @@ class AlphaDatabase(AlphaDatabaseCore):
         # model_name = inspect.getmro(model)[0].__name__
         # if self.db_type == "mysql": self.test(close=False)
 
-        """attributes = None
-        items = dict(model.__dict__).items()
-        if not relationship:
-            attributes = {
-                x: y
-                for x, y in items
-                if hasattr(y, "prop")
-                and isinstance(y.prop, ColumnProperty)
-                and not isinstance(y.expression, BinaryExpression)
-            }
-        if disabled_relationships:
-            attributes = {
-                x: y
-                for x, y in items
-                if hasattr(y, "prop")
-                and (
-                    isinstance(y.prop, ColumnProperty)
-                    or isinstance(y.prop, RelationshipProperty)
-                )
-                and not isinstance(y.expression, BinaryExpression)
-                and x not in disabled_relationships
-            }
+        attributes = {}
+        for key, col in dict(model.__dict__).items():
+            if not relationship:
+                if hasattr(col, "prop") and isinstance(col.prop, ColumnProperty) and not isinstance(col.expression, BinaryExpression):
+                    attributes[key] = col
+            if disabled_relationships:
+                if hasattr(col, "prop") and (isinstance(col.prop, ColumnProperty) or isinstance(col.prop, RelationshipProperty)) and not isinstance(col.expression, BinaryExpression) and key not in disabled_relationships:
+                    attributes[key] = col
 
-        if attributes is not None:
-            if columns is None:
-                columns = attributes.values()
-            else:
-                columns = columns.extend(attributes.values())"""
+        if len(attributes) != 0:
+            columns = attributes.values() if columns is None else columns.extend(attributes.values())
 
         # CopyOfB = type(type(model).__name__+'C', model.__bases__, attributes)
 
