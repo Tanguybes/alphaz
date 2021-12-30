@@ -74,8 +74,8 @@ def get_db_parameters(db: AlphaDatabase) -> OrderedDict:
     for row in rows:
         try:
             values[row.name] = pickle.loads(row.value)
-        except:
-            LOG.error("Cannot load parameter <%s>" % row.name)
+        except Exception as ex:
+            LOG.error(f"Cannot load parameter <{row.name=}>",ex=ex)
     order(values)
     PARAMETERS = values
     return PARAMETERS

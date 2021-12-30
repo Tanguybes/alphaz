@@ -102,8 +102,8 @@ def get_logs_content_cluster(name:str=None, node:str=None, content:bool=False):
 
                 try:
                     resp = requests.get(url=url, params=params)
-                except:
-                    LOG.error('Fail to contact %s'%url)
+                except Exception as ex:
+                    LOG.error(f'Fail to contact {url}', ex=ex)
                     continue
 
                 if resp.status_code == 200:

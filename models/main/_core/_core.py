@@ -57,7 +57,7 @@ class AlphaCore(AlphaClass):
         configuration = (
             None if not "ALPHA_CONF" in os.environ else os.environ["ALPHA_CONF"].lower()
         )
-        self.configuration: str = configuration
+        self.configuration: str = configuration.strip()
         self.configuration_name: str = configuration
 
         self.config: AlphaConfig = AlphaConfig(

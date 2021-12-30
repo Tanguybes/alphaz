@@ -112,5 +112,5 @@ def mep(config_name,restore=False,action=True):
             upload(target,Core.WEB_API_PATH,folder_list,root_ftp='')
 
     if config_name == 'api':
-        config_lib.upgrade_api_build(DB_PRIVATE,Constants,CoreW)
+        config_lib.upgrade_api_build(DB,Constants,CoreW)
         restart_api()
