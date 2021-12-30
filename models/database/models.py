@@ -95,7 +95,7 @@ class AlphaTable(AlphaClass):
         relationship: bool = True,
         disabled_relationships: typing.List[str] = [],
     ):
-        if (
+        """if (
             hasattr(class_obj, "schema")
             and class_obj.schema is not None
             and relationship
@@ -106,12 +106,13 @@ class AlphaTable(AlphaClass):
             and class_obj.schema_without_relationship is not None
             and not relationship
         ):
-            return class_obj.schema_without_relationship
-        return get_schema(
+            return class_obj.schema_without_relationship"""
+        schema = get_schema(
             class_obj,
             relationship=relationship,
             disabled_relationships=disabled_relationships,
         )
+        return schema
 
     @staticmethod
     def set_attrib_listener(target, value, old_value, initiator):

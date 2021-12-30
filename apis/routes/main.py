@@ -111,7 +111,7 @@ def get_loggers():
     ],
 )
 def set_logger_level():
-    logger = core.config.get_logger(api["name"])
+    logger = core.get_logger(api["name"])
     if logger is None:
         raise AlphaException("no_logger")
     logger.set_level(api["level"])

@@ -5,9 +5,11 @@ from typing import List, Dict
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
+from ...config.main_configuration import CONFIGURATION
+
 from ._utils import *
 
-from ..main import AlphaClass
+from ..main._base import AlphaClass
 from ..main._exception import EXCEPTIONS
 from ..logger import AlphaLogger
 
@@ -25,7 +27,6 @@ class AlphaConfig(AlphaClass):
         filename: str = None,
         log: AlphaLogger = None,
         configuration: str = None,
-        logger_root: str = None,
         data: dict = None,
         origin=None,
         core=None,
@@ -48,7 +49,6 @@ class AlphaConfig(AlphaClass):
         self.root = root
         self.filename = filename
         self.configuration: str = configuration
-        self.logger_root = logger_root
         self.origin = origin
         self.sub_configurations = {}
         self.core = core
@@ -64,13 +64,8 @@ class AlphaConfig(AlphaClass):
         self.valid = True
         self.loaded = False
 
-        self.databases = {}
-        self.loggers = {}
-
         self.infos = []
         self.warnings = []
-
-        self.db_cnx = None
 
         self.api = None
         self.cnx_str = None
@@ -140,7 +135,7 @@ class AlphaConfig(AlphaClass):
         # check if loaded
         if not CONFIGURATIONS.load_configuration(self) or not self.core_configuration:
             if self.core_configuration:
-                self.info("Reload configuration: %s" % self.filepath)
+                self.info(f"Reload configuration: {self.filepath}")
             self.__init_data()
             self.__configure_sub_configurations()
             CONFIGURATIONS.save_configuration(self)
@@ -217,9 +212,6 @@ class AlphaConfig(AlphaClass):
             for env, value in self.get("envs").items():
                 os.environ[env] = value
 
-        self.__set_loggers()
-        self.__configure_databases()
-
         if self.core_configuration:
             sequence = ", ".join(
                 [
@@ -236,11 +228,6 @@ class AlphaConfig(AlphaClass):
         # SET ENVIRONMENT VARIABLES
         if self.core is not None:
             set_environment_variables(self.get("environment"))
-
-            # loggers_config      = self.config.get("loggers")
-
-            self.core.loggers = self.loggers
-            self.core.log = self.get_logger("main")
 
             exceptions = self.get("exceptions")
             if exceptions is not None:
@@ -274,7 +261,6 @@ class AlphaConfig(AlphaClass):
                     name=name,
                     filepath=config_path,
                     log=self.log,
-                    logger_root=self.logger_root,
                     origin=self,
                     configuration=self.configuration,
                 )
@@ -297,69 +283,9 @@ class AlphaConfig(AlphaClass):
             configuration=self.configuration
             if configuration is None
             else configuration,
-            logger_root=self.logger_root,
             data=config_data,
         )
         return config
-
-    def __set_loggers(self):
-        if not self.core_configuration:
-            return
-
-        # loggers
-        self.logger_root = self.get("directories/logs")
-        if self.logger_root is None:
-            self.error(
-                'Missing "directories/logs" entry in configuration file %s'
-                % self.filepath
-            )
-            exit()
-
-        # log
-
-        colors = (
-            self.get("colors/loggers/rules")
-            if self.get("colors/loggers/active")
-            else None
-        )
-        if self.log is None:
-            log_filename = "alpha"  # type(self).__name__.lower()
-            self.log = AlphaLogger(
-                type(self).__name__, log_filename, root=self.logger_root, colors=colors
-            )
-
-        if self.is_path("loggers"):
-            loggers_names = list(self.get("loggers").keys())
-            self.log.debug(f"Initiate loggers: {loggers_names}")
-            for logger_name in loggers_names:
-                logger_config = self.get_config(["loggers", logger_name])
-                root = logger_config.get("root")
-
-                if logger_name in self.loggers:
-                    continue
-
-                self.loggers[logger_name] = AlphaLogger(
-                    logger_name,
-                    filename=logger_config.get("filename"),
-                    root=root if root is not None else self.logger_root,
-                    cmd_output=logger_config.get("cmd_output", default=True),
-                    level=logger_config.get("level"),
-                    colors=colors,
-                    database=logger_config.get("database"),
-                    excludes=logger_config.get("excludes"),
-                    config=logger_config.get("config"),
-                    replaces=logger_config.get("replaces"),
-                )
-
-            main_logger_name = "main"
-            if not main_logger_name in self.loggers:
-                self.log = AlphaLogger(
-                    main_logger_name,
-                    root=self.logger_root,
-                    cmd_output=True,
-                    colors=colors,
-                )
-                self.loggers[main_logger_name] = self.log
 
     def _replace_parameters(self, config):
         """Replace parameters formatted has {{<parameter>}} by their values in
@@ -443,25 +369,6 @@ class AlphaConfig(AlphaClass):
                 exit()
         return config
 
-    def get_logger(self, name="main", default_level="INFO") -> AlphaLogger:
-        colors = (
-            self.get("colors/loggers/rules")
-            if self.get("colors/loggers/active")
-            else None
-        )
-        if not "main" in self.loggers:
-            self.loggers["main"] = AlphaLogger(
-                name,
-                filename="main",
-                root=self.logger_root,
-                level=default_level,
-                colors=colors,
-            )
-        if name not in self.loggers:
-            self.warning(f"{name} is not configured as a logger in {self.filepath}")
-            return self.loggers["main"]
-        return self.loggers[name]
-
     def _get_value_from_main_config(self, parameter, force_exit=False):
         value = None
         if self.origin is not None:
@@ -490,6 +397,7 @@ class AlphaConfig(AlphaClass):
         force_exit: bool = False,
         configuration: str = None,
         type_=None,
+        required:bool=False
     ):
         value = self._get_parameter_path(path)
         if value is None and root:
@@ -504,7 +412,10 @@ class AlphaConfig(AlphaClass):
                     ex=ex,
                 )
         if value is None:
-            return default
+            value = default
+        if value is None and required:
+            self.error(f'Missing "{"/".join(path)}" entry in configuration file {self.filepath}')
+            exit()
         return value
 
     """def _get_parameter_path(self,parameters,data=None,level=1):
@@ -567,136 +478,6 @@ class AlphaConfig(AlphaClass):
         if type(parameters) == str:
             parameters = [parameters]
         return parameters
-
-    def __configure_databases(self):
-        if not self.is_path("databases"):
-            return
-
-        config = self.get("databases")
-        # Databases
-        structure = {"name": None, "required": False, "value": None}
-
-        db_cnx = {}
-        for db_name, cf_db in config.items():
-            if type(cf_db) == str and cf_db in config:
-                cf_db = config[cf_db]
-            elif type(cf_db) != dict:
-                continue
-
-            # TYPE
-            if not "type" in cf_db:
-                self.show()
-                self.error(
-                    "Missing <type> parameter in <%s> database configuration" % db_name
-                )
-
-            db_type = cf_db["type"]
-
-            content_dict = {
-                "user": {},
-                "password": {},
-                "host": {},
-                "name": {},
-                "port": {},
-                "sid": {},
-                "path": {},
-                "database_type": {"name": "type"},
-                "log": {"default": self.log},
-            }
-            if db_type == "sqlite":
-                content_dict["path"]["required"] = True
-            else:
-                content_dict["user"]["required"] = True
-                content_dict["password"]["required"] = True
-                content_dict["host"]["required"] = True
-                content_dict["port"]["required"] = True
-
-            for name, content in content_dict.items():
-                for key, el in structure.items():
-                    if not key in content:
-                        if key == "name":
-                            el = name
-                        content_dict[name][key] = el
-
-                if content_dict[name]["name"] in cf_db:
-                    content_dict[name]["value"] = cf_db[content_dict[name]["name"]]
-                elif content_dict[name]["required"]:
-                    self.error(f"Missing {name} parameter")
-
-                if "default" in content_dict[name]:
-                    content_dict[name]["value"] = content_dict[name]["default"]
-                elif name == "log":
-                    if (
-                        type(content_dict[name]["value"]) == str
-                        and content_dict[name]["value"] in self.loggers
-                    ):
-                        content_dict[name]["value"] = self.loggers[
-                            content_dict[name]["value"]
-                        ]
-                    else:
-                        self.warning(
-                            "Wrong logger configuration for database %s" % db_name
-                        )
-                        content_dict[name]["value"] = self.log
-
-            fct_kwargs = {x: y["value"] for x, y in content_dict.items()}
-
-            if db_type == "mysql":
-                user, password, host, port, name = (
-                    cf_db["user"],
-                    cf_db["password"],
-                    cf_db["host"],
-                    cf_db["port"],
-                    cf_db["name"],
-                )
-                cnx_str = f"mysql+pymysql://{user}:{password}@{host}:{port}/{name}"
-            elif db_type == "oracle":
-                c = ""
-                user, password, host, port = (
-                    cf_db["user"],
-                    cf_db["password"],
-                    cf_db["host"],
-                    cf_db["port"],
-                )
-                if "sid" in cf_db:
-                    name = cf_db["sid"]
-                    c = "%s:%s/%s" % (host, port, name)
-                elif "service_name" in cf_db:
-                    name = cf_db["service_name"]
-                    c = (
-                        "(DESCRIPTION = (LOAD_BALANCE=on) (FAILOVER=ON) (ADDRESS = (PROTOCOL = TCP)(HOST = %s)(PORT = %s)) (CONNECT_DATA = (SERVER = DEDICATED) (SERVICE_NAME = %s)))"
-                        % (host, port, name)
-                    )
-                cnx_str = "oracle://%s:%s@%s" % (user, password, c)
-            elif db_type == "sqlite":
-                cnx_str = "sqlite:///" + cf_db["path"]
-
-            if cnx_str is not None:
-                cf_db["cnx"] = cnx_str
-                db_cnx[db_name] = cf_db
-
-        self.db_cnx = db_cnx
-
-        # TODO: remove self.databases elements ?
-        for db_name in self.databases:
-            if self.databases[db_name].log is None:
-                self.databases[db_name].log = self.log
-
-        # Set logger dabatase
-        for logger_name, log in self.loggers.items():
-            if log.database_name:
-                if not log.database_name in self.databases:
-                    self.log.error(
-                        "Missing database <%s> configuration for logger <%s>"
-                        % (log.database_name, logger_name)
-                    )
-                    continue
-                log.database = self.databases[log.database_name]
-
-    def get_database(self, name):
-        if name in self.databases:
-            return self.databases[name]
-        return None
 
     def is_parameter_path(self, parameters, data=None):
         if type(parameters) == str and "/" in parameters:

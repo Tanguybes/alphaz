@@ -9,7 +9,7 @@ from flask_sqlalchemy import DefaultMeta
 from sqlalchemy.ext.declarative.clsregistry import _ModuleMarker
 
 from ....models.main import AlphaClass
-from ....models.logger import AlphaLogger
+from ....models.logger import AlphaLogger, ERROR_LOGGER
 from ....libs import io_lib, flask_lib
 
 from ....models.config import AlphaConfig
@@ -21,7 +21,9 @@ from ...database.structure import AlphaDatabase
 
 from ....utils.tasks import start_celery
 
-import alphaz
+from ....config.main_configuration import CONFIGURATION
+
+import alphaz #! TODO: remove
 
 
 def _get_relative_path(file: str, level=0, add_to_path=True):
@@ -41,11 +43,14 @@ class AlphaCore(AlphaClass):
         super().__init__(log=None)
 
         self.root: str = _get_relative_path(file, level=level)
+
+        self.root_alpha = os.path.dirname(__file__).split("models")[0]
+
         self.config: AlphaConfig = None
 
-        self.loggers: Dict[str, AlphaLogger] = {}
         self.initiated: bool = False
-        self.databases: dict = {}
+        self.databases: dict = {} #! TODO: remove
+        self.loggers: Dict[str, AlphaLogger] = {}
 
         self.ma: Marshmallow = None
         self._db: AlphaDatabase = None
@@ -55,16 +60,232 @@ class AlphaCore(AlphaClass):
         self.__models_source_loaded: bool = False
 
         configuration = (
-            None if not "ALPHA_CONF" in os.environ else os.environ["ALPHA_CONF"].lower().strip()
+            None if not CONFIGURATION.CONFIGURATION_ENV_NAME in os.environ else os.environ[CONFIGURATION.CONFIGURATION_ENV_NAME].lower().strip()
         )
         self.configuration: str = configuration
         self.configuration_name: str = configuration
 
         self.config: AlphaConfig = AlphaConfig(
-            "config", root=self.root, configuration=configuration, core=self
+            CONFIGURATION.MAIN_CONFIGURATION_NAME, root=self.root, configuration=configuration, core=self
+        )
+        self.logger_root = self.config.get("directories/logs", required=True)
+        self.log: AlphaLogger = None
+        
+        self.__set_loggers()
+        self.__configure_databases()
+    
+    def __set_loggers(self):
+        global ERROR_LOGGER
+        root_alpha = os.path.dirname(__file__).split("models")[0]
+
+        colors_loggers_default_file_path = f"{root_alpha}{os.sep}{CONFIGURATION.DEFAULT_LOGGERS_COLORS_FILEPATH}.json"
+        loggers_default_colors_config = None
+        if os.path.isfile(colors_loggers_default_file_path):
+            loggers_default_colors_config = AlphaConfig(CONFIGURATION.DEFAULT_LOGGERS_COLORS_FILEPATH, filepath=colors_loggers_default_file_path)
+
+        colors = (
+            self.config.get("colors/loggers/rules")
+            if self.config.get("colors/loggers/active")
+            else loggers_default_colors_config.data
         )
 
-        self.log = self.config.get_logger("main")
+        if self.config.is_path("loggers"):
+            loggers_names = list(self.config.get("loggers").keys())
+            
+            for logger_name in loggers_names:
+                logger_config = self.config.get_config(["loggers", logger_name])
+                if not logger_name in self.loggers:
+                    self.__set_logger(logger_name, logger_config, colors)
+
+        loggers_default_file_path = f"{root_alpha}{os.sep}{CONFIGURATION.DEFAULT_LOGGERS_FILEPATH}.json"
+        if os.path.isfile(loggers_default_file_path):
+            loggers_default_config = AlphaConfig(CONFIGURATION.DEFAULT_LOGGERS_FILEPATH, filepath=loggers_default_file_path)
+            if loggers_default_config:
+                for logger_name in loggers_default_config.data:
+                    if not logger_name in self.loggers:
+                        self.__set_logger(logger_name, loggers_default_config, colors)
+
+        # main logger
+        if not CONFIGURATION.MAIN_LOGGER_NAME in self.loggers:
+            self.log = AlphaLogger(
+                CONFIGURATION.MAIN_LOGGER_NAME,
+                root=self.logger_root,
+                cmd_output=True,
+                colors=colors,
+            )
+            self.loggers[CONFIGURATION.MAIN_LOGGER_NAME] = self.log
+        else:
+            self.log = self.loggers[CONFIGURATION.MAIN_LOGGER_NAME]
+
+        if CONFIGURATION.ERRORS_LOGGER_NAME in self.loggers:
+            ERROR_LOGGER = self.loggers[CONFIGURATION.ERRORS_LOGGER_NAME]
+
+    def __set_logger(self, logger_name, logger_config, colors):
+        root = logger_config.get("root")
+
+        self.loggers[logger_name] = AlphaLogger(
+            logger_name,
+            filename=logger_config.get("filename"),
+            root=root if root is not None else self.logger_root,
+            cmd_output=logger_config.get("cmd_output", default=True),
+            level=logger_config.get("level"),
+            colors=colors,
+            database=logger_config.get("database"),
+            excludes=logger_config.get("excludes"),
+            config=logger_config.get("config"),
+            replaces=logger_config.get("replaces"),
+        )
+
+    def get_logger(self, name=CONFIGURATION.MAIN_LOGGER_NAME, default_level="INFO") -> AlphaLogger:
+        self._check_configuration()
+
+        colors = (
+            self.config.get("colors/loggers/rules")
+            if self.config.get("colors/loggers/active")
+            else None
+        )
+        if not CONFIGURATION.MAIN_LOGGER_NAME in self.loggers:
+            self.loggers[CONFIGURATION.MAIN_LOGGER_NAME] = AlphaLogger(
+                name,
+                filename=CONFIGURATION.MAIN_LOGGER_NAME,
+                root=self.logger_root,
+                level=default_level,
+                colors=colors,
+            )
+        if name not in self.loggers:
+            self.warning(f"{name} is not configured as a logger")
+            return self.loggers[CONFIGURATION.MAIN_LOGGER_NAME]
+        return self.loggers[name]
+
+    def __configure_databases(self):
+        if not self.config.is_path("databases"):
+            return
+
+        config = self.config.get("databases")
+        # Databases
+        structure = {"name": None, "required": False, "value": None}
+
+        db_cnx = {}
+        for db_name, cf_db in config.items():
+            if type(cf_db) == str and cf_db in config:
+                cf_db = config[cf_db]
+            elif type(cf_db) != dict:
+                continue
+
+            # TYPE
+            if not "type" in cf_db:
+                self.show()
+                self.error(
+                    f"Missing <type> parameter in <{db_name}> database configuration"
+                )
+
+            db_type = cf_db["type"]
+
+            content_dict = {
+                "user": {},
+                "password": {},
+                "host": {},
+                "name": {},
+                "port": {},
+                "sid": {},
+                "path": {},
+                "database_type": {"name": "type"},
+                "log": {"default": self.log},
+            }
+            if db_type == "sqlite":
+                content_dict["path"]["required"] = True
+            else:
+                content_dict["user"]["required"] = True
+                content_dict["password"]["required"] = True
+                content_dict["host"]["required"] = True
+                content_dict["port"]["required"] = True
+
+            for name, content in content_dict.items():
+                for key, el in structure.items():
+                    if not key in content:
+                        if key == "name":
+                            el = name
+                        content_dict[name][key] = el
+
+                if content_dict[name]["name"] in cf_db:
+                    content_dict[name]["value"] = cf_db[content_dict[name]["name"]]
+                elif content_dict[name]["required"]:
+                    self.error(f"Missing {name} parameter")
+
+                if "default" in content_dict[name]:
+                    content_dict[name]["value"] = content_dict[name]["default"]
+                elif name == "log":
+                    if (
+                        type(content_dict[name]["value"]) == str
+                        and content_dict[name]["value"] in self.loggers
+                    ):
+                        content_dict[name]["value"] = self.loggers[
+                            content_dict[name]["value"]
+                        ]
+                    else:
+                        self.warning(
+                            f"Wrong logger configuration for database {db_name}"
+                        )
+                        content_dict[name]["value"] = self.log
+
+            fct_kwargs = {x: y["value"] for x, y in content_dict.items()}
+
+            if db_type == "mysql":
+                user, password, host, port, name = (
+                    cf_db["user"],
+                    cf_db["password"],
+                    cf_db["host"],
+                    cf_db["port"],
+                    cf_db["name"],
+                )
+                cnx_str = f"mysql+pymysql://{user}:{password}@{host}:{port}/{name}"
+            elif db_type == "oracle":
+                c = ""
+                user, password, host, port = (
+                    cf_db["user"],
+                    cf_db["password"],
+                    cf_db["host"],
+                    cf_db["port"],
+                )
+                if "sid" in cf_db:
+                    name = cf_db["sid"]
+                    c = f"{host}:{port}/{name}"
+                elif "service_name" in cf_db:
+                    name = cf_db["service_name"]
+                    c = (
+                       f"(DESCRIPTION = (LOAD_BALANCE=on) (FAILOVER=ON) (ADDRESS = (PROTOCOL = TCP)(HOST = {host})(PORT = {port})) (CONNECT_DATA = (SERVER = DEDICATED) (SERVICE_NAME = {name})))"
+                    )
+                cnx_str = f"oracle://{user}:{password}@{c}"
+            elif db_type == "sqlite":
+                cnx_str = "sqlite:///" + cf_db["path"]
+
+            if cnx_str is not None:
+                cf_db["cnx"] = cnx_str
+                db_cnx[db_name] = cf_db
+
+        self.db_cnx = db_cnx
+
+        # TODO: remove self.databases elements ?
+        for db_name in self.databases:
+            if self.databases[db_name].log is None:
+                self.databases[db_name].log = self.log
+
+        #! TODO: remove
+        """# Set logger dabatase
+        for logger_name, log in self.loggers.items():
+            if log.database_name:
+                if not log.database_name in self.databases:
+                    self.log.error(
+                        f"Missing database <{log.database_name}> configuration for logger <{logger_name}>"
+                    )
+                    continue
+                log.database = self.databases[log.database_name]"""
+
+    def get_database(self, name):
+        return self._db
+        if name in self.databases:
+            return self.databases[name]
+        return None
 
     @property
     def db(self):
@@ -75,7 +296,7 @@ class AlphaCore(AlphaClass):
         if self.configuration == "local":
             self.prepare_api(self.configuration)
             self.load_models_sources()
-            for db in self.databases.values():
+            for db in self.databases.values(): #! TODO: change
                 db.create_all()
 
     def set_configuration(self, configuration_name):
@@ -103,18 +324,15 @@ class AlphaCore(AlphaClass):
         self.ma = self.api.ma
 
         # Cnx
-        db_cnx = self.config.db_cnx
+        db_cnx = self.db_cnx
 
         if db_cnx is None:
-            self.error(
-                "Databases are not configurated in config file %s"
-                % self.config.filepath
-            )
+            self.error(f"Databases are not configurated in config file {self.config.filepath}")
             exit()
 
-        if not "main" in db_cnx:
+        if not CONFIGURATION.MAIN_DATABASE_NAME in db_cnx:
             self.config.show()
-            self.config.error("Missing <main> database configuration")
+            self.config.error(f"Missing <{CONFIGURATION.MAIN_DATABASE_NAME}> database configuration")
             exit()
 
         # bind = not "NO_BIND" in os.environ or not "Y" in str(os.environ["NO_BIND"]).upper()
@@ -122,28 +340,27 @@ class AlphaCore(AlphaClass):
         self.api.set_databases(db_cnx)
 
         # databases
-        db_logger = self.config.get_logger("database")
+        db_logger = self.get_logger("database")
         if db_logger is None:
-            db_logger = self.config.get_logger("main")
+            db_logger = self.get_logger(CONFIGURATION.MAIN_LOGGER_NAME)
 
         """for name, cf in db_cnx.items():
-            log = self.config.get_logger(cf["logger"]) if "logger" in cf else db_logger
+            log = self.get_logger(cf["logger"]) if "logger" in cf else db_logger
             self.databases[name] = AlphaDatabase(
                 self.api, name=name, config=cf, log=log, main=cf == db_cnx["main"]
             )"""
-        self._db = AlphaDatabase(self.api, name="main", main= True, 
+        self._db = AlphaDatabase(self.api, name=CONFIGURATION.MAIN_DATABASE_NAME, main= True, 
         log = db_logger,
-        config={"type":"oracle"})
+        config={"type":"oracle"}) #!TODO: remove oracle type
 
         # configuration
-        self.api.log = self.get_logger("api")
-        self.api.log_requests = self.get_logger("http")
+        self.api.log = self.get_logger(CONFIGURATION.API_LOGGER_NAME)
+        self.api.log_requests = self.get_logger(CONFIGURATION.HTTP_LOGGER_NAME)
 
-        api_root = self.config.get("api_root")
         self.api.set_config(
-            name="api",
+            name=CONFIGURATION.API_CONFIGURATION_NAME,
             configuration=self.configuration,
-            root=api_root if api_root is not None else self.root,
+            root=self.root,
         )
         self.api.db = self._db
 
@@ -154,21 +371,18 @@ class AlphaCore(AlphaClass):
     def get_database(self, name=None) -> AlphaDatabase:
         self.prepare_api(self.configuration)
 
-        if name is None or name == "main":
+        name = name.lower()
+        if name is None or name == CONFIGURATION.MAIN_DATABASE_NAME:
             return self._db
 
-        if name == "users" and "users" not in self.databases:
+        if name == CONFIGURATION.USERS_DATABASE_NAME and CONFIGURATION.USERS_DATABASE_NAME not in self.databases:
             return self._db
         return self._db
 
-        if name in self.databases:
+        """if name in self.databases:
             return self.databases[name]
 
-        return self.config.get_database(name)
-
-    def get_logger(self, *args, **kwargs) -> AlphaLogger:
-        self._check_configuration()
-        return self.config.get_logger(*args, **kwargs)
+        return self.config.get_database(name)"""
 
     def _check_configuration(self):
         if self.config is None:

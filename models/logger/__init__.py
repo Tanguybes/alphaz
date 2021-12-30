@@ -1,1 +1,1 @@
-from ._logger import AlphaLogger
+from ._logger import AlphaLogger, ERROR_LOGGER

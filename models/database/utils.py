@@ -9,6 +9,7 @@ from ..logger import AlphaLogger
 SCHEMAS = {}
 MODULES = {}
 LOG = None
+DEBUG_SCHEMA = False
 
 def __get_nested_schema(mapper, parent=None):
     auto_schema = get_auto_schema(mapper.entity)
@@ -33,7 +34,8 @@ def __get_nested_schema(mapper, parent=None):
 
 def get_auto_schema(model, relationship:bool=True,disabled_relationships:typing.List[str]=[]):    
     from core import core
-    core.log.info(f"Getting auto schema for <{model.__name__}>")
+    if DEBUG_SCHEMA:
+        core.log.debug(f"Getting auto schema for <{model.__name__}>")
 
     properties = {
         'Meta':type('Meta', (object,),
@@ -49,10 +51,21 @@ def get_auto_schema(model, relationship:bool=True,disabled_relationships:typing.
     )
     return schema
 
-def generate_schema(class_obj, relationship:bool=True, disabled_relationships:typing.List[str]=[], parents=[]):
+def generate_schema(class_obj, relationship:bool=True, disabled_relationships:typing.List[str]=None, parents=None):
+    global DEBUG_SCHEMA
+    parents = parents or []
+    disabled_relationships = disabled_relationships or []
+
+    schema_key = "-".join([f"{x}:{str(y)}" for x,y in locals().items()])
+    if schema_key in SCHEMAS:
+        return SCHEMAS[schema_key]
+
     schema_name = f"{class_obj.__name__}Schema"
     schema_full_name = schema_name if not relationship else f"{schema_name}_{'-'.join(disabled_relationships)}"
     if schema_full_name in parents:
+        if DEBUG_SCHEMA:
+            from core import core
+            core.log.error(f"Schema {schema_full_name} in parents {str(parents)}")
         return None
 
     auto_schema = get_auto_schema(class_obj,relationship=relationship)
@@ -83,8 +96,14 @@ def generate_schema(class_obj, relationship:bool=True, disabled_relationships:ty
             # nested_schema = __get_nested_schema(value.entity, parent=class_obj)
                 #nested_schema = get_schema(value.entity.entity)
             #else:
-            parents.append(schema_full_name)
+            if DEBUG_SCHEMA:
+                from core import core
+                core.log.error(f"Parent {schema_full_name} has a child named {key} with parents {str(parents)}")
+            if not schema_full_name in parents:
+                parents.append(schema_full_name)
+            
             nested_schema = generate_schema(entity, relationship=relationship, disabled_relationships=disabled_relationships, parents=parents) #SCHEMAS[schema_full_name]
+            
             if nested_schema is not None:
                 if key in related:
                     nesteds[key] = nested_schema
@@ -100,7 +119,7 @@ def generate_schema(class_obj, relationship:bool=True, disabled_relationships:ty
         cols[key] = cfields.List(fields.Nested(value))
     generated_schema = Schema.from_dict(cols)
 
-    SCHEMAS[schema_full_name] = generated_schema
+    SCHEMAS[schema_key] = generated_schema
     return generated_schema
 
 def get_schema(class_obj, default:bool=False, relationship:bool=True, disabled_relationships:typing.List[str]=[]):
@@ -114,10 +133,6 @@ def get_schema(class_obj, default:bool=False, relationship:bool=True, disabled_r
         [type]: [description]
     """
     schema_name = f"{class_obj.__name__}Schema"
-    schema_full_name = schema_name if not relationship else f"{schema_name}_{'-'.join(disabled_relationships)}"
-
-    if schema_full_name in SCHEMAS:
-        return SCHEMAS[schema_full_name]
 
     if default:
         module_name = class_obj.__module__
@@ -130,5 +145,5 @@ def get_schema(class_obj, default:bool=False, relationship:bool=True, disabled_r
             return getattr(mod, schema_name)
         else:
             class_obj.log.error(f"Cannot find a default schema in module <{module_name}>")
-    return generate_schema(class_obj, relationship=relationship, disabled_relationships=disabled_relationships)
-    
+    generated_schema = generate_schema(class_obj, relationship=relationship, disabled_relationships=disabled_relationships)
+    return generated_schema

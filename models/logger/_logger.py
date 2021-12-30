@@ -34,6 +34,7 @@ class NoParsingFilter(logging.Filter):
                         return False
         return True
 
+ERROR_LOGGER = None
 
 class AlphaLogger:
     date_format = "%Y-%m-%d %H:%M:%S"
@@ -169,11 +170,15 @@ class AlphaLogger:
         if monitor is not None:
             fct_monitor = getattr(self.monitoring_logger, level.lower())
             fct_monitor(
-                message=full_message.replace(message, "[%s] %s" % (monitor, message))
+                message=full_message.replace(message, f"[{monitor}] {message}")
             )
 
         self.last_level = level.upper()
         self.last_message = message
+
+        if level.upper() in ["CRITICAL", "ERROR", "WARNING"] and ERROR_LOGGER is not None:
+            fct_errors = getattr(ERROR_LOGGER, level.lower())
+            fct_errors(full_message)
 
         """if len(TIMINGS) > TIMINGS_LIMIT:
             TIMINGS = TIMINGS[:TIMINGS_LIMIT]
@@ -185,9 +190,10 @@ class AlphaLogger:
         """if save: #TODO :activate
             self.__log_in_db(text, origin=origin, type="error")"""
 
-    def set_level(self,level):
+    def set_level(self, level="INFO"):
+        level = "INFO" if level is None else level
         self.level: str = level.upper()
-        level_show = _utils.get_level(level if level is not None else "INFO")
+        level_show = _utils.get_level(level)
         self.logger.setLevel(level_show)
 
     def get_formatted_message(self, message, stack, stack_level: int, level):

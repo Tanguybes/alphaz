@@ -180,7 +180,10 @@ class AlphaFlask(Flask, Requests):
                 module = importlib.import_module(route)
         self.cache_dir = self.conf.get("directories/cache")
 
-        self.log.debug("Init api with routes: %s" % ", ".join(routes))
+        if routes is None:
+            self.log.info(f"No routes to init")
+        else:
+            self.log.info(f"Init api with routes: {', '.join(routes)}")
 
         # check request
         # ! freeze - dont know why
@@ -244,7 +247,7 @@ class AlphaFlask(Flask, Requests):
 
     def set_config(self, name, configuration=None, root=None):
         self.log.debug(
-            "Set <%s> configuration for API from %s in %s" % (configuration, name, root)
+            f"Set <{configuration}> configuration for API from {name} in {root}"
         )
         self.config_path = root + os.sep + name + ".json"
         self.configuration = configuration
