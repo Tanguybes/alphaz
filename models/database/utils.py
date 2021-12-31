@@ -4,12 +4,13 @@ from marshmallow import Schema
 from marshmallow import fields as cfields
 from marshmallow_sqlalchemy import ModelConverter, fields
 
+from ...config.main_configuration import CONFIGURATION
+
 from ..logger import AlphaLogger
 
 SCHEMAS = {}
 MODULES = {}
 LOG = None
-DEBUG_SCHEMA = True
 
 def __get_nested_schema(mapper, parent=None):
     auto_schema = get_auto_schema(mapper.entity)
@@ -34,7 +35,7 @@ def __get_nested_schema(mapper, parent=None):
 
 def get_auto_schema(model, relationship:bool=True,disabled_relationships:typing.List[str]=[]):    
     from core import core
-    if DEBUG_SCHEMA:
+    if CONFIGURATION.DEBUG_SCHEMA:
         core.log.debug(f"Getting auto schema for <{model.__name__}>")
 
     properties = {
@@ -52,7 +53,6 @@ def get_auto_schema(model, relationship:bool=True,disabled_relationships:typing.
     return schema
 
 def generate_schema(class_obj, relationship:bool=True, disabled_relationships:typing.List[str]=None, parents:typing.List[str]=None):
-    global DEBUG_SCHEMA
     parents = parents or []
     disabled_relationships = disabled_relationships or []    
 
@@ -63,7 +63,7 @@ def generate_schema(class_obj, relationship:bool=True, disabled_relationships:ty
     schema_name = f"{class_obj.__name__}Schema"
     schema_full_name = schema_name if not relationship else f"{schema_name}_{'-'.join(disabled_relationships)}"
     if schema_full_name in parents:
-        if DEBUG_SCHEMA:
+        if CONFIGURATION.DEBUG_SCHEMA:
             from core import core
             core.log.error(f"Schema {schema_full_name} in parents {str(parents)}")
         relationship = False
@@ -97,7 +97,7 @@ def generate_schema(class_obj, relationship:bool=True, disabled_relationships:ty
             # nested_schema = __get_nested_schema(value.entity, parent=class_obj)
                 #nested_schema = get_schema(value.entity.entity)
             #else:
-            if DEBUG_SCHEMA:
+            if CONFIGURATION.DEBUG_SCHEMA:
                 from core import core
                 core.log.error(f"Parent {schema_full_name} has a child named {key} with parents {str(parents)}")
             if not schema_full_name in parents:

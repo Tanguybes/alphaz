@@ -659,20 +659,26 @@ class AlphaDatabase(AlphaDatabaseCore):
         # model_name = inspect.getmro(model)[0].__name__
         # if self.db_type == "mysql": self.test(close=False)
         disabled_relationships = disabled_relationships or []
+        disabled_relationships = [x if type(x) is str else (x.key if hasattr(x,"key") else '') for x in disabled_relationships]
 
         attributes = {}
         for key, col in dict(model.__dict__).items():
-            if not relationship:
-                if hasattr(col, "prop") and isinstance(col.prop, ColumnProperty) and not isinstance(col.expression, BinaryExpression):
-                    attributes[key] = col
-            if disabled_relationships:
-                if hasattr(col, "prop") and (isinstance(col.prop, ColumnProperty) or isinstance(col.prop, RelationshipProperty)) and not isinstance(col.expression, BinaryExpression) and key not in disabled_relationships:
-                    attributes[key] = col
+            if not hasattr(col, "prop"):
+                continue
+            
+            binary_expression = type(col.expression) is BinaryExpression
+            column_property = isinstance(col.prop, ColumnProperty)
+
+            if not relationship and (column_property and not binary_expression):
+                attributes[key] = col
+
+            #! TOTO: modify
+            """if disabled_relationships:
+                if (column_property or isinstance(col.prop, RelationshipProperty)) and not binary_expression and key not in disabled_relationships:
+                    attributes[key] = col"""
 
         if len(attributes) != 0:
             columns = attributes.values() if columns is None else columns.extend(attributes.values())
-
-        # CopyOfB = type(type(model).__name__+'C', model.__bases__, attributes)
 
         if unique and (
             type(unique) == InstrumentedAttribute or type(unique) == str
@@ -731,6 +737,8 @@ class AlphaDatabase(AlphaDatabaseCore):
         if flush:
             query.session.flush()
 
+        if disabled_relationships: #! TOTO: remove
+            json = True
         if not json:
             self.query_str = get_compiled_query(query).replace("\n", "")
             self.log.debug(self.query_str, level=2)
