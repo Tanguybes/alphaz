@@ -492,15 +492,17 @@ class AlphaDatabase(AlphaDatabaseCore):
             obj = model
 
         if type(obj) == list:
-            obj_ = self.session.add_all(obj)
+            self.session.add_all(obj)
         else:
             if not update:
-                obj_ = self.session.add(obj)
+                self.session.add(obj)
             else:
-                obj_ = self.session.merge(obj)
+                self.session.merge(obj)
 
         if commit and not self.autocommit:
             self.commit()
+        else:
+            self.session.flush()
         if close:
             self.session.close()
         return obj
@@ -736,8 +738,7 @@ class AlphaDatabase(AlphaDatabaseCore):
             query.session.close()
         if flush:
             query.session.flush()
-
-        if disabled_relationships: #! TOTO: remove
+        if disabled_relationships:
             json = True
         if not json:
             self.query_str = get_compiled_query(query).replace("\n", "")
@@ -769,6 +770,11 @@ class AlphaDatabase(AlphaDatabaseCore):
                     if len(results_json) == 0
                     else [x[unique.key] for x in results_json]
                 )
+        """if disabled_relationships and not json:
+            if type(results_json) == dict:
+                results_json = model(**results_json)
+            elif type(results_json) == list:
+                results_json = [model(**x) for x in results_json]"""
         return results_json
 
     def update(
