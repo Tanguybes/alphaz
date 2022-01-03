@@ -109,6 +109,8 @@ class Parameter:
             else:
                 parameters = json_lib.load_json(self.value)
             self.value = self.ptype(**parameters)
+        if self.ptype == dict:
+            self.value = json_lib.load_json(self.value)
 
         if self.required and self.value is None:
             missing = True

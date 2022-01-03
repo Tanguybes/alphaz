@@ -53,6 +53,11 @@ def register_validation():
 def login():
     return users.try_login(**api.get_parameters())
 
+@route("/ldap/users", parameters=[
+    Parameter("filters", required=True, ptype=dict),
+],logged=True)
+def get_ldap_users():
+    return users.get_ldap_users(**api.get_parameters())
 
 @route(
     "/password/lost",

@@ -1,4 +1,5 @@
 import datetime, jwt, itertools
+from ldap.controls.libldap import SimplePagedResultsControl
 
 from sqlalchemy.sql.expression import update
 
@@ -24,6 +25,8 @@ if LOGIN_MODE == "ldap":
     LDAP_SERVER = API.conf.get("auth/ldap/server")
     BASE_DN = API.conf.get("auth/ldap/baseDN")
     LDAP_DATA = API.conf.get("auth/ldap/user_data")
+    LDAP_USERS_FILTERS = API.conf.get("auth/ldap/users_filters")
+    LDAP_USER_FILTERS = API.conf.get("auth/ldap/user_filters")
 
 # Serve for registration
 def try_register_user(
@@ -148,21 +151,39 @@ def confirm_user_registration(token):
         if not valid:
             raise AlphaException("error")
 
-
-def check_credentials(username, password):
+def get_ldap_cnx():
     try:
         l = ldap.initialize(LDAP_SERVER)
         l.protocol_version = ldap.VERSION3
     except Exception as ex:
         LOG.error(ex)
         return None
-    searchScope = ldap.SCOPE_SUBTREE
-    retrieveAttributes = None
-    searchFilter = f"uid={username}"
+    return l
+
+def get_ldap_users(filters:dict):
+    l = get_ldap_cnx()
+    if l is None:
+        return None
+    
+    ldap_result_id = l.search(BASE_DN, ldap.SCOPE_SUBTREE, LDAP_USERS_FILTERS.format(**filters), None)
+    result_set = []
+    while 1:
+        result_type, result_data = l.result(ldap_result_id, 0)
+        if result_data == []:
+            break
+        else:
+            if result_type == ldap.RES_SEARCH_ENTRY:
+                result_set.append(result_data[0])
+    l.unbind()
+    return result_set
+
+def check_credentials(username, password):
+    l = get_ldap_cnx()
+    if l is None:
+        return None
+
     try:
-        ldap_result_id = l.search(
-            BASE_DN, searchScope, searchFilter, retrieveAttributes
-        )
+        ldap_result_id = l.search(BASE_DN, ldap.SCOPE_SUBTREE, LDAP_USER_FILTERS.format(**{"username":username}), None)
         result_set = []
         while 1:
             result_type, result_data = l.result(ldap_result_id, 0)
@@ -171,6 +192,7 @@ def check_credentials(username, password):
             else:
                 if result_type == ldap.RES_SEARCH_ENTRY:
                     result_set.append(result_data)
+        l.unbind()
 
         if (
             result_set is not None

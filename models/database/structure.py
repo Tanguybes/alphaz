@@ -473,12 +473,13 @@ class AlphaDatabase(AlphaDatabaseCore):
         )
 
     def add(
-        self, model, parameters=None, commit=True, test=False, update=False, close=False
+        self, model, parameters=None, commit:bool=True, test:bool=False, update:bool=False, flush:bool=True, close:bool=False
     ) -> object:
         if test:
             self.log.info(f"Insert {model} with values {parameters}")
             return None
 
+        obj = model
         if parameters is not None:
             if type(parameters) != dict:
                 self.log.error("<parameters must be of type <dict>")
@@ -488,8 +489,6 @@ class AlphaDatabase(AlphaDatabaseCore):
                 for x, y in parameters.items()
             }
             obj = model(**parameters)
-        else:
-            obj = model
 
         if type(obj) == list:
             self.session.add_all(obj)
@@ -501,7 +500,7 @@ class AlphaDatabase(AlphaDatabaseCore):
 
         if commit and not self.autocommit:
             self.commit()
-        else:
+        elif flush:
             self.session.flush()
         if close:
             self.session.close()
