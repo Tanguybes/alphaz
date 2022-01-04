@@ -21,6 +21,11 @@ class ParameterMode(Enum):
     START_LIKE = 3
     END_LIKE = 4
 
+    def __str__(self):
+        return str(self.value)
+
+    def to_json(self):
+        return str(self.value)
 
 class Parameter:
     def __init__(

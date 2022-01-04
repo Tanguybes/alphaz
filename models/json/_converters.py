@@ -42,6 +42,9 @@ class AlphaJSONEncoder(JSONEncoder):
         # self.rules[str] = lambda o:str(o)
 
     def default(self, o):  # pylint: disable=E0202
+        if "<class " in str(o):
+            return str(o)
+
         try:
             if hasattr(o, "to_json"):
                 try:
@@ -56,9 +59,10 @@ class AlphaJSONEncoder(JSONEncoder):
                     return returned_value
             iterable = iter(o)
         except TypeError as ex:
-            print("Cannot convert %s: %s" % (o, ex))
+            print(f"Cannot convert {o}: {ex}")
         else:
             return list(iterable)
+
         try:
             return JSONEncoder.default(self, o=o)
         except:
