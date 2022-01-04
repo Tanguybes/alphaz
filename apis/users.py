@@ -173,7 +173,7 @@ def get_ldap_users(filters:dict):
             break
         else:
             if result_type == ldap.RES_SEARCH_ENTRY:
-                result_set.append(result_data[0])
+                result_set.append(result_data[0][1])
     l.unbind()
     return result_set
 
