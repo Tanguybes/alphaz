@@ -685,6 +685,7 @@ class AlphaDatabase(AlphaDatabaseCore):
             type(unique) == InstrumentedAttribute or type(unique) == str
         ):  # TODO: upgrade
             columns = [unique]
+            distinct = True
             json = True
         elif unique:
             raise AlphaException(
@@ -760,15 +761,21 @@ class AlphaDatabase(AlphaDatabaseCore):
 
         if unique:
             if type(unique) == str:
-                return (
-                    [] if len(results_json) == 0 else [x[unique] for x in results_json]
-                )
+                if not first:
+                    return (
+                        [] if len(results_json) == 0 else [x[unique] for x in results_json]
+                    )
+                else:
+                    return results_json[unique]
             else:
-                return (
-                    []
-                    if len(results_json) == 0
-                    else [x[unique.key] for x in results_json]
-                )
+                if not first:
+                    return (
+                        []
+                        if len(results_json) == 0
+                        else [x[unique.key] for x in results_json]
+                    )
+                else:
+                    return results_json[unique.key]
         """if disabled_relationships and not json:
             if type(results_json) == dict:
                 results_json = model(**results_json)

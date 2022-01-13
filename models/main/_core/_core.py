@@ -451,3 +451,6 @@ class AlphaCore(AlphaClass):
 
         self.log.info(f"Getting models definitions from {self.models_sources}")
         modules = flask_lib.get_definitions_modules(self.models_sources, log=self.log)
+
+    def get_data_directory(self):
+        return self.config.get('directories/data')

@@ -118,7 +118,7 @@ def archive_object(object_to_save, filename: str, ext: str = None, log=None) -> 
         log.info(f"Saved file {filename}")
 
 
-def unarchive_object(filename: str, ext: str = None):
+def unarchive_object(filename: str, ext: str = None, default:str=None):
     """[Unarchive a Python object from a dump file]
 
     Args:
@@ -142,6 +142,8 @@ def unarchive_object(filename: str, ext: str = None):
                 object_to_get = pickle.load(f)
             except Exception as ex:
                 print(ex)
+    if object_to_get is None and default is not None:
+        object_to_get = default
     return object_to_get
 
 

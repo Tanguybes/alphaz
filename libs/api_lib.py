@@ -58,14 +58,23 @@ def get_api_data(
     return data["data"] if data_only else data
 
 
-def get_columns_values_output(objects: list, columns: list = None) -> dict:
-    """Get output with columns / values format.
+def get_columns_values_output(objects: list, columns: list = None, header:bool = False) -> dict:
+    """Generate columns names output columns names + list of list (only the values) + nb of values if not header
+    ex : { "columns":["col1","col2",...], "values": ["value1","value2",..], "values_nb":12}
+    
+    else Generate columns names output columns names + list of JSON objetcs + nb of values,
+
+    ex : { "columns":["col1","col2",...], "values": [{"col1": "value1",...},{...}], "values_nb":12}
+
+
 
     Args:
         objects (list): [description]
+
     Args:
         objects (list): [description]
         columns (list): [description]
+        header (bool): [Add headers to values]
 
     Returns:
         dict: [description]
@@ -82,6 +91,8 @@ def get_columns_values_output(objects: list, columns: list = None) -> dict:
         ]
     else:
         columns = list(results[0].keys())
+    if header:
+        return {"columns": columns, "values": results, "values_nb": len(results)}
 
     data = {}
     data["columns"] = [x for x in columns if x in results[0]]
