@@ -20,6 +20,46 @@ from ._requests import Requests
 SEPARATOR = "__"
 
 
+def get_columns_values_output(objects: list, columns: list = None, header:bool = False) -> dict:
+    """Generate columns names output columns names + list of list (only the values) + nb of values if not header
+    ex : { "columns":["col1","col2",...], "values": ["value1","value2",..], "values_nb":12}
+    
+    else Generate columns names output columns names + list of JSON objetcs + nb of values,
+
+    ex : { "columns":["col1","col2",...], "values": [{"col1": "value1",...},{...}], "values_nb":12}
+
+    Args:
+        objects (list): [description]
+
+    Args:
+        objects (list): [description]
+        columns (list): [description]
+        header (bool): [Add headers to values]
+
+    Returns:
+        dict: [description]
+    """
+    if len(objects) == 0:
+        return {"columns": [], "values": [], "values_nb": 0}
+
+    results = json_lib.jsonify_data(objects)
+
+    if columns and len(columns) != 0:
+        results = [
+            {key: value for key, value in result.items() if key in columns}
+            for result in results
+        ]
+    else:
+        columns = list(results[0].keys())
+    if header:
+        return {"columns": columns, "values": results, "values_nb": len(results)}
+
+    data = {}
+    data["columns"] = [x for x in columns if x in results[0]]
+    data["values"] = [[x[y] for y in columns if y in x] for x in results]
+    data["values_nb"] = len(data["values"])
+    return data
+
 def check_format(data, depth=3):
     if depth == 0:
         return True
@@ -264,7 +304,12 @@ class Route(Requests):
             self.returned["data"] = json_lib.jsonify_data(data)
 
         format_ = self.get("format")
-        if format_ and "xml" in format_.lower():
+        if format_: format_ = format_.lower()
+
+        if "table" in format_ and "data" in self.returned:
+            self.returned["data"] = get_columns_values_output(self.returned["data"], self.get("columns"), header="header" in format_)
+
+        if format_ and "xml" in format_:
             xml_output = converter_lib.dict_to_xml(
                 self.returned, attr_type=not "no_type" in format_
             )

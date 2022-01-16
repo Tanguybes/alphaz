@@ -37,6 +37,7 @@ def set_value_like_mode(value, mode):
         ):
             value = f"{value}%"
     return value
+
 class ParameterMode(Enum):
     NONE = 0
     LIKE = 1
@@ -162,7 +163,7 @@ class Parameter:
                 ParameterMode.END_LIKE,
             ]
         ):
-            set_value_like_mode(self.value, self.mode)
+            self.value = set_value_like_mode(self.value, self.mode)
 
         if self.ptype == bool:
             str_value = str(self.value).lower()

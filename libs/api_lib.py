@@ -58,45 +58,6 @@ def get_api_data(
     return data["data"] if data_only else data
 
 
-def get_columns_values_output(objects: list, columns: list = None, header:bool = False) -> dict:
-    """Generate columns names output columns names + list of list (only the values) + nb of values if not header
-    ex : { "columns":["col1","col2",...], "values": ["value1","value2",..], "values_nb":12}
-    
-    else Generate columns names output columns names + list of JSON objetcs + nb of values,
-
-    ex : { "columns":["col1","col2",...], "values": [{"col1": "value1",...},{...}], "values_nb":12}
-
-    Args:
-        objects (list): [description]
-
-    Args:
-        objects (list): [description]
-        columns (list): [description]
-        header (bool): [Add headers to values]
-
-    Returns:
-        dict: [description]
-    """
-    if len(objects) == 0:
-        return {"columns": [], "values": [], "values_nb": 0}
-
-    results = json_lib.jsonify_data(objects)
-
-    if columns and len(columns) != 0:
-        results = [
-            {key: value for key, value in result.items() if key in columns}
-            for result in results
-        ]
-    else:
-        columns = list(results[0].keys())
-    if header:
-        return {"columns": columns, "values": results, "values_nb": len(results)}
-
-    data = {}
-    data["columns"] = [x for x in columns if x in results[0]]
-    data["values"] = [[x[y] for y in columns if y in x] for x in results]
-    data["values_nb"] = len(data["values"])
-    return data
 
 
 def get_routes_infos(

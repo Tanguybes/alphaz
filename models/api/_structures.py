@@ -96,7 +96,7 @@ class AlphaReloaderLoop(ReloaderLoop):
                 )
 
 
-reloader_loops["AlphaStat"] = AlphaReloaderLoop
+#reloader_loops["AlphaStat"] = AlphaReloaderLoop
 
 
 class AlphaFlask(Flask, Requests):
@@ -346,7 +346,7 @@ class AlphaFlask(Flask, Requests):
                 threaded=threaded,
                 ssl_context=ssl_context,
                 exclude_patterns=["*/.vscode/*", "*/site-packages/*", "*/Anaconda3/*"],
-                reloader_type="AlphaStat",
+                #reloader_type="AlphaStat",
             )
 
         # except SystemExit:
