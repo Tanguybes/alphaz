@@ -14,6 +14,29 @@ from ...libs import date_lib, json_lib, py_lib
 from enum import Enum
 
 
+def set_value_like_mode(value, mode):
+    value = str(value).replace("*", "%")
+
+    if not "%" in value:
+        if (
+            mode
+            in [
+                ParameterMode.IN_LIKE,
+                ParameterMode.START_LIKE,
+            ]
+            and not value.startswith("%")
+        ):
+            value = f"%{value}"
+        if (
+            mode
+            in [
+                ParameterMode.IN_LIKE,
+                ParameterMode.END_LIKE,
+            ]
+            and not value.endswith("%")
+        ):
+            value = f"{value}%"
+    return value
 class ParameterMode(Enum):
     NONE = 0
     LIKE = 1
@@ -139,27 +162,7 @@ class Parameter:
                 ParameterMode.END_LIKE,
             ]
         ):
-            self.value = str(self.value).replace("*", "%")
-
-            if not "%" in self.value:
-                if (
-                    self.mode
-                    in [
-                        ParameterMode.IN_LIKE,
-                        ParameterMode.START_LIKE,
-                    ]
-                    and not self.value.startswith("%")
-                ):
-                    self.value = f"%{self.value}"
-                if (
-                    self.mode
-                    in [
-                        ParameterMode.IN_LIKE,
-                        ParameterMode.END_LIKE,
-                    ]
-                    and not self.value.endswith("%")
-                ):
-                    self.value = f"{self.value}%"
+            set_value_like_mode(self.value, self.mode)
 
         if self.ptype == bool:
             str_value = str(self.value).lower()
@@ -210,6 +213,14 @@ class Parameter:
 
             for val in self.value:
                 self.__check_options(val)
+
+            if self.mode in [
+                ParameterMode.LIKE,
+                ParameterMode.IN_LIKE,
+                ParameterMode.START_LIKE,
+                ParameterMode.END_LIKE,
+            ]:
+                self.value = [set_value_like_mode(x, self.mode) for x in self.value]
 
         if self.ptype == int:
             try:

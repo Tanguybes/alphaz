@@ -12,10 +12,10 @@ proxies = {
 cert_path = 'merged-CA.pem'
 
 def get_wsdl_response(base,wsdl,method,parameters,use_cert=False,use_proxy=False,log=None):
-    wsdl_url = '%s/%s'%(base,wsdl)
+    wsdl_url = f'{base}/{wsdl}'
     
     if log is not None:
-        log.info('Request url %s, method %s with parameters %s'%(wsdl_url,method,parameters))
+        log.info(f'Request url {wsdl_url=}, {method=} with parameters {parameters=}')
     if use_cert:
         session         = Session()
         session.verify  = cert_path
@@ -45,7 +45,7 @@ def get_wsdl_response(base,wsdl,method,parameters,use_cert=False,use_proxy=False
                 if type(operation.input.body) != list:
                     methods[operation.name] = [operation.input.body.__dict__]
 
-    client.service._binding_options["address"] = '%s/%s/'%(base,method) 
+    client.service._binding_options["address"] = f'{base}/{method}/' 
     
     m = [x['name'] for x in methods[method]]
     

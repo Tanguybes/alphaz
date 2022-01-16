@@ -1,3 +1,4 @@
+from dataclasses import field
 import pysftp, ftplib, re
 from typing import List, Dict
 
@@ -33,7 +34,7 @@ class AlphaFtp():
     cnx     = None
     valid   = False
     sftp    = False
-    files   = []
+    files:list   = field(default_factory = lambda: [])
     index   = 0
 
     def __init__(self,host,user,password=None,port=22,key=None,key_pass=None,sftp=False,log=None):

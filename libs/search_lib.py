@@ -10,6 +10,7 @@ except:
 
 #from googlesearch import search
 
+from dataclasses import field
 from itertools import cycle
 import requests, re, os
 import numpy as np
@@ -23,8 +24,8 @@ except:
 proxy_pool  = cycle(proxies)
 
 class Search():
-    prices  = []
-    words   = {}
+    prices:list  = field(default_factory = lambda: [])
+    words:dict   = field(default_factory = lambda: {})
 
     def process(self,list_to_process):
         if type(list_to_process) == str:
@@ -121,7 +122,7 @@ class GoogleEntry():
         return {'title':self.title,'host':self.host,'link':self.link,'desc':self.desc}
 
 class GoogleSearch():
-    words = {}
+    words:dict = field(default_factory = lambda: {})
 
     def scrap_api(self,search_string):
         apikey = 'f22df9d6edeba41d3888a7384a4d945ed099efc202535f81ca4a58f6c7557afd'

@@ -66,8 +66,6 @@ def get_columns_values_output(objects: list, columns: list = None, header:bool =
 
     ex : { "columns":["col1","col2",...], "values": [{"col1": "value1",...},{...}], "values_nb":12}
 
-
-
     Args:
         objects (list): [description]
 

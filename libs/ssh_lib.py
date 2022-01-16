@@ -95,7 +95,7 @@ class AlphaSsh:
         Returns:
             List[AlphaFile]: [description]
         """
-        output = self.execute_cmd("ls -l %s" % directory)
+        output = self.execute_cmd(f"ls -l {directory}")
         files = io_lib.get_list_file(output)
         return files
 

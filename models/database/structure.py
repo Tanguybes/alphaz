@@ -11,6 +11,7 @@ from pymysql.err import IntegrityError
 from sqlalchemy import inspect as inspect_sqlalchemy
 from sqlalchemy import update, create_engine, event
 from sqlalchemy.orm import (
+    relationships,
     scoped_session,
     sessionmaker,
     Session,
@@ -655,7 +656,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         flush=False,
         schema=None,
         relationship=True,
-        disabled_relationships: typing.List[str] = None,
+        disabled_relationships: typing.List[str] = None
     ):
         # model_name = inspect.getmro(model)[0].__name__
         # if self.db_type == "mysql": self.test(close=False)
@@ -726,6 +727,9 @@ class AlphaDatabase(AlphaDatabaseCore):
             self.log.debug(self.query_str)
             return results
 
+        return self.select_query(query, model=model, first=first, json=json, unique=unique, close=close, flush=flush, schema=schema, relationship=relationship, disabled_relationships=disabled_relationships)
+
+    def select_query(self, query, model=None, first: bool = False, json: bool = False, unique: InstrumentedAttribute = None, close=False, flush=False, schema=None,relationship=True, disabled_relationships: typing.List[str] = None):
         try:
             results = query.all() if not first else query.first()
         except Exception as ex:

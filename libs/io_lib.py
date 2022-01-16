@@ -175,7 +175,7 @@ def get_match(regex, txt):
 
 def get_list_file(output) -> List[AlphaFile]:
     files = []
-    for line in output.split("\\r\\n"):
+    for line in output.split("\r\n" if "\r\n" in output else "\\r\\n"):
         if line.strip() == "":
             continue
 
@@ -184,12 +184,12 @@ def get_list_file(output) -> List[AlphaFile]:
             continue
 
         users = get_match(
-            r"[a-zA-Z]+[^\S\r\n]+[a-zA-Z]+[^\S\r\n]+[0-9]+", line.split(permission)[1]
+            r"[a-zA-Z0-9]+[^\S\r\n]+[a-zA-Z]+[^\S\r\n]+[0-9]+", line.split(permission)[1]
         )
-        if users is None:
-            continue
-
-        owner, group, size = users.split()
+        if users is None: #TODO: fix
+            owner, group, size = None, None, None
+        else:
+            owner, group, size = users.split()
 
         date = get_match(
             r"[a-zA-Z]{3}\s[0-9\s]{1,2}\s[0-9\s]{1,2}:[0-9\s]{1,2}",

@@ -1,4 +1,6 @@
 import traceback, inspect, trace, sys, os
+
+from dataclasses import dataclass, field
 from core import core
 from typing import List, Dict
 
@@ -9,15 +11,15 @@ from ._save import AlphaSave
 LOG = core.get_logger("tests")
 
 
+@dataclass
 class AlphaTest:
-    _disabled = []
     _test = True
+    _disabled:list = field(default_factory=lambda : [])
+    
     category = ""
-
-    def __init__(self):
-        self.outputs: Dict[str, bool] = {}
-        self.coverages: Dict[str, object] = {}
-        self.index = 0
+    outputs: Dict[str, bool] = field(default_factory = lambda: {})
+    coverages: Dict[str, object] = field(default_factory = lambda: {})
+    index = 0
 
     def end(self):
         pass
