@@ -732,7 +732,9 @@ class AlphaDatabase(AlphaDatabaseCore):
         per_page:int=100):
 
         if page is not None:
+            full_count = query.count()
             query = query.limit(per_page).offset(page*per_page)
+            
         elif limit is not None:
             query = query.limit(limit)
 
@@ -759,7 +761,7 @@ class AlphaDatabase(AlphaDatabaseCore):
         if not json:
             self.query_str = get_compiled_query(query).replace("\n", "")
             self.log.debug(self.query_str, level=2)
-            return results
+            return results if not page else (results, full_count)
 
         results_json = {}
         if schema is None:
@@ -781,8 +783,8 @@ class AlphaDatabase(AlphaDatabaseCore):
                     return (
                         [] if len(results_json) == 0 else [x[unique] for x in results_json]
                     )
-                else:
-                    return results_json[unique]
+                else: 
+                    return results_json[unique]  if not page else (results_json, full_count)
             else:
                 if not first:
                     return (
@@ -791,13 +793,13 @@ class AlphaDatabase(AlphaDatabaseCore):
                         else [x[unique.key] for x in results_json]
                     )
                 else:
-                    return results_json[unique.key]
+                    return results_json[unique.key]  if not page else (results_json, full_count)
         """if disabled_relationships and not json:
             if type(results_json) == dict:
                 results_json = model(**results_json)
             elif type(results_json) == list:
                 results_json = [model(**x) for x in results_json]"""
-        return results_json
+        return results_json  if not page else (results_json, full_count)
 
     def update(
         self,
