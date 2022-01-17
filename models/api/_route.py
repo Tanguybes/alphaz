@@ -124,15 +124,15 @@ class Route(Requests):
     def is_outdated(self):
         return (datetime.datetime.now() - self.lasttime).total_seconds() > 60 * 5
 
-    def get(self, name):
+    def get(self, name, default=None):
         if not name in self.parameters:
-            return None
+            return default
 
         parameter = self.parameters[name]
         value = None if parameter is None else parameter.value
-        if str(value) == "false":
+        if str(value).lower() in ["false","0","f"]:
             return False
-        if str(value) == "true":
+        if str(value).lower() in ["true","1","y"]:
             return True
         return value
 
@@ -187,11 +187,11 @@ class Route(Requests):
         try:
             returned = io_lib.archive_object(self.data, cache_path)
         except Exception as ex:
-            self.log.error("Cannot cache route %s: %s" % (self.get_key(), str(ex)))
+            self.log.error(f"Cannot cache route {self.get_key()}: {str(ex)}")
 
     def get_cached(self):
         if self.log:
-            self.log.info("GET cache for %s" % self.route)
+            self.log.info(f"GET cache for {self.route}")
 
         if self.is_cache():
             cache_path = self.get_cache_path()
@@ -303,8 +303,8 @@ class Route(Requests):
         if not check_format(data):
             self.returned["data"] = json_lib.jsonify_data(data)
 
-        format_ = self.get("format")
-        if format_: format_ = format_.lower()
+        format_ = self.get("format", default="json")
+        format_ = format_.lower()
 
         if "table" in format_ and "data" in self.returned:
             self.returned["data"] = get_columns_values_output(self.returned["data"], self.get("columns"), header="header" in format_)

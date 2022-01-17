@@ -1,4 +1,4 @@
-import glob, os, shutil
+import glob, os, shutil, pathlib
 
 sep = os.sep
 
@@ -80,3 +80,14 @@ def get_all_files_from_directory(path, files=[], recursive=False, extension=[]):
             if ext in extension:
                 files.append(p)
     return files
+
+def filesize(size: int) -> str:
+    for unit in ("B", "K", "M", "G", "T"):
+        if size < 1024:
+            break
+        size /= 1024
+    return f"{size:.1f}{unit}"
+
+def get_size(folder: str, with_unit:bool=False) -> int:
+    value = sum(p.stat().st_size for p in pathlib.Path(folder).rglob('*'))
+    return value if not with_unit else filesize(value)

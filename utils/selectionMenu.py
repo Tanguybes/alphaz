@@ -536,7 +536,7 @@ class SelectionMenu():
         
     def show_values(self):
         for key, value in self.values.items():
-            print("Menu values: %s: %s"%(key,value))
+            print(f"Menu values: {key}: {value}")
 
     def printEvaluate(self,conf):
         pass

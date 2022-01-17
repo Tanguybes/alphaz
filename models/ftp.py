@@ -34,7 +34,6 @@ class AlphaFtp():
     cnx     = None
     valid   = False
     sftp    = False
-    files:list   = field(default_factory = lambda: [])
     index   = 0
 
     def __init__(self,host,user,password=None,port=22,key=None,key_pass=None,sftp=False,log=None):
@@ -48,6 +47,7 @@ class AlphaFtp():
         self.key_pass   = key_pass
         self.password   = password
         self.sftp       = sftp
+        self.files:list   = []
 
         self.log     = LOG if log is None else log
     

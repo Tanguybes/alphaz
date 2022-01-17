@@ -2,7 +2,7 @@ import datetime, os, importlib, inspect
 
 from flask import request, send_from_directory
 
-from ...libs import test_lib, database_lib, api_lib, py_lib
+from ...libs import test_lib, database_lib, api_lib, py_lib, files_lib
 from ...utils.api import route, Parameter
 from ...models.main import AlphaException
 
@@ -155,3 +155,12 @@ def get_module_code():
 @route("modules", parameters=[Parameter("name"), Parameter("url")])
 def get_modules():
     return py_lib.get_modules_infos(**api.get_parameters())
+
+@route("cache")
+def get_cache_infos():
+    return files_lib.get_size(api.conf.get("directories/cache"), with_unit=True)
+
+@route("configurations/view", admin=True)
+def get_configurations():
+    from ...models.config import _config
+    return {x:y.data for x,y in _config._CONFIGURATIONS.items()}

@@ -1,6 +1,6 @@
 import sys, imp, inspect, os, glob, copy
 from ..models.watcher import ModuleWatcher
-from typing import List, Dict
+from typing import List, Dict, OrderedDict
 
 myself = lambda: inspect.stack()[1][3]
 
@@ -166,3 +166,58 @@ def is_subtype(sub_type, parent_type):
             return True
 
     return False
+
+def sort_by_key(input_dict):
+    return OrderedDict(sorted(input_dict.items(), key=lambda x: x[0]))
+
+def compare_dicts(dict_obj_1, dict_obj_2, sub_elements:dict=None):
+    if not sub_elements:
+        sub_elements = {}
+
+    level_dict = {}
+
+    if dict_obj_1 is None or dict_obj_2 is None:
+        list_keys = list(dict_obj_1.keys() if dict_obj_2 is None else dict_obj_2.keys())
+    else:
+        list_keys = list(set(dict_obj_1.keys()).union(set(dict_obj_2.keys())))
+    list_keys.sort()
+
+    diffs = []
+
+    for key in list_keys:
+        value_1, value_2 = (dict_obj_1[key] if key in dict_obj_1 else None) if dict_obj_1 is not None else None, (dict_obj_2[key] if key in dict_obj_2 else None)  if dict_obj_2 is not None else None
+        ref_element = value_1 if value_1 is not None else value_2
+
+        if key in sub_elements and value_1 is None and value_2 is None:
+            level_dict[key] = None
+
+        elif type(ref_element) == dict:
+            level_dict[key] = compare_dicts(value_1, value_2, {} if not key in sub_elements else sub_elements[key]["sub_elements"])
+            diff = level_dict[key]["diff"]
+            diffs.append(diff)
+        elif type(ref_element) == list and key in sub_elements:
+            sub_elements_1 = {x[sub_elements[key]["key"]]:x for x in value_1} if value_1 is not None else None
+            sub_elements_2 = {x[sub_elements[key]["key"]]:x for x in value_2} if value_2 is not None else None
+            sub_elements_1 = sub_elements_1 or {x:None for x in sub_elements_2.keys()}
+            sub_elements_2 = sub_elements_2 or {x:None for x in sub_elements_1.keys()}
+            list_keys = list(set(sub_elements_1.keys()).union(set(sub_elements_2.keys())))
+
+            dict_list = {}
+            for list_key in list_keys:
+                dict_list[list_key] = compare_dicts(sub_elements_1[list_key] if list_key in sub_elements_1 else None, sub_elements_2[list_key] if list_key in sub_elements_2 else None, sub_elements[key]["sub_elements"])
+
+            if "key_type" in sub_elements[key]:
+                dict_list = {sub_elements[key]["key_type"](x):y for x,y in dict_list.items()}
+
+            level_dict[key] = list(dict(sorted(dict_list.items())).values())
+            diff = any(x["diff"] for x in dict_list.values())
+            diffs.append(diff)
+        else:
+            diff = (value_1 is None or value_2 is None) or (value_1 != value_2 or key not in dict_obj_1 or key not in dict_obj_2)
+            level_dict[key] = {"values":[value_1, value_2],"diff":diff}
+            diffs.append(diff)
+
+    level_dict = dict(sorted(level_dict.items())) 
+
+    level_dict["diff"] = any(diffs)
+    return level_dict

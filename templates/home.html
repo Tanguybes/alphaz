@@ -38,7 +38,10 @@
             <div class=hero-inner>
               <div class=hero-copy>
                 <h1 class="hero-title mt-0">{{title}}</h1>
+                {% if description %}
                 <p class=hero-paragraph>{{description}}</p>
+                {% endif %}
+
                 <div class=hero-cta>
                   <a class="button button-secondary" href="#tests">Tests</a>
                   {% if dashboard %}

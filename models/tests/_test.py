@@ -10,16 +10,13 @@ from ._save import AlphaSave
 
 LOG = core.get_logger("tests")
 
-
-@dataclass
 class AlphaTest:
     _test = True
-    _disabled:list = field(default_factory=lambda : [])
-    
     category = ""
-    outputs: Dict[str, bool] = field(default_factory = lambda: {})
-    coverages: Dict[str, object] = field(default_factory = lambda: {})
     index = 0
+
+    outputs: Dict[str, bool] = {}
+    coverages: Dict[str, object] = {}
 
     def end(self):
         pass
@@ -127,6 +124,8 @@ class AlphaTest:
     ) -> bool:
         self.assert_is_not_none(a)
         fields = list(model.get_schema()._declared_fields.keys())
+        if not hasattr(a, "keys"):
+            return self._assert(False, conditions)
         key_in = {x: x in a.keys() for x in fields}
         status = all(key_in.values())
         if not status:

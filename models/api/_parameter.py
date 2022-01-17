@@ -52,6 +52,8 @@ class ParameterMode(Enum):
         return str(self.value)
 
 class Parameter:
+    _value = None
+
     def __init__(
         self,
         name: str,
@@ -85,10 +87,13 @@ class Parameter:
         self.ptype: type = ptype
         self.function: Callable = function
         self.type = str(ptype).replace("<class '", "").replace("'>", "")
-        self.value = None
         self.private = private
         self.mode = mode
         self.override = override
+
+    @property 
+    def value(self):
+        return self._value if self._value is not None else self.default
 
     def __check_options(self, value):
         if (
@@ -104,7 +109,7 @@ class Parameter:
                     "value": value,
                 },
             )
-
+    
     def set_value(self):
         """Set parameter value
 
@@ -119,40 +124,40 @@ class Parameter:
 
         dataPost = request.get_json()
 
-        self.value = request.args.get(self.name, self.default)
+        self._value = request.args.get(self.name, self.default)
 
-        if self.value is None and dataPost is not None and self.name in dataPost:
-            self.value = dataPost[self.name]
+        if self._value is None and dataPost is not None and self.name in dataPost:
+            self._value = dataPost[self.name]
         if (
-            self.value is None
+            self._value is None
             and request.form is not None
             and self.name in request.form
         ):
-            self.value = request.form[self.name]
+            self._value = request.form[self.name]
 
         if isinstance(self.ptype, DeclarativeMeta):
-            if self.value is None:
+            if self._value is None:
                 parameters = {
                     x: y for x, y in dataPost.items() if hasattr(self.ptype, x)
                 }
             else:
-                parameters = json_lib.load_json(self.value)
-            self.value = self.ptype(**parameters)
+                parameters = json_lib.load_json(self._value)
+            self._value = self.ptype(**parameters)
         if self.ptype == dict:
-            self.value = json_lib.load_json(self.value)
+            self._value = json_lib.load_json(self._value)
 
-        if self.required and self.value is None:
+        if self.required and self._value is None:
             missing = True
             raise AlphaException(
                 "api_missing_parameter", parameters={"parameter": self.name}
             )
 
-        if self.value is None:
-            self.__check_options(self.value)
+        if self._value is None:
+            self.__check_options(self._value)
             return
 
-        if str(self.value).lower() in ["null", "none", "undefined"]:
-            self.value = None
+        if str(self._value).lower() in ["null", "none", "undefined"]:
+            self._value = None
 
         if self.ptype == str and (
             self.mode
@@ -163,11 +168,11 @@ class Parameter:
                 ParameterMode.END_LIKE,
             ]
         ):
-            self.value = set_value_like_mode(self.value, self.mode)
+            self._value = set_value_like_mode(self._value, self.mode)
 
         if self.ptype == bool:
-            str_value = str(self.value).lower()
-            self.__check_options(str(self.value))
+            str_value = str(self._value).lower()
+            self.__check_options(str(self._value))
 
             if str_value in ["y", "true", "t", "1"]:
                 value = True
@@ -179,40 +184,40 @@ class Parameter:
                     parameters={
                         "parameter": self.name,
                         "type": "bool",
-                        "value": self.value,
+                        "value": self._value,
                     },
                 )
-            self.value = value
+            self._value = value
 
         if self.ptype == list or py_lib.is_subtype(self.ptype, typing.List):
-            if type(self.value) == str and self.value.strip() == "":
-                self.value = []
-            elif type(self.value) == str:
+            if type(self._value) == str and self._value.strip() == "":
+                self._value = []
+            elif type(self._value) == str:
                 try:
-                    if ";" in str(self.value) or "," in str(self.value):
-                        self.value = (
-                            str(self.value).split(";")
-                            if ";" in str(self.value)
-                            else str(self.value).split(",")
+                    if ";" in str(self._value) or "," in str(self._value):
+                        self._value = (
+                            str(self._value).split(";")
+                            if ";" in str(self._value)
+                            else str(self._value).split(",")
                         )
                     else:
-                        self.value = [self.value]
+                        self._value = [self._value]
                 except:
                     raise AlphaException(
                         "api_wrong_parameter_value",
                         parameters={
                             "parameter": self.name,
                             "type": "list",
-                            "value": self.value,
+                            "value": self._value,
                         },
                     )
 
             if py_lib.is_subtype(self.ptype, typing.List[int]):
-                self.value=[int(x) for x in self.value]
+                self._value=[int(x) for x in self._value]
             if py_lib.is_subtype(self.ptype, typing.List[float]):
-                self.value=[float(x) for x in self.value]
+                self._value=[float(x) for x in self._value]
 
-            for val in self.value:
+            for val in self._value:
                 self.__check_options(val)
 
             if self.mode in [
@@ -221,43 +226,43 @@ class Parameter:
                 ParameterMode.START_LIKE,
                 ParameterMode.END_LIKE,
             ]:
-                self.value = [set_value_like_mode(x, self.mode) for x in self.value]
+                self._value = [set_value_like_mode(x, self.mode) for x in self._value]
 
         if self.ptype == int:
             try:
-                self.value = int(self.value)
+                self._value = int(self._value)
             except:
                 raise AlphaException(
                     "api_wrong_parameter_value",
                     parameters={
                         "parameter": self.name,
                         "type": "int",
-                        "value": self.value,
+                        "value": self._value,
                     },
                 )
-            self.__check_options(self.value)
+            self.__check_options(self._value)
 
         if self.ptype == float:
             try:
-                self.value = float(self.value)
+                self._value = float(self._value)
             except:
                 raise AlphaException(
                     "api_wrong_parameter_value",
                     parameters={
                         "parameter": self.name,
                         "type": "float",
-                        "value": self.value,
+                        "value": self._value,
                     },
                 )
-            self.__check_options(self.value)
+            self.__check_options(self._value)
 
         if self.ptype == datetime.datetime:
-            self.__check_options(self.value)
-            self.value = date_lib.str_to_datetime(self.value)
+            self.__check_options(self._value)
+            self._value = date_lib.str_to_datetime(self._value)
 
-        if hasattr(self.ptype, "metadata") and not hasattr(self.value, "metadata"):
-            r = json.loads(self.value)
-            self.value = self.ptype(**r)
+        if hasattr(self.ptype, "metadata") and not hasattr(self._value, "metadata"):
+            r = json.loads(self._value)
+            self._value = self.ptype(**r)
 
         if self.function is not None:
-            self.value = self.function(self.value)
+            self._value = self.function(self._value)

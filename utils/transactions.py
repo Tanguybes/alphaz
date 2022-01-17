@@ -87,7 +87,7 @@ class TransactionsThread(Thread):    # PowerCounter class
 
         requests = [AlphaTransaction(x) for x in requests]
 
-        LOG.info('Processing %s requests ...'%len(requests))
+        LOG.info(f'Processing {len(requests)} requests ...')
 
         uuids   = []
         for request in requests:

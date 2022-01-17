@@ -233,6 +233,9 @@ class AlphaDatabaseCore(SQLAlchemy):
     def get_session(self):
         return self.db.session"""
 
+    def to_json(self):
+        return py_lib.get_attributes(self)
+
     def test(self, bind:str=None, close=False):
         """[Test the connection]
 
@@ -656,7 +659,9 @@ class AlphaDatabase(AlphaDatabaseCore):
         flush=False,
         schema=None,
         relationship=True,
-        disabled_relationships: typing.List[str] = None
+        disabled_relationships: typing.List[str] = None,
+        page:int=None,
+        per_page:int=100
     ):
         # model_name = inspect.getmro(model)[0].__name__
         # if self.db_type == "mysql": self.test(close=False)
@@ -718,7 +723,17 @@ class AlphaDatabase(AlphaDatabaseCore):
                 else query.order_by(*order_by)
             )
 
-        if limit is not None:
+        return self.select_query(query, model=model, first=first, json=json, unique=unique, count=count, limit=limit, close=close, 
+        flush=flush, schema=schema, relationship=relationship, disabled_relationships=disabled_relationships, page=page,per_page=per_page)
+
+    def select_query(self, query, model=None, first: bool = False, json: bool = False, unique: InstrumentedAttribute = None, 
+    count: bool = False, limit: int = None, close=False, flush=False, 
+    schema=None,relationship=True, disabled_relationships: typing.List[str] = None,         page:int=None,
+        per_page:int=100):
+
+        if page is not None:
+            query = query.limit(per_page).offset(page*per_page)
+        elif limit is not None:
             query = query.limit(limit)
 
         if count:
@@ -727,9 +742,6 @@ class AlphaDatabase(AlphaDatabaseCore):
             self.log.debug(self.query_str)
             return results
 
-        return self.select_query(query, model=model, first=first, json=json, unique=unique, close=close, flush=flush, schema=schema, relationship=relationship, disabled_relationships=disabled_relationships)
-
-    def select_query(self, query, model=None, first: bool = False, json: bool = False, unique: InstrumentedAttribute = None, close=False, flush=False, schema=None,relationship=True, disabled_relationships: typing.List[str] = None):
         try:
             results = query.all() if not first else query.first()
         except Exception as ex:

@@ -25,7 +25,7 @@ def insert():
     )
 
     try:
-        DB.add(test)
+        added_test = DB.add(test)
     except Exception as ex:
         raise ex
 

@@ -9,22 +9,22 @@ from collections import OrderedDict
 
 
 class TestGroup:
-    def __init__(self, name, classObject, coverage: bool = False):
+    def __init__(self, name, classTest, coverage: bool = False):
         self.coverage = coverage
         self.name = name
-        self.classObject = classObject
+        self.classTest = classTest
         self.tests: OrderedDict[str, TestMethod] = OrderedDict()
-        self.category = classObject.category
+        self.category = classTest.category
         if self.category == "":
-            self.category = classObject.__module__.split(".")[-1].capitalize()
+            self.category = classTest.__module__.split(".")[-1].capitalize()
 
         tests = {}
-        for method_name, method in inspect.getmembers(classObject):
+        for method_name, method in inspect.getmembers(classTest):
             if "__" in method_name:
                 continue
             if not inspect.isfunction(method):
                 continue
-            if not hasattr(classObject, method.__name__):
+            if not hasattr(classTest, method.__name__):
                 continue
 
             a, j = method.__annotations__, method.__dict__
@@ -32,7 +32,7 @@ class TestGroup:
             qual_name = method.__qualname__
             if method_name == TEST_METHOD_NAME or TEST_METHOD_NAME in qual_name:
                 test_function = TestMethod(
-                    classObject,
+                    classTest,
                     method_name,
                     method,
                     self.category,
@@ -57,9 +57,9 @@ class TestGroup:
 
     def test_all(self, names: List[str] = []):
         if len(names) == 0:
-            classObject = self.classObject()
+            classTest = self.classTest()
             for method in self.tests.values():
-                method.test(classObject=classObject, coverage=self.coverage)
+                method.test(classTest=classTest, coverage=self.coverage)
         else:
             for name in names:
                 if name in self.tests:

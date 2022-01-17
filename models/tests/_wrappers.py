@@ -45,16 +45,19 @@ def test(
 ):
     def test_alpha_in(func):
         def test_wrapper(*args, **kwargs):
-            class_ = args[0]
-            class_.output = None
+            TestClass = args[0]
+            TestClass.output = None
 
             output = func(*args, **kwargs)
-
-            if class_.output is not None:
-                class_.outputs[func.__name__] = class_.output
-                return class_.output
-            class_.outputs[func.__name__] = output
-            return output
+            
+            if TestClass.output is not None:
+                # When using assertions
+                TestClass.outputs[func.__name__] = TestClass.output
+                return TestClass.output
+            else:
+                # output is not None only when using return
+                TestClass.outputs[func.__name__] = output
+                return output
 
         if hasattr(func, "__name__"):
             test_wrapper.__name__ = func.__name__

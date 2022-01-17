@@ -15,6 +15,7 @@ from ..logger import AlphaLogger
 
 from ...libs import converter_lib, sql_lib, io_lib
 
+_CONFIGURATIONS = {}
 
 class AlphaConfig(AlphaClass):
     __reserved = ["user", "configuration", "project", "ip", "platform"]
@@ -52,6 +53,9 @@ class AlphaConfig(AlphaClass):
         self.origin = origin
         self.sub_configurations = {}
         self.core = core
+
+        global _CONFIGURATIONS
+        _CONFIGURATIONS[filepath] = self
 
         super().__init__(log=log)
 

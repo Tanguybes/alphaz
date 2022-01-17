@@ -23,7 +23,7 @@ class AlphaClass:
         return child
 
     def get_attributes(self):
-        return py_lib.get_attributes()
+        return py_lib.get_attributes(self)
 
     def to_json(self):
         return self.get_attributes()

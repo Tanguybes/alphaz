@@ -14,7 +14,7 @@ log = core.get_logger("tests")
 class TestMethod:
     def __init__(
         self,
-        classObject,
+        classTest,
         name: str,
         method,
         category: str,
@@ -28,7 +28,7 @@ class TestMethod:
     ):
         self.name: str = name
         self.method = method
-        self.classObject = classObject
+        self.classTest = classTest
         self.category: str = category
         self.group: str = group
         self.func = func
@@ -48,9 +48,9 @@ class TestMethod:
 
         self.ex: Exception = None
 
-    def test(self, classObject=None, coverage: bool = False):
-        if classObject is None:
-            classObject = self.classObject()
+    def test(self, classTest=None, coverage: bool = False):
+        if classTest is None:
+            classTest = self.classTest()
 
         self.start_time = datetime.datetime.now()
 
@@ -60,16 +60,17 @@ class TestMethod:
 
         self.status = False
         try:
-            result = classObject.test(self.name, coverage=coverage)
+            result = classTest.test(self.name, coverage=coverage)
             self.coverages[self.name] = (
-                classObject.coverages[self.name]
-                if self.name in classObject.coverages
+                classTest.coverages[self.name]
+                if self.name in classTest.coverages
                 else None
             )
             self.status = result if type(result) == bool else False
         except Exception as ex:
             self.ex = ex
-        classObject.end()
+            raise ex
+        classTest.end()
 
         log.info(
             f"Function <{self.name}> of <{type(self).__name__}> in category <{self.category}>: {'X' if not self.status else 'O'}"
@@ -119,8 +120,8 @@ class TestMethod:
         self.update_from(test)
 
     def save(self):
-        classObject = self.classObject()
-        classObject.save(self.name)
+        classTest = self.classTest()
+        classTest.save(self.name)
 
     def is_valid(self):
         return self.status != None and self.status
