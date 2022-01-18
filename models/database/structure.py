@@ -665,6 +665,8 @@ class AlphaDatabase(AlphaDatabaseCore):
     ):
         # model_name = inspect.getmro(model)[0].__name__
         # if self.db_type == "mysql": self.test(close=False)
+        if columns is not None and len(columns) == 0:
+            columns = None
         disabled_relationships = disabled_relationships or []
         disabled_relationships = [x if type(x) is str else (x.key if hasattr(x,"key") else '') for x in disabled_relationships]
 
