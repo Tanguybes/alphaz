@@ -26,6 +26,15 @@ def get_logs_files_names():
     files = glob.glob(log_directory + os.sep + '*.log')
     return [os.path.basename(x) for x in files]
 
+def log_a_message(logger:str, criticality:str, message:str, level:int, monitor:str=None):
+    log = core.get_logger(logger)
+    if log is None:
+        raise AlphaException(f"No {logger=} found")
+    if hasattr(log, criticality):
+        getattr(log, criticality)(message=message, monitor=monitor, level=level)
+        return True 
+    return False
+
 def get_logs_content(name:str=None, node:str=None, content:bool=False, single:bool=False): 
     current_node = platform.uname().node
     if node is not None and node.lower() != current_node.lower():
@@ -42,7 +51,7 @@ def get_logs_content(name:str=None, node:str=None, content:bool=False, single:bo
         return {}
 
     log_directory = core.config.get('directories/logs')
-    separator = "#"
+    separator = "-"
     if not single:
         path_pattern = log_directory + os.sep + (name if name is not None else "") + '*.log*'
     else:
@@ -114,6 +123,16 @@ def get_logs_content_cluster(name:str=None, node:str=None, content:bool=False):
     LOG.info("%s logs files found in cluster: %s, %s"%(len(os_logs_content),platform.uname().node.lower(), ", ".join(in_cluster)))
     os_logs_content = {k: v for k, v in sorted(os_logs_content.items(), key=lambda item: item[1]['modification_time'],reverse=True)}
     return os_logs_content
+
+@route("/log", route_log=False, parameters=[
+    Parameter("logger", default="main"),
+    Parameter("criticality", default="info", options=["debug","info","warning","error","critical"],function=str.lower),
+    Parameter("message"),
+    Parameter("level", ptype=int, default=1),
+    Parameter("monitor", default=None)
+], description="Log a message")
+def log_a_message_route():
+    return log_a_message(**api.get_parameters())
 
 @route("/logs/filesnames", methods=['GET'], route_log=False, parameters=[])
 def get_logs():

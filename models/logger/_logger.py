@@ -17,7 +17,8 @@ TIMINGS = []
 
 base_time = datetime.datetime.now()
 
-
+DEFAULT_FORMAT = "{$date} - {$level:7} - {$pid:5} - {$file:>15}.{$line:<4} - {$name:<14}: $message" # %(processName)s %(filename)s:%(lineno)s
+DEFAUT_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 class NoParsingFilter(logging.Filter):
     def __init__(self, name="", excludes={}, level=None):
         super().__init__(name)
@@ -34,12 +35,8 @@ class NoParsingFilter(logging.Filter):
                         return False
         return True
 
-ERROR_LOGGER = None
-
 class AlphaLogger:
-    date_format = "%Y-%m-%d %H:%M:%S"
-    format_log = "{$date} - {$level:7} - {$pid:5} - {$file:>15}.{$line:<4} - {$name:<14}: $message"  # %(processName)s %(filename)s:%(lineno)s
-
+    error_logger = None
     monitoring_logger = None
 
     def to_json(self):
@@ -53,6 +50,8 @@ class AlphaLogger:
         root: str = None,
         cmd_output: bool = True,
         level: str = "INFO",
+        format_log:str = DEFAULT_FORMAT,
+        date_format:str = DEFAUT_DATE_FORMAT,
         colors=None,
         database=None,
         excludes=None,
@@ -65,6 +64,8 @@ class AlphaLogger:
         self.excludes = excludes
         self.replaces = replaces
         self.config = config
+        self.format_log = format_log
+        self.date_format = date_format
 
         if "ALPHA_LOG_CMD_OUTPUT" in os.environ:
             cmd_output = "Y" in os.environ["ALPHA_LOG_CMD_OUTPUT"].upper()
@@ -136,7 +137,6 @@ class AlphaLogger:
         if module is not None:
             origin  = os.path.basename(module.__file__)
         """
-
         if message is None and ex is not None:
             message = ex
             ex = None
@@ -145,11 +145,6 @@ class AlphaLogger:
 
         if isinstance(message, Exception):
             message = traceback.format_exc()
-
-        if monitor is not None and self.monitoring_logger is None:
-            self.monitoring_logger = AlphaMonitorLogger(
-                "monitoring", root=self.root, cmd_output=False
-            )
 
         self.set_current_date()
 
@@ -167,7 +162,8 @@ class AlphaLogger:
 
         fct = getattr(self.logger, level.lower())
         fct(full_message)
-        if monitor is not None:
+
+        if monitor is not None and self.monitoring_logger is None:
             fct_monitor = getattr(self.monitoring_logger, level.lower())
             fct_monitor(
                 message=full_message.replace(message, f"[{monitor}] {message}")
@@ -176,8 +172,8 @@ class AlphaLogger:
         self.last_level = level.upper()
         self.last_message = message
 
-        if level.upper() in ["CRITICAL", "ERROR", "WARNING"] and ERROR_LOGGER is not None:
-            fct_errors = getattr(ERROR_LOGGER, level.lower())
+        if level.lower() in ["critical", "error", "warning"] and self.error_logger is not None and self.name != "error":
+            fct_errors = getattr(self.error_logger, level.lower())
             fct_errors(full_message)
 
         """if len(TIMINGS) > TIMINGS_LIMIT:
@@ -377,11 +373,6 @@ class AlphaLogger:
                     Processes.status: status,
                 },
             )
-
-
-class AlphaMonitorLogger(AlphaLogger):
-    format_log = "$message"
-
 
 """
 @singleton

@@ -9,5 +9,6 @@
     "database": {"level":"debug","cmd_output":false},
     "alpha": {"level":"info","cmd_output":false},
     "main": {"level":"info"},
-    "errors": {"level":"warning","cmd_output":false}
+    "errors": {"level":"warning","cmd_output":false,"format_log":"$message"},
+    "monitoring": {"level":"warning","cmd_output":false,"format_log":"$message"}
   }

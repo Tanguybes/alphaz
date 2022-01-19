@@ -9,7 +9,7 @@ from flask_sqlalchemy import DefaultMeta
 from sqlalchemy.ext.declarative.clsregistry import _ModuleMarker
 
 from ....models.main import AlphaClass
-from ....models.logger import AlphaLogger, ERROR_LOGGER
+from ....models.logger import AlphaLogger, DEFAULT_FORMAT, DEFAUT_DATE_FORMAT
 from ....libs import io_lib, flask_lib
 
 from ....models.config import AlphaConfig
@@ -75,7 +75,6 @@ class AlphaCore(AlphaClass):
         self.__configure_databases()
     
     def __set_loggers(self):
-        global ERROR_LOGGER
         root_alpha = os.path.dirname(__file__).split("models")[0]
 
         colors_loggers_default_file_path = f"{root_alpha}{os.sep}{CONFIGURATION.DEFAULT_LOGGERS_COLORS_FILEPATH}.json"
@@ -93,7 +92,7 @@ class AlphaCore(AlphaClass):
             loggers_names = list(self.config.get("loggers").keys())
             
             for logger_name in loggers_names:
-                logger_config = self.config.get_config(["loggers", logger_name])
+                logger_config = self.config.get_config(path=["loggers",logger_name])
                 if not logger_name in self.loggers:
                     self.__set_logger(logger_name, logger_config, colors)
 
@@ -103,22 +102,16 @@ class AlphaCore(AlphaClass):
             if loggers_default_config:
                 for logger_name in loggers_default_config.data:
                     if not logger_name in self.loggers:
-                        self.__set_logger(logger_name, loggers_default_config, colors)
+                        self.__set_logger(logger_name, loggers_default_config.get_config(logger_name), colors)
 
-        # main logger
-        if not CONFIGURATION.MAIN_LOGGER_NAME in self.loggers:
-            self.log = AlphaLogger(
-                CONFIGURATION.MAIN_LOGGER_NAME,
-                root=self.logger_root,
-                cmd_output=True,
-                colors=colors,
-            )
-            self.loggers[CONFIGURATION.MAIN_LOGGER_NAME] = self.log
-        else:
-            self.log = self.loggers[CONFIGURATION.MAIN_LOGGER_NAME]
+        self.log = self.loggers[CONFIGURATION.MAIN_LOGGER_NAME]
+        error_logger = self.loggers[CONFIGURATION.ERRORS_LOGGER_NAME]
+        monitoring_logger = self.loggers[CONFIGURATION.MONITORING_LOGGER_NAME]
+        for logger in self.loggers.values():
+            if logger.name in [CONFIGURATION.ERRORS_LOGGER_NAME,CONFIGURATION.MONITORING_LOGGER_NAME]: continue
 
-        if CONFIGURATION.ERRORS_LOGGER_NAME in self.loggers:
-            ERROR_LOGGER = self.loggers[CONFIGURATION.ERRORS_LOGGER_NAME]
+            logger.monitoring_logger = monitoring_logger
+            logger.error_logger = error_logger
 
     def __set_logger(self, logger_name, logger_config, colors):
         root = logger_config.get("root")
@@ -134,28 +127,17 @@ class AlphaCore(AlphaClass):
             excludes=logger_config.get("excludes"),
             config=logger_config.get("config"),
             replaces=logger_config.get("replaces"),
+            format_log=logger_config.get("format_log", default=DEFAULT_FORMAT),
+            date_format=logger_config.get("date_format", default=DEFAUT_DATE_FORMAT),
         )
 
     def get_logger(self, name=CONFIGURATION.MAIN_LOGGER_NAME, default_level="INFO") -> AlphaLogger:
         self._check_configuration()
 
-        colors = (
-            self.config.get("colors/loggers/rules")
-            if self.config.get("colors/loggers/active")
-            else None
-        )
-        if not CONFIGURATION.MAIN_LOGGER_NAME in self.loggers:
-            self.loggers[CONFIGURATION.MAIN_LOGGER_NAME] = AlphaLogger(
-                name,
-                filename=CONFIGURATION.MAIN_LOGGER_NAME,
-                root=self.logger_root,
-                level=default_level,
-                colors=colors,
-            )
-        if name not in self.loggers:
-            self.warning(f"{name} is not configured as a logger")
+        if name.lower() not in self.loggers:
+            self.warning(f"{name=} is not configured as a logger")
             return self.loggers[CONFIGURATION.MAIN_LOGGER_NAME]
-        return self.loggers[name]
+        return self.loggers[name.lower()]
 
     def __configure_databases(self):
         if not self.config.is_path("databases"):

@@ -4,6 +4,8 @@ class CONFIGURATION:
     MAIN_LOGGER_NAME = "main"
     ALPHA_LOGGER_NAME = "alpha"
     ERRORS_LOGGER_NAME = "errors"
+    MONITORING_LOGGER_NAME = "monitoring"
+    
     API_LOGGER_NAME = "api"
     HTTP_LOGGER_NAME = "http"
 
