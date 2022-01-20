@@ -124,7 +124,12 @@ class Parameter:
 
         dataPost = request.get_json()
 
+        dict_values = request.args.to_dict(flat=False)
         self._value = request.args.get(self.name, self.default)
+
+        if (self.ptype == list or py_lib.is_subtype(self.ptype, typing.List)):
+            if self._value is None or not ";" in self._value:
+                self._value = dict_values[self.name] if self.name in dict_values else self.default
 
         if self._value is None and dataPost is not None and self.name in dataPost:
             self._value = dataPost[self.name]

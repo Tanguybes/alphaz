@@ -37,8 +37,15 @@ def get_api_data(
     if hasattr(requests, method_str):
         fct = getattr(requests, method_str)
 
+    for key, value in params.items():
+        if type(value) == list:
+            params[key] = ";".join([x if x is not None else "" for x in value])
+
     try:
-        resp = fct(url=url, params=params)
+        if method_str == "post":
+            resp = fct(url=url, data=params)
+        else:
+            resp = fct(url=url, params=params)
     except Exception as ex:
         raise AlphaException(f"Fail to contact {url}", ex=ex)
 
