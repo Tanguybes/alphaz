@@ -25,7 +25,7 @@ if LOGIN_MODE == "ldap":
     LDAP_SERVER = API.conf.get("auth/ldap/server")
     BASE_DN = API.conf.get("auth/ldap/baseDN")
     LDAP_DATA = API.conf.get("auth/ldap/user_data")
-    LDAP_USERS_FILTERS = API.conf.get("auth/ldap/users_filters", default="uid={uid}"), 
+    LDAP_USERS_FILTERS = API.conf.get("auth/ldap/users_filters", default="uid={uid}") 
     LDAP_USER_FILTERS = API.conf.get("auth/ldap/user_filters", default="uid={username}")
 
 # Serve for registration
