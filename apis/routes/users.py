@@ -1,5 +1,3 @@
-from flask import request
-
 from ...utils.api import route, Parameter
 from ...models.main import AlphaException
 from .. import users

@@ -41,8 +41,10 @@ def merge_dict(d1: dict, d2: dict) -> dict:
     Returns:
         dict: [description]
     """
+    if d1 is None or type(d1) != dict:
+        return d1
     for k, v in d1.items():
-        if k in d2:
+        if k in d2 and type(d2) == dict:
             d2[k] = merge_dict(v, d2[k])
     d1.update(d2)
     return d1

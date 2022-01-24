@@ -1,6 +1,6 @@
 import json, datetime
 import typing
-from flask import request
+
 from sqlalchemy.orm.base import object_mapper
 from sqlalchemy.orm.exc import UnmappedInstanceError
 from sqlalchemy.ext.declarative import DeclarativeMeta
@@ -53,6 +53,7 @@ class ParameterMode(Enum):
 
 class Parameter:
     _value = None
+    no_log:bool = False
 
     def __init__(
         self,
@@ -104,57 +105,59 @@ class Parameter:
             raise AlphaException(
                 "api_wrong_parameter_option",
                 parameters={
+                    "value": value,
                     "parameter": self.name,
                     "options": str(self.options),
-                    "value": value,
                 },
             )
     
-    def set_value(self):
+    def set_value(self, method:str, dataDict, json, form, args):
         """Set parameter value
 
         Raises:
             AlphaException: [description]
-            AlphaException: [description]
-            AlphaException: [description]
-            AlphaException: [description]
-            AlphaException: [description]
-            AlphaException: [description]
         """
+        # dataDict: for list GET
+        self._value = self.default
 
-        dataPost = request.get_json()
+        if form is not None and self.name in form:
+            self._value = form[self.name]
+        elif json is not None and self.name in json:
+            self._value = json[self.name] 
+        else:
+            self._value = args.get(self.name, self.default)
 
-        dict_values = request.args.to_dict(flat=False)
-        self._value = request.args.get(self.name, self.default)
-
+        # List
         if (self.ptype == list or py_lib.is_subtype(self.ptype, typing.List)):
-            if self._value is None or not ";" in self._value:
-                self._value = dict_values[self.name] if self.name in dict_values else self.default
-            if self._value is None or (not ";" in self._value and self._value == ['']):
+            if self._value is None:
+                self._value = self.default
+            elif not ";" in self._value and self._value == ['']:
                 self._value = []
+            elif not ";" in self._value:
+                self._value = dataDict[self.name] if self.name in dataDict else self.default
 
-        if self._value is None and dataPost is not None and self.name in dataPost:
-            self._value = dataPost[self.name]
+        if self._value is None and form is not None and self.name in form:
+            self._value = form[self.name]
         if (
             self._value is None
-            and request.form is not None
-            and self.name in request.form
+            and form is not None
+            and self.name in form
         ):
-            self._value = request.form[self.name]
+            self._value = form[self.name]
 
         if isinstance(self.ptype, DeclarativeMeta):
             if self._value is None:
                 parameters = {
-                    x: y for x, y in dataPost.items() if hasattr(self.ptype, x)
+                    x: y for x, y in form.items() if hasattr(self.ptype, x)
                 }
             else:
                 parameters = json_lib.load_json(self._value)
             self._value = self.ptype(**parameters)
+
         if self.ptype == dict:
             self._value = json_lib.load_json(self._value)
 
         if self.required and self._value is None:
-            missing = True
             raise AlphaException(
                 "api_missing_parameter", parameters={"parameter": self.name}
             )
@@ -270,6 +273,9 @@ class Parameter:
         if hasattr(self.ptype, "metadata") and not hasattr(self._value, "metadata"):
             r = json.loads(self._value)
             self._value = self.ptype(**r)
+
+        if self.ptype == str:
+            self.__check_options(str(self._value))
 
         if self.function is not None:
             self._value = self.function(self._value)

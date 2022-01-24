@@ -1,5 +1,7 @@
+import copy
 import traceback
-import typing
+import typing 
+from typing import List
 from flask import (
     request,
     send_file,
@@ -13,6 +15,7 @@ from flask import (
 from ..models.main import AlphaException
 from ..models.api import Parameter, ParameterMode
 from ..models.api._route import Route
+from ..models.tests._levels import Levels
 
 from core import core
 
@@ -27,6 +30,7 @@ ROUTES = {}
 # toolbar = flask_debugtoolbar.DebugToolbarExtension(api)
 
 default_parameters = [
+    Parameter("no_log", ptype=bool, private=True, cacheable=False, default=False),
     Parameter("reset_cache", ptype=bool, default=False, private=True, cacheable=False),
     Parameter("requester", ptype=str, private=True, cacheable=False),
     Parameter("format", ptype=str, default="json", private=True, cacheable=False),
@@ -35,7 +39,7 @@ default_parameters = [
 default_parameters_names = [p.name for p in default_parameters]
 
 
-def _process_parameters(path: str, parameters):
+def _process_parameters(path: str, parameters:List[Parameter]) -> List[Parameter]:
     parameters = [] if parameters is None else parameters
     overrides = []
     for i, parameter in enumerate(parameters):
@@ -50,14 +54,14 @@ def _process_parameters(path: str, parameters):
                 f"Parameter could not be named <{parameter.name}> for route <{path}>!"
             )
             exit()
-    parameters.extend(
-        [
+    
+    output_parameter = [
             parameter
             for parameter in default_parameters
             if not parameter.name in overrides
         ]
-    )
-    return parameters
+    output_parameter.extend(parameters)
+    return output_parameter
 
 
 def route(
@@ -93,6 +97,7 @@ def route(
                 uuid_request,
                 path,
                 parameters,
+                request_state=request,
                 cache=cache,
                 timeout=timeout,
                 admin=admin,
@@ -103,30 +108,28 @@ def route(
                 jwt_secret_key=""
                 if not "JWT_SECRET_KEY" in api.config
                 else api.config["JWT_SECRET_KEY"],
-                mode=mode,
+                mode=mode
             )
             api.routes_objects[uuid_request] = __route
             api.routes_objects = {
                 x: y for x, y in api.routes_objects.items() if not y.is_outdated()
             }
 
-            for parameter in parameters:
-                try:
-                    parameter.set_value()
-                except Exception as ex:
-                    __route.set_error(ex)
-                    return __route.get_return()
+            if __route.ex is not None:
+                return __route.get_return()
 
             # check permissions
             if logged:
                 user = api.get_logged_user()
                 token = __route.get_token()
                 if logged and token is None:
-                    LOG.warning("Wrong permission: empty token")
+                    if not __route.no_log:
+                        LOG.warning("Wrong permission: empty token")
                     __route.access_denied()
                     return __route.get_return()
                 elif logged and (user is None or len(user) == 0):
-                    LOG.warning("Wrong permission: wrong user <%s>" % user)
+                    if not __route.no_log:
+                        LOG.warning(f"Wrong permission: wrong {user=}")
                     __route.access_denied()
                     return __route.get_return()
                 if len(access_strings) != 0:
@@ -163,7 +166,8 @@ def route(
                     ):
                         raise __route.set_error(ex)
                     if not "alpha" in str(type(ex)).lower():
-                        LOG.error(ex)
+                        if not __route.no_log:
+                            LOG.error(ex)
                         __route.set_error(AlphaException(ex))
                     else:
                         __route.set_error(ex)

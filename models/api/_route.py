@@ -1,4 +1,4 @@
-import datetime, os
+import datetime, os, copy
 from typing import List, Dict
 
 from flask import (
@@ -78,11 +78,15 @@ def check_format(data, depth=3):
 
 
 class Route(Requests):
+    no_log = False
+    ex = None
+
     def __init__(
         self,
         uuid: str,
         route: str,
         parameters: List[Parameter],
+        request_state,
         cache: bool = False,
         logged: bool = False,
         admin: bool = False,
@@ -101,11 +105,17 @@ class Route(Requests):
         self.admin: bool = admin
         self.description = description
 
-        self.parameters: Dict[Parameter] = {y.name: y for y in parameters}
+        self.full_path = request_state.full_path
+        self.files = request.files 
 
-        self.lasttime = datetime.datetime.now()
+        self.args = request_state.args
+        self.form = request.form
+        self.json = request.get_json()
+        self.dict = request.args.to_dict(flat=False)
 
         self.mode = mode.lower() if mode != None else "data"
+
+        self.lasttime = datetime.datetime.now()
 
         self.data = {}
         self.returned = {}
@@ -118,8 +128,22 @@ class Route(Requests):
 
         self.cache_dir = cache_dir
         self.log = log
+        self.method = request_state.method
 
         self.init_return()
+
+        self.parameters: Dict[Parameter] = {y.name: copy.copy(y) for y in parameters}
+        for parameter in self.parameters.values():
+            try:
+                parameter.set_value(self.method, self.dict, self.json, self.form, self.args)
+                if parameter.name == "no_log":
+                    self.no_log = parameter.value
+                else:
+                    parameter.no_log = self.no_log
+            except Exception as ex:
+                self.set_error(ex)
+                self.ex = ex
+                raise ex
 
     def is_outdated(self):
         return (datetime.datetime.now() - self.lasttime).total_seconds() > 60 * 5
@@ -158,10 +182,10 @@ class Route(Requests):
 
     def get_key(self):
         route = self.route if not self.route[0] == "/" else self.route[1:]
-        key = "%s%s" % (route, "__")
+        key = f"{route}__"
         for name, parameter in self.parameters.items():
             if parameter.cacheable and not parameter.private:
-                key += "%s-%s_" % (parameter.name, parameter.value)
+                key += f"{parameter.name}-{parameter.value}_"
         return key
 
     def get_cache_path(self):
@@ -173,7 +197,7 @@ class Route(Requests):
 
     def is_cache(self):
         cache_path = self.get_cache_path()
-        if cache_path is None:
+        if cache_path is None and not self.no_log:
             self.log.error("Cache path does not exist")
             return False
         return os.path.exists(cache_path)
@@ -181,16 +205,17 @@ class Route(Requests):
     def set_cache(self):
         self.lasttime = datetime.datetime.now()
         cache_path = self.get_cache_path()
-        if cache_path is None:
+        if cache_path is None and not self.no_log:
             self.log.error("cache path does not exist")
             return
         try:
             returned = io_lib.archive_object(self.data, cache_path)
         except Exception as ex:
-            self.log.error(f"Cannot cache route {self.get_key()}: {str(ex)}")
+            if not self.no_log:
+                self.log.error(f"Cannot cache route {self.get_key()}: {str(ex)}")
 
     def get_cached(self):
-        if self.log:
+        if self.log and not self.no_log:
             self.log.info(f"GET cache for {self.route}")
 
         if self.is_cache():
@@ -202,11 +227,8 @@ class Route(Requests):
                 return True
         return False
 
-        self.set_error("No cache")
-        return False
-
     def set_status(self, status):
-        self.returned["status"] = status
+        self.returned["status"] = str(status)
 
     def timeout(self):
         self.returned["status"] = "timeout"
@@ -224,12 +246,13 @@ class Route(Requests):
         if type(message) == AlphaException:
             description = message.description
             message = message.name
-            self.log.error(message + " - " + description, level=2)
+            if not self.no_log:
+                self.log.error(message + " - " + description, level=2)
 
         self.mode == "data"
-        self.returned["status"] = message
+        self.returned["status"] = str(message)
         self.returned["status_code"] = 520
-        self.returned["status_description"] = description if description else message
+        self.returned["status_description"] = str(description if description else message)
         self.returned["error"] = 1
 
     def print(self, message):
@@ -275,7 +298,8 @@ class Route(Requests):
         if "get_file" in self.route:
             file_path, filename = self.file_to_get
             if file_path is not None and filename is not None:
-                self.info("Sending file %s from %s" % (filename, file_path))
+                if not self.no_log:
+                    self.info(f"Sending file {filename} from {file_path}")
                 try:
                     return send_from_directory(
                         file_path,

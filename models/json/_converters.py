@@ -57,11 +57,15 @@ class AlphaJSONEncoder(JSONEncoder):
                 if isinstance(o, key_type):
                     returned_value = fct(o)
                     return returned_value
-            iterable = iter(o)
+            try:
+                iterable = iter(o)
+            except:
+                iterable = None
         except TypeError as ex:
-            print(f"Cannot convert {o}: {ex}")
+            print(f"Cannot convert {o} to json: {ex}")
         else:
-            return list(iterable)
+            if iterable is not None:
+                return list(iterable)
 
         try:
             return JSONEncoder.default(self, o=o)

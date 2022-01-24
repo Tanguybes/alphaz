@@ -21,12 +21,12 @@ LOG = core.get_logger("users")
 LOGIN_MODE = core.api.conf.get("auth/mode")
 if LOGIN_MODE == "ldap":
     import ldap
-
+    #TODO! update default value or warning
     LDAP_SERVER = API.conf.get("auth/ldap/server")
     BASE_DN = API.conf.get("auth/ldap/baseDN")
     LDAP_DATA = API.conf.get("auth/ldap/user_data")
-    LDAP_USERS_FILTERS = API.conf.get("auth/ldap/users_filters")
-    LDAP_USER_FILTERS = API.conf.get("auth/ldap/user_filters")
+    LDAP_USERS_FILTERS = API.conf.get("auth/ldap/users_filters", default="uid={uid}"), 
+    LDAP_USER_FILTERS = API.conf.get("auth/ldap/user_filters", default="uid={username}")
 
 # Serve for registration
 def try_register_user(
@@ -307,7 +307,7 @@ def try_login(username, password):
             expire=expire,
         )
     ):
-        raise AlphaException("error")
+        raise AlphaException("error") #TODO! update
 
     return {
         **{x: y for x, y in user_data.items() if not x in data_to_jwt},

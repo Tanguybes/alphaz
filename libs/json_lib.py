@@ -55,6 +55,8 @@ def jsonify_data(data, string_output: bool = False):
 def load_json(string: str):
     if string is None:
         return None
+    if type(string) != str:
+        string = str(string)
     string = string.strip()
     
     if string[0] == "{" and string[-1] == "}":

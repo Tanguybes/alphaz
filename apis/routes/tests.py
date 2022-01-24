@@ -36,27 +36,3 @@ def get_coverage_file():
     coverages = io_lib.unarchive_object(api["file"])
     return coverages
 
-
-@route("/tests/methods", methods=["GET"])
-def get_method_1():
-    return "GET"
-
-
-@route("/tests/methods", methods=["POST"])
-def get_method_2():
-    return "POST"
-
-
-@route("/tests/methods", methods=["PUT"])
-def get_method_3():
-    return "PUT"
-
-
-@route("/tests/methods", methods=["PATCH"])
-def get_method_4():
-    return "PATCH"
-
-
-@route("/tests/methods", methods=["DELETE"])
-def get_method_5():
-    return "DELETE"
