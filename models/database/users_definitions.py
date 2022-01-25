@@ -1,3 +1,4 @@
+from email.mime import application
 from sqlalchemy import (
     Table,
     Column,
@@ -98,6 +99,12 @@ class Role(db.Model, AlphaTableUpdateDate):
     name = AlphaColumn(String(200), primary_key=True)
     description = AlphaColumn(Text)
     activated = AlphaColumn(Boolean, default=True)
+    id_app = Column(Integer, ForeignKey("application.id"),)
+
+    application = relationship(
+        "Application",
+        backref=backref(__tablename__ + "s", lazy=True, cascade="all, delete-orphan"),
+    )
 
 
 class RolePermission(db.Model, AlphaTableUpdateDate):
@@ -149,3 +156,14 @@ class Notification(db.Model, AlphaTableUpdateDate):
     element_type = AlphaColumn(String(30))
     element_action = AlphaColumn(String(20))
     element_id = AlphaColumn(Integer)
+
+
+class Application(db.Model, AlphaTableUpdateDate):
+    __bind_key__ = BIND
+    __tablename__ = "application"
+
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(20), nullable=False)
+    description = Column(String(255))
+
